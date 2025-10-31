@@ -1,0 +1,301 @@
+---
+title: "Installation"
+description: "Get Hive up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Hive, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Python (v3.10 or higher)">
+    ```bash
+    # Check your Python version
+    python --version
+    # or
+    python3 --version
+
+    # Should output Python 3.10.0 or higher
+    ```
+
+    If you need to install or upgrade Python:
+    - **macOS**: `brew install python@3.11`
+    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    - **Windows**: Download from [python.org](https://www.python.org)
+  </Accordion>
+
+  <Accordion title="pip (Python Package Installer)">
+    ```bash
+    # Check if pip is installed
+    pip --version
+    # or
+    pip3 --version
+    ```
+
+    Usually comes with Python. If missing:
+    ```bash
+    python -m ensurepip --upgrade
+    ```
+  </Accordion>
+
+  <Accordion title="LLM API Keys">
+    You'll need API keys for the LLMs you want to use:
+    - **Claude**: Anthropic API key
+    - **OpenAI**: OpenAI API key
+    - **Gemini**: Google AI API key
+    - Others as needed
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="pip (Recommended)">
+    Install Hive via pip:
+
+    ```bash
+    pip install automagik-hive
+    ```
+
+    Verify installation:
+
+    ```bash
+    hive --version
+    ```
+  </Tab>
+
+  <Tab title="pipx (Isolated)">
+    Install Hive in an isolated environment:
+
+    ```bash
+    # Install pipx if you don't have it
+    pip install pipx
+    pipx ensurepath
+
+    # Install Hive
+    pipx install automagik-hive
+    ```
+
+    Great for avoiding dependency conflicts!
+  </Tab>
+
+  <Tab title="uvx (Instant)">
+    Run Hive without installing (requires uv):
+
+    ```bash
+    # Install uv first
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Run Hive
+    uvx automagik-hive
+    ```
+
+    Perfect for trying it out!
+  </Tab>
+
+  <Tab title="From Source">
+    Clone and install from source:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-hive.git
+    cd automagik-hive
+
+    # Create virtual environment
+    python -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+    # Install in development mode
+    pip install -e .
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, create your first agent team configuration:
+
+```bash
+# Create a new Hive workspace
+hive init
+
+# This creates:
+# - .hive/ directory
+# - agents.yaml (agent configuration)
+# - .env (API keys)
+```
+
+Configure your agents in `agents.yaml`:
+
+```yaml
+version: "1.0"
+
+agents:
+  - name: researcher
+    role: "Research and analyze information"
+    llm: claude
+    memory: true
+    tools:
+      - web-search
+      - file-read
+
+  - name: coder
+    role: "Write and review code"
+    llm: claude
+    memory: true
+    tools:
+      - code-edit
+      - bash
+
+memory:
+  type: vector
+  provider: qdrant
+  persist: true
+
+mcp:
+  enabled: true
+  servers:
+    - name: filesystem
+      command: npx
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/workspace"]
+```
+
+Set up your API keys in `.env`:
+
+```bash
+ANTHROPIC_API_KEY=your-anthropic-api-key
+OPENAI_API_KEY=your-openai-api-key
+GOOGLE_API_KEY=your-google-api-key
+```
+
+<Warning>
+**Security**: Never commit `.env` to version control! Add it to `.gitignore`.
+</Warning>
+
+---
+
+## Start Hive
+
+Start the Hive orchestrator:
+
+```bash
+# Start with default configuration
+hive start
+
+# Or with hot-reload enabled
+hive start --hot-reload
+
+# Specify custom config file
+hive start --config my-agents.yaml
+```
+
+You should see output like:
+
+```
+🐝 Hive v1.0.0
+✓ Configuration loaded
+✓ Memory system initialized (Qdrant)
+✓ MCP servers started
+✓ Agents spawned: researcher, coder
+✓ Hot-reload enabled
+
+Hive is ready! Listening on http://localhost:8000
+```
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+hive --version
+
+# List configured agents
+hive agents list
+
+# Test memory system
+hive memory test
+
+# Check MCP servers
+hive mcp status
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: hive">
+    Make sure pip's bin directory is in your PATH:
+
+    ```bash
+    # Find where pip installs binaries
+    python -m site --user-base
+
+    # Add to PATH (add to ~/.bashrc or ~/.zshrc)
+    export PATH="$PATH:$(python -m site --user-base)/bin"
+
+    # Reload shell
+    source ~/.bashrc
+    ```
+  </Accordion>
+
+  <Accordion title="Vector database connection errors">
+    Hive uses Qdrant for memory by default. Make sure it's running:
+
+    ```bash
+    # Install and start Qdrant with Docker
+    docker run -p 6333:6333 qdrant/qdrant
+
+    # Or use in-memory mode (no persistence)
+    # Set in agents.yaml:
+    # memory:
+    #   type: vector
+    #   provider: in-memory
+    ```
+  </Accordion>
+
+  <Accordion title="Hot-reload not working">
+    Make sure you're using a supported file system and the config file is writable:
+
+    ```bash
+    # Check file permissions
+    ls -la agents.yaml
+
+    # Restart with verbose logging
+    hive start --hot-reload --verbose
+    ```
+  </Accordion>
+
+  <Accordion title="MCP server errors">
+    Check that required NPM packages are installed:
+
+    ```bash
+    # Install MCP filesystem server
+    npm install -g @modelcontextprotocol/server-filesystem
+
+    # Verify MCP servers
+    hive mcp check
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/hive/quickstart">
+    Deploy your first agent team
+  </Card>
+  <Card title="Introduction" icon="book" href="/hive/introduction">
+    Learn more about Hive
+  </Card>
+</CardGroup>

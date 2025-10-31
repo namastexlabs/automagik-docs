@@ -1,0 +1,549 @@
+---
+title: "Quick Start"
+description: "Create your first automated workflow in 5 minutes"
+icon: "rocket"
+---
+
+## Create Your First Automated Workflow in 5 Minutes
+
+This guide will walk you through setting up Spark and creating a workflow that runs automatically on a schedule.
+
+---
+
+## Step 1: Initialize Spark
+
+```bash
+# Initialize Spark workspace
+spark init
+
+# This creates:
+# - .spark/ directory
+# - workflows/ directory
+# - config.json
+```
+
+---
+
+## Step 2: Configure Spark
+
+Edit `config.json`:
+
+```json
+{
+  "scheduler": {
+    "timezone": "America/New_York",
+    "maxConcurrent": 5
+  },
+  "monitoring": {
+    "enabled": true,
+    "logLevel": "info"
+  },
+  "notifications": {
+    "enabled": true,
+    "onFailure": true
+  }
+}
+```
+
+---
+
+## Step 3: Create Your First Workflow
+
+Create `workflows/daily-standup.yaml`:
+
+```yaml
+name: daily-standup
+description: Daily standup report generation
+schedule: "0 9 * * 1-5"  # Monday-Friday at 9 AM
+timezone: America/New_York
+
+tasks:
+  - name: get-commits
+    type: git
+    action: log
+    args:
+      since: "24 hours ago"
+      format: "- %s by %an"
+
+  - name: get-prs
+    type: github
+    action: list-prs
+    args:
+      state: open
+      repo: "owner/repo"
+
+  - name: format-report
+    type: script
+    script: |
+      echo "# Daily Standup - $(date +%Y-%m-%d)"
+      echo ""
+      echo "## Yesterday's Commits"
+      echo "$TASK_get_commits_OUTPUT"
+      echo ""
+      echo "## Open PRs"
+      echo "$TASK_get_prs_OUTPUT"
+
+  - name: send-to-slack
+    type: slack
+    channel: "#daily-standup"
+    message: "{{ tasks.format-report.output }}"
+
+notifications:
+  onSuccess: true
+  onFailure: true
+```
+
+<Tip>
+Use [crontab.guru](https://crontab.guru) to build cron expressions easily!
+</Tip>
+
+---
+
+## Step 4: Test Your Workflow
+
+Before scheduling, test it:
+
+```bash
+# Dry run (doesn't execute, just validates)
+spark workflow validate daily-standup
+
+# Test run (executes once)
+spark workflow run daily-standup --test
+
+# Check output
+spark workflow logs daily-standup --last
+```
+
+---
+
+## Step 5: Start the Scheduler
+
+```bash
+# Start Spark
+spark start
+
+# You should see:
+# ⚡ Spark v1.0.0
+# ✓ Workflows loaded: 1
+# ✓ Scheduler started
+# ✓ Next execution: daily-standup at 2025-10-31 09:00:00
+```
+
+---
+
+## Real-World Example: Automated Dependency Updates
+
+Create a workflow that checks for dependency updates weekly:
+
+```yaml
+name: dependency-updates
+description: Weekly dependency update check
+schedule: "0 10 * * 1"  # Every Monday at 10 AM
+
+tasks:
+  - name: check-npm-updates
+    type: script
+    script: |
+      npm outdated --json > outdated.json
+
+  - name: check-python-updates
+    type: script
+    script: |
+      pip list --outdated --format=json > pip-outdated.json
+
+  - name: create-pr-if-updates
+    type: script
+    script: |
+      if [ -s outdated.json ] || [ -s pip-outdated.json ]; then
+        # Create branch
+        git checkout -b deps/weekly-updates-$(date +%Y%m%d)
+
+        # Update dependencies
+        npm update
+        pip install --upgrade -r requirements.txt
+
+        # Commit and push
+        git add package*.json requirements.txt
+        git commit -m "chore: weekly dependency updates"
+        git push origin deps/weekly-updates-$(date +%Y%m%d)
+
+        # Create PR
+        gh pr create \
+          --title "Weekly Dependency Updates" \
+          --body "Automated dependency updates from Spark"
+      fi
+
+retryOn:
+  - network-error
+
+notifications:
+  onSuccess: true
+  channels: ["slack", "email"]
+```
+
+---
+
+## Common Workflow Patterns
+
+<Tabs>
+  <Tab title="Daily Reports">
+    ```yaml
+    name: daily-metrics
+    schedule: "0 8 * * *"  # Every day at 8 AM
+
+    tasks:
+      - name: query-database
+        type: sql
+        query: "SELECT COUNT(*) as users FROM users WHERE created_at >= NOW() - INTERVAL 1 DAY"
+
+      - name: generate-chart
+        type: python
+        script: |
+          import matplotlib.pyplot as plt
+          # Generate chart from query results
+
+      - name: send-report
+        type: email
+        to: "team@example.com"
+        subject: "Daily Metrics Report"
+        attachments:
+          - "metrics.png"
+    ```
+  </Tab>
+
+  <Tab title="Continuous Monitoring">
+    ```yaml
+    name: health-check
+    schedule: "*/15 * * * *"  # Every 15 minutes
+
+    tasks:
+      - name: check-api
+        type: http
+        url: "https://api.example.com/health"
+        expect: 200
+
+      - name: check-database
+        type: sql
+        query: "SELECT 1"
+
+      - name: alert-on-failure
+        type: slack
+        channel: "#alerts"
+        message: "🚨 Health check failed!"
+        onlyIf: "{{ tasks.check-api.failed or tasks.check-database.failed }}"
+    ```
+  </Tab>
+
+  <Tab title="Backup Automation">
+    ```yaml
+    name: database-backup
+    schedule: "0 2 * * *"  # Every day at 2 AM
+
+    tasks:
+      - name: create-backup
+        type: script
+        script: |
+          pg_dump mydb > backup-$(date +%Y%m%d).sql
+
+      - name: compress
+        type: script
+        script: |
+          gzip backup-*.sql
+
+      - name: upload-to-s3
+        type: aws
+        action: s3-upload
+        bucket: "my-backups"
+        file: "backup-*.sql.gz"
+
+      - name: cleanup-old
+        type: script
+        script: |
+          find . -name "backup-*.sql.gz" -mtime +30 -delete
+
+    retryAttempts: 3
+    notifications:
+      onFailure: true
+      channels: ["email", "slack"]
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Workflow Features
+
+### Conditional Execution
+
+```yaml
+tasks:
+  - name: check-condition
+    type: script
+    script: |
+      # Exit 0 for true, 1 for false
+      [ "$(date +%u)" -lt 6 ] && exit 0 || exit 1
+
+  - name: weekday-only-task
+    type: script
+    runIf: "{{ tasks.check-condition.success }}"
+    script: |
+      echo "This runs on weekdays only"
+```
+
+### Parallel Tasks
+
+```yaml
+tasks:
+  - name: task-group-1
+    parallel:
+      - name: build-frontend
+        type: script
+        script: npm run build
+
+      - name: build-backend
+        type: script
+        script: go build
+
+      - name: run-tests
+        type: script
+        script: npm test
+```
+
+### Error Handling
+
+```yaml
+tasks:
+  - name: risky-task
+    type: script
+    script: ./might-fail.sh
+    retryAttempts: 3
+    retryDelay: 60  # seconds
+    continueOnError: false
+
+onError:
+  - name: cleanup
+    type: script
+    script: ./cleanup.sh
+
+  - name: notify
+    type: slack
+    channel: "#alerts"
+    message: "Workflow failed: {{ error.message }}"
+```
+
+---
+
+## Monitoring & Debugging
+
+```bash
+# View all workflows
+spark workflow list
+
+# Check execution history
+spark history --workflow daily-standup --limit 10
+
+# View logs
+spark logs --workflow daily-standup --tail 50
+
+# Real-time monitoring
+spark monitor
+
+# Check next scheduled runs
+spark schedule --upcoming 24h
+```
+
+---
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Code Quality Checks" icon="magnifying-glass">
+    ```yaml
+    schedule: "0 */4 * * *"  # Every 4 hours
+    tasks:
+      - run linters
+      - run tests
+      - check coverage
+      - update status badge
+    ```
+  </Card>
+
+  <Card title="Data Pipelines" icon="database">
+    ```yaml
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    tasks:
+      - extract data from APIs
+      - transform and clean
+      - load to warehouse
+      - update dashboards
+    ```
+  </Card>
+
+  <Card title="Security Scans" icon="shield">
+    ```yaml
+    schedule: "0 0 * * 0"  # Weekly on Sunday
+    tasks:
+      - scan dependencies
+      - check for CVEs
+      - audit Docker images
+      - create security report
+    ```
+  </Card>
+
+  <Card title="Content Publishing" icon="newspaper">
+    ```yaml
+    schedule: "0 10 * * 1,3,5"  # Mon/Wed/Fri
+    tasks:
+      - generate content
+      - create images
+      - publish to blog
+      - share on social media
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Pro Tips
+
+<AccordionGroup>
+  <Accordion title="Use Environment Variables">
+    Keep secrets out of workflows:
+
+    ```yaml
+    tasks:
+      - name: deploy
+        type: script
+        env:
+          API_KEY: "${DEPLOY_API_KEY}"
+          DB_PASSWORD: "${DB_PASS}"
+        script: |
+          ./deploy.sh
+    ```
+
+    Set in `.env`:
+    ```bash
+    DEPLOY_API_KEY=secret-key
+    DB_PASS=secret-pass
+    ```
+  </Accordion>
+
+  <Accordion title="Test Before Scheduling">
+    Always test workflows before letting them run automatically:
+
+    ```bash
+    # Validate syntax
+    spark workflow validate my-workflow
+
+    # Dry run
+    spark workflow run my-workflow --dry-run
+
+    # Test run
+    spark workflow run my-workflow --test
+
+    # Only then, schedule it
+    spark start
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Execution Times">
+    Track how long tasks take:
+
+    ```bash
+    # View execution stats
+    spark stats --workflow daily-standup
+
+    # Optimize slow tasks
+    spark analyze --workflow daily-standup
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Workflows" icon="diagram-project">
+    Learn:
+    - Multi-stage workflows
+    - Dynamic task generation
+    - Workflow templates
+  </Card>
+
+  <Card title="Integrations" icon="plug">
+    Connect to:
+    - GitHub Actions
+    - Jenkins
+    - AWS Lambda
+    - Custom webhooks
+  </Card>
+
+  <Card title="Notifications" icon="bell">
+    Configure:
+    - Slack alerts
+    - Email reports
+    - Discord notifications
+    - Custom webhooks
+  </Card>
+
+  <Card title="Production Deployment" icon="server">
+    Deploy:
+    - As systemd service
+    - In Docker
+    - On Kubernetes
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Workflow not executing">
+    Check scheduler and cron expression:
+    ```bash
+    spark status
+    spark workflow validate my-workflow
+
+    # Verify cron expression at crontab.guru
+    # Test manually first
+    spark workflow run my-workflow --test
+    ```
+  </Accordion>
+
+  <Accordion title="Tasks failing silently">
+    Enable debug logging:
+    ```bash
+    # In config.json
+    {
+      "monitoring": {
+        "logLevel": "debug"
+      }
+    }
+
+    # Restart Spark
+    spark restart --debug
+    ```
+  </Accordion>
+
+  <Accordion title="Timezone issues">
+    Verify timezone settings:
+    ```bash
+    # Check current timezone
+    spark config get scheduler.timezone
+
+    # Set explicitly in workflow
+    # In workflow YAML:
+    # timezone: "America/Los_Angeles"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Congratulations!** 🎉 You've created your first automated workflow with Spark. Your AI agents now work 24/7!
+
+<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+  Share your workflows and automation ideas
+</Card>

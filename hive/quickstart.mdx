@@ -1,0 +1,436 @@
+---
+title: "Quick Start"
+description: "Deploy your first AI agent team in 5 minutes"
+icon: "rocket"
+---
+
+## Deploy Your First Agent Team in 5 Minutes
+
+This guide will walk you through creating a multi-agent team with Hive, complete with memory, RAG, and MCP integration.
+
+---
+
+## Step 1: Initialize Hive
+
+```bash
+# Initialize Hive workspace
+hive init
+
+# This creates:
+# - .hive/ directory
+# - agents.yaml (your agent configuration)
+# - .env (API keys)
+```
+
+---
+
+## Step 2: Configure Your Agents
+
+Edit `agents.yaml` to define your team:
+
+```yaml
+version: "1.0"
+
+agents:
+  - name: researcher
+    role: "Research information and gather data"
+    llm: claude
+    model: "claude-3-5-sonnet-20241022"
+    memory: true
+    tools:
+      - web-search
+      - wikipedia
+
+  - name: coder
+    role: "Write and review code"
+    llm: claude
+    model: "claude-3-5-sonnet-20241022"
+    memory: true
+    tools:
+      - bash
+      - edit-file
+      - read-file
+
+  - name: analyst
+    role: "Analyze data and create reports"
+    llm: claude
+    model: "claude-3-5-sonnet-20241022"
+    memory: true
+    tools:
+      - python
+      - data-viz
+
+memory:
+  type: vector
+  provider: qdrant
+  persist: true
+  path: ./.hive/memory
+
+mcp:
+  enabled: true
+```
+
+---
+
+## Step 3: Set API Keys
+
+Edit `.env` with your credentials:
+
+```bash
+# Required
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# Optional (based on your needs)
+OPENAI_API_KEY=sk-your-openai-key
+GOOGLE_API_KEY=your-google-key
+
+# Memory (if using Qdrant)
+QDRANT_URL=http://localhost:6333
+```
+
+<Tip>
+Start with in-memory storage for quick testing! Just set `provider: in-memory` in agents.yaml.
+</Tip>
+
+---
+
+## Step 4: Start Hive
+
+```bash
+# Start Hive with hot-reload enabled
+hive start --hot-reload
+
+# You should see:
+# 🐝 Hive v1.0.0
+# ✓ Agents spawned: researcher, coder, analyst
+# ✓ Memory system initialized
+# ✓ Hot-reload enabled
+```
+
+---
+
+## Step 5: Give Your Team a Task
+
+```bash
+# Assign a task to your research agent
+hive task assign researcher "Research the latest trends in AI agents and summarize key findings"
+
+# Or use the team coordinator
+hive task create "Build a simple web scraper for tech news" --assign-to coder
+```
+
+---
+
+## Real-World Example: Research & Development Workflow
+
+<Steps>
+  <Step title="Research Phase">
+    ```bash
+    hive task assign researcher \
+      "Research best practices for building REST APIs in Python"
+    ```
+
+    The researcher agent:
+    - Searches the web
+    - Reads documentation
+    - Stores findings in memory
+  </Step>
+
+  <Step title="Development Phase">
+    ```bash
+    hive task assign coder \
+      "Build a REST API based on the research findings" \
+      --context "Use the research from the previous task"
+    ```
+
+    The coder agent:
+    - Accesses research from memory
+    - Writes implementation code
+    - Creates tests
+  </Step>
+
+  <Step title="Analysis Phase">
+    ```bash
+    hive task assign analyst \
+      "Analyze the API implementation and create performance recommendations"
+    ```
+
+    The analyst agent:
+    - Reviews the code
+    - Analyzes architecture
+    - Generates report
+  </Step>
+</Steps>
+
+---
+
+## Common Agent Team Configurations
+
+<Tabs>
+  <Tab title="Content Creation Team">
+    ```yaml
+    agents:
+      - name: researcher
+        role: "Research topics and gather sources"
+        tools: [web-search, wikipedia]
+
+      - name: writer
+        role: "Create engaging content"
+        tools: [write-file]
+
+      - name: editor
+        role: "Review and improve content"
+        tools: [read-file, edit-file]
+    ```
+  </Tab>
+
+  <Tab title="Development Team">
+    ```yaml
+    agents:
+      - name: architect
+        role: "Design system architecture"
+        tools: [diagram, plantuml]
+
+      - name: frontend-dev
+        role: "Build UI components"
+        tools: [bash, npm, read-file, write-file]
+
+      - name: backend-dev
+        role: "Implement APIs and services"
+        tools: [bash, docker, read-file, write-file]
+
+      - name: qa-tester
+        role: "Test and validate"
+        tools: [bash, pytest]
+    ```
+  </Tab>
+
+  <Tab title="Data Analysis Team">
+    ```yaml
+    agents:
+      - name: data-collector
+        role: "Gather and clean data"
+        tools: [web-scrape, api-call, pandas]
+
+      - name: data-scientist
+        role: "Analyze and model data"
+        tools: [python, jupyter, sklearn]
+
+      - name: visualizer
+        role: "Create charts and dashboards"
+        tools: [matplotlib, plotly, dash]
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Using Memory and RAG
+
+Agents automatically remember context:
+
+```bash
+# Agent stores information
+hive task assign researcher "Research Python async best practices"
+
+# Later, another agent can access this knowledge
+hive task assign coder "Write async code using best practices" \
+  --use-memory
+
+# Query memory directly
+hive memory search "async best practices"
+```
+
+---
+
+## Hot-Reload in Action
+
+Update `agents.yaml` while Hive is running:
+
+```yaml
+agents:
+  - name: researcher
+    role: "Research information and gather data"
+    llm: claude
+    temperature: 0.7  # Added parameter
+    tools:
+      - web-search
+      - wikipedia
+      - arxiv  # Added new tool
+```
+
+Save the file - changes apply **instantly** without restart!
+
+```bash
+# Check updated configuration
+hive agents list
+
+# researcher now has arxiv tool available
+```
+
+---
+
+## Multi-Agent Collaboration
+
+Have agents work together on complex tasks:
+
+```bash
+# Create a workflow
+hive workflow create product-launch.yaml
+```
+
+`product-launch.yaml`:
+```yaml
+name: product-launch
+description: Complete product launch workflow
+
+steps:
+  - agent: researcher
+    task: "Research target market and competitors"
+    output: market-research
+
+  - agent: writer
+    task: "Create product description based on research"
+    input: market-research
+    output: product-copy
+
+  - agent: analyst
+    task: "Analyze product positioning and suggest improvements"
+    input: product-copy
+    output: analysis-report
+
+parallel:
+  - agent: coder
+    task: "Build landing page"
+  - agent: writer
+    task: "Write blog announcement"
+```
+
+Execute the workflow:
+
+```bash
+hive workflow run product-launch
+```
+
+---
+
+## Pro Tips
+
+<AccordionGroup>
+  <Accordion title="Start Simple, Scale Up">
+    Begin with 2-3 specialized agents, then add more as needed:
+
+    ```yaml
+    # Start with
+    agents:
+      - name: assistant
+        role: "General purpose helper"
+
+    # Then expand to
+    agents:
+      - name: researcher
+      - name: coder
+      - name: writer
+      - name: analyst
+    ```
+  </Accordion>
+
+  <Accordion title="Use Memory Strategically">
+    Enable memory for agents that need context:
+
+    ```yaml
+    - name: researcher
+      memory: true  # Needs to remember findings
+
+    - name: calculator
+      memory: false  # Pure computation, no context needed
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Agent Performance">
+    ```bash
+    # View agent activity
+    hive agents status
+
+    # Check memory usage
+    hive memory stats
+
+    # View task history
+    hive tasks history --agent researcher
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Workflows" icon="diagram-project">
+    Learn to:
+    - Create complex multi-step workflows
+    - Use conditional logic
+    - Handle errors and retries
+  </Card>
+
+  <Card title="Custom Tools" icon="wrench">
+    Build your own tools:
+    - MCP tool integration
+    - Custom Python functions
+    - External API connectors
+  </Card>
+
+  <Card title="Memory & RAG" icon="brain">
+    Deep dive into:
+    - Vector databases
+    - Knowledge graphs
+    - Semantic search
+  </Card>
+
+  <Card title="Production Deployment" icon="server">
+    Scale to production:
+    - Docker deployment
+    - Kubernetes orchestration
+    - Monitoring and logging
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Agents not responding">
+    Check API keys and connectivity:
+    ```bash
+    hive config validate
+    hive agents test researcher
+    ```
+  </Accordion>
+
+  <Accordion title="Memory errors">
+    Verify memory backend is running:
+    ```bash
+    # If using Qdrant
+    docker run -p 6333:6333 qdrant/qdrant
+
+    # Or switch to in-memory
+    # In agents.yaml: provider: in-memory
+    ```
+  </Accordion>
+
+  <Accordion title="Hot-reload not working">
+    Ensure file watching is enabled:
+    ```bash
+    hive start --hot-reload --verbose
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Congratulations!** 🎉 You've deployed your first AI agent team with Hive. Your agents are ready to collaborate on complex tasks!
+
+<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+  Share your agent configurations and learn from others
+</Card>

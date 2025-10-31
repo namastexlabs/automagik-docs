@@ -1,0 +1,553 @@
+---
+title: "Quick Start"
+description: "Create your first AI-powered workspace in 5 minutes"
+icon: "rocket"
+---
+
+## Create Your First AI-Powered Workspace in 5 Minutes
+
+This guide will walk you through setting up Genie, creating a ready-to-run AI workspace, and executing your first plan → wish → forge → review workflow.
+
+---
+
+## Step 1: Initialize Genie
+
+```bash
+# Navigate to your project
+cd my-project
+
+# Initialize Genie workspace
+genie init
+
+# This creates:
+# - .genie/ directory
+# - config.json
+# - workflow templates
+```
+
+---
+
+## Step 2: Configure Genie
+
+Edit `.genie/config.json`:
+
+```json
+{
+  "mcp": {
+    "enabled": true,
+    "port": 3000
+  },
+  "agents": {
+    "coder": {
+      "enabled": true,
+      "llm": "claude",
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    "reviewer": {
+      "enabled": true,
+      "llm": "claude"
+    }
+  },
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-your-key-here"
+    }
+  },
+  "repository": {
+    "autoIndex": true,
+    "excludePaths": ["node_modules", ".git", "dist"]
+  }
+}
+```
+
+---
+
+## Step 3: Index Your Repository
+
+Genie needs to understand your codebase:
+
+```bash
+# Index repository
+genie index
+
+# This analyzes:
+# - File structure
+# - Code patterns
+# - Dependencies
+# - Documentation
+
+# You should see:
+# ✓ Repository indexed
+# ✓ 247 files analyzed
+# ✓ Context ready for agents
+```
+
+---
+
+## Step 4: Make Your First Wish
+
+Use the Genie workflow: **Plan → Wish → Forge → Review**
+
+```bash
+# Make a wish (what you want to build)
+genie wish "Add user authentication with JWT tokens"
+
+# Genie creates:
+# - wishes/add-user-authentication.md
+# - Detailed specification
+# - Implementation plan
+```
+
+---
+
+## Step 5: Execute the Plan
+
+```bash
+# Genie plans the implementation
+genie plan wishes/add-user-authentication.md
+
+# Output shows:
+# Plan: Add User Authentication
+#
+# Steps:
+# 1. Create auth middleware
+# 2. Add JWT token generation
+# 3. Add login endpoint
+# 4. Add signup endpoint
+# 5. Add authentication tests
+#
+# Estimated time: 2-3 hours
+```
+
+---
+
+## Step 6: Forge (Execute)
+
+Let Genie's agents build it:
+
+```bash
+# Forge the implementation
+genie forge wishes/add-user-authentication.md
+
+# Progress:
+# ⚡ Forging: Add user authentication
+# ✓ Step 1/5: Create auth middleware (2 min)
+# ✓ Step 2/5: Add JWT token generation (3 min)
+# ✓ Step 3/5: Add login endpoint (2 min)
+# ✓ Step 4/5: Add signup endpoint (2 min)
+# ✓ Step 5/5: Add authentication tests (4 min)
+#
+# ✓ Implementation complete!
+```
+
+---
+
+## Step 7: Review
+
+Review the AI-generated code:
+
+```bash
+# Review the implementation
+genie review wishes/add-user-authentication.md
+
+# Genie's reviewer agent checks:
+# - Code quality
+# - Security issues
+# - Test coverage
+# - Documentation
+
+# Review Report:
+# ✓ Code quality: Excellent
+# ⚠ Security: Add rate limiting to login
+# ✓ Test coverage: 94%
+# ✓ Documentation: Complete
+```
+
+---
+
+## Real-World Example: Feature Development
+
+Complete workflow from idea to production:
+
+<Steps>
+  <Step title="Plan: Analyze Requirements">
+    ```bash
+    genie wish "Build a REST API for blog posts with CRUD operations"
+
+    # Genie creates detailed spec:
+    # - Database schema
+    # - API endpoints
+    # - Validation rules
+    # - Error handling
+    ```
+  </Step>
+
+  <Step title="Wish: Define Specifications">
+    Edit `wishes/blog-api.md` to refine:
+
+    ```markdown
+    # Blog API
+
+    ## Endpoints
+    - GET /api/posts - List all posts
+    - GET /api/posts/:id - Get single post
+    - POST /api/posts - Create post
+    - PUT /api/posts/:id - Update post
+    - DELETE /api/posts/:id - Delete post
+
+    ## Validation
+    - Title: required, max 200 chars
+    - Content: required, max 5000 chars
+    - Author: required
+    ```
+  </Step>
+
+  <Step title="Forge: AI Builds It">
+    ```bash
+    genie forge wishes/blog-api.md
+
+    # Agents create:
+    # - Database models
+    # - Controllers
+    # - Routes
+    # - Validation middleware
+    # - Tests
+    # - API documentation
+    ```
+  </Step>
+
+  <Step title="Review: Validate Quality">
+    ```bash
+    genie review wishes/blog-api.md
+
+    # Automated checks:
+    # ✓ All endpoints implemented
+    # ✓ Input validation present
+    # ✓ Error handling comprehensive
+    # ✓ Tests pass (97% coverage)
+    # ⚠ Add pagination to list endpoint
+    ```
+  </Step>
+
+  <Step title="Iterate: Improve">
+    ```bash
+    # Add pagination based on review feedback
+    genie wish "Add pagination to blog posts list endpoint" \
+      --parent blog-api
+
+    genie forge wishes/blog-api-pagination.md
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Using the MCP Server
+
+Genie exposes an MCP server for other AI agents:
+
+**1. Start MCP Server**
+
+```bash
+# Start Genie MCP server
+genie serve --mcp
+
+# Server starts on port 3000
+# Available tools:
+# - genie_analyze_repo
+# - genie_make_wish
+# - genie_plan
+# - genie_forge
+# - genie_review
+```
+
+**2. Connect from Claude Desktop**
+
+Edit `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "genie",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+**3. Use from Claude**
+
+```
+You: "Use Genie to add a search feature to my project"
+
+Claude: I'll use Genie to plan and implement a search feature.
+
+[Uses genie_make_wish]
+[Uses genie_plan]
+[Uses genie_forge]
+
+✓ Search feature implementation complete!
+```
+
+---
+
+## Template Management
+
+Keep your project templates in sync:
+
+```bash
+# Create from template
+genie template create my-api --from express-api
+
+# Sync with latest template
+genie template sync my-api
+
+# List available templates
+genie template list
+
+# Create custom template
+genie template save my-api --name my-custom-template
+```
+
+---
+
+## Common Workflows
+
+<Tabs>
+  <Tab title="Feature Development">
+    ```bash
+    # 1. Make wish
+    genie wish "Add email notifications"
+
+    # 2. Plan
+    genie plan wishes/email-notifications.md
+
+    # 3. Forge
+    genie forge wishes/email-notifications.md
+
+    # 4. Review
+    genie review wishes/email-notifications.md
+
+    # 5. Ship
+    git add .
+    git commit -m "feat: email notifications"
+    ```
+  </Tab>
+
+  <Tab title="Bug Fix">
+    ```bash
+    # 1. Describe bug
+    genie wish "Fix memory leak in WebSocket connection" \
+      --type bugfix
+
+    # 2. Analyze
+    genie analyze wishes/fix-websocket-leak.md
+
+    # 3. Fix
+    genie forge wishes/fix-websocket-leak.md
+
+    # 4. Verify
+    genie test wishes/fix-websocket-leak.md
+
+    # 5. Review
+    genie review wishes/fix-websocket-leak.md
+    ```
+  </Tab>
+
+  <Tab title="Refactoring">
+    ```bash
+    # 1. Define scope
+    genie wish "Refactor API client to use axios instead of fetch" \
+      --type refactor
+
+    # 2. Plan migration
+    genie plan wishes/refactor-api-client.md
+
+    # 3. Execute
+    genie forge wishes/refactor-api-client.md \
+      --conservative  # Preserve behavior
+
+    # 4. Validate
+    genie test --all
+    ```
+  </Tab>
+
+  <Tab title="Documentation">
+    ```bash
+    # 1. Request docs
+    genie wish "Add comprehensive API documentation" \
+      --type docs
+
+    # 2. Generate
+    genie forge wishes/api-documentation.md
+
+    # Generates:
+    # - README updates
+    # - API reference docs
+    # - Usage examples
+    # - Architecture diagrams
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Meta-Learning
+
+Genie learns from your patterns:
+
+```bash
+# View learned patterns
+genie patterns
+
+# Patterns detected:
+# - You prefer async/await over promises
+# - You use TypeScript strict mode
+# - You follow Conventional Commits
+# - You write tests with Jest
+
+# Genie applies these patterns automatically in future work!
+```
+
+---
+
+## Pro Tips
+
+<AccordionGroup>
+  <Accordion title="Keep Wishes Focused">
+    **Good wishes:**
+    ```bash
+    genie wish "Add JWT authentication middleware"
+    genie wish "Create user signup endpoint"
+    genie wish "Add input validation for user data"
+    ```
+
+    **Too broad:**
+    ```bash
+    genie wish "Build entire authentication system"
+    # Better to split into smaller wishes
+    ```
+  </Accordion>
+
+  <Accordion title="Review Before Merging">
+    Always review AI-generated code:
+
+    ```bash
+    # Automated review
+    genie review wishes/my-feature.md
+
+    # Manual review
+    git diff
+    npm test
+    npm run lint
+
+    # Only then merge
+    git add .
+    git commit
+    ```
+  </Accordion>
+
+  <Accordion title="Use Context from Memory">
+    ```bash
+    # Genie remembers past wishes
+    genie wish "Extend the authentication system with 2FA" \
+      --context "auth-system"
+
+    # Genie recalls previous auth implementation
+    # and builds on top of it consistently
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Workflows" icon="diagram-project">
+    Learn:
+    - Multi-step planning
+    - Agent coordination
+    - Custom delivery agents
+  </Card>
+
+  <Card title="MCP Integration" icon="plug">
+    Connect:
+    - Claude Desktop
+    - VSCode
+    - Custom AI agents
+  </Card>
+
+  <Card title="Template System" icon="copy">
+    Master:
+    - Template creation
+    - Sync strategies
+    - Custom templates
+  </Card>
+
+  <Card title="Meta-Learning" icon="brain">
+    Explore:
+    - Pattern recognition
+    - Code style learning
+    - Preference adaptation
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Repository indexing slow">
+    Exclude large directories:
+
+    ```json
+    // .genie/config.json
+    {
+      "repository": {
+        "excludePaths": [
+          "node_modules",
+          "dist",
+          "build",
+          ".next",
+          "coverage"
+        ]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Forge fails to generate code">
+    Check that your wish is clear:
+
+    ```bash
+    # Too vague
+    genie wish "make it better"
+
+    # Better
+    genie wish "Improve error handling in API routes by adding try-catch blocks and proper error responses"
+    ```
+  </Accordion>
+
+  <Accordion title="MCP server connection issues">
+    ```bash
+    # Check if server is running
+    genie serve --check
+
+    # Restart with verbose logging
+    genie serve --mcp --verbose
+
+    # Verify port isn't in use
+    lsof -i :3000
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Congratulations!** 🎉 You've created your first AI-powered workspace with Genie. You're ready to orchestrate AI agents for systematic development!
+
+<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+  Share your wishes and workflows with the community
+</Card>

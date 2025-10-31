@@ -1,0 +1,282 @@
+---
+title: "Installation"
+description: "Get Genie up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Genie, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Node.js (v18 or higher)">
+    ```bash
+    # Check your Node.js version
+    node --version
+
+    # Should output v18.0.0 or higher
+    ```
+
+    If you need to install or upgrade Node.js:
+    - **macOS**: `brew install node`
+    - **Ubuntu/Debian**: `sudo apt install nodejs npm`
+    - **Windows**: Download from [nodejs.org](https://nodejs.org)
+  </Accordion>
+
+  <Accordion title="Git">
+    ```bash
+    # Check if Git is installed
+    git --version
+    ```
+
+    Genie works with Git repositories for context understanding.
+  </Accordion>
+
+  <Accordion title="LLM API Keys (Optional)">
+    For AI-powered features, you'll need API keys:
+    - **Claude**: Anthropic API key
+    - **OpenAI**: OpenAI API key
+    - **Gemini**: Google AI API key
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="NPM (Global)">
+    Install Genie globally to use it from anywhere:
+
+    ```bash
+    npm install -g automagik-genie
+    ```
+
+    Verify installation:
+
+    ```bash
+    genie --version
+    ```
+  </Tab>
+
+  <Tab title="NPM (Project)">
+    Install Genie as a project dependency:
+
+    ```bash
+    npm install --save-dev automagik-genie
+    ```
+
+    Add to your `package.json` scripts:
+
+    ```json
+    {
+      "scripts": {
+        "genie": "genie"
+      }
+    }
+    ```
+
+    Run with:
+
+    ```bash
+    npm run genie
+    ```
+  </Tab>
+
+  <Tab title="NPX (No Install)">
+    Run Genie without installing:
+
+    ```bash
+    npx automagik-genie
+    ```
+
+    Perfect for trying it out or one-time use!
+  </Tab>
+
+  <Tab title="From Source">
+    Clone and build from source:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-genie.git
+    cd automagik-genie
+
+    # Install dependencies
+    npm install
+
+    # Build
+    npm run build
+
+    # Link globally
+    npm link
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, initialize Genie in your project:
+
+```bash
+# Initialize Genie workspace
+genie init
+
+# This creates a .genie/ directory with configuration
+```
+
+Configure your AI settings in `.genie/config.json`:
+
+```json
+{
+  "mcp": {
+    "enabled": true,
+    "port": 3000
+  },
+  "agents": {
+    "coder": {
+      "enabled": true,
+      "llm": "claude"
+    },
+    "reviewer": {
+      "enabled": true,
+      "llm": "claude"
+    }
+  },
+  "llms": {
+    "claude": {
+      "apiKey": "your-anthropic-api-key",
+      "model": "claude-3-5-sonnet-20241022"
+    }
+  }
+}
+```
+
+<Info>
+**Security Tip**: Never commit `.genie/config.json` to version control! Add it to `.gitignore`.
+</Info>
+
+---
+
+## MCP Server Setup (Optional)
+
+To expose Genie as an MCP server for other AI agents:
+
+```bash
+# Start the MCP server
+genie serve
+
+# Or specify a port
+genie serve --port 3001
+```
+
+Add to your MCP client configuration (e.g., Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "genie",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+genie --version
+
+# Get help
+genie --help
+
+# Initialize a workspace (if not done yet)
+genie init
+
+# Check MCP server status
+genie serve --check
+```
+
+You should see output similar to:
+
+```
+automagik-genie v1.0.0
+
+✓ Workspace initialized
+✓ Configuration created
+✓ MCP server ready
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: genie">
+    If you installed globally but get "command not found":
+
+    1. Check NPM global bin path:
+       ```bash
+       npm config get prefix
+       ```
+
+    2. Add to your PATH (add to `~/.bashrc` or `~/.zshrc`):
+       ```bash
+       export PATH="$PATH:$(npm config get prefix)/bin"
+       ```
+
+    3. Reload your shell:
+       ```bash
+       source ~/.bashrc  # or ~/.zshrc
+       ```
+  </Accordion>
+
+  <Accordion title="MCP server won't start">
+    Check if the port is already in use:
+
+    ```bash
+    # Try a different port
+    genie serve --port 3001
+    ```
+
+    Or kill the process using the port:
+    ```bash
+    # macOS/Linux
+    lsof -ti:3000 | xargs kill -9
+
+    # Windows
+    netstat -ano | findstr :3000
+    ```
+  </Accordion>
+
+  <Accordion title="Template sync errors">
+    Make sure you're in a Git repository:
+
+    ```bash
+    git init  # If not already a Git repo
+    git remote add origin <your-repo-url>
+    ```
+
+    Genie uses Git for template synchronization.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/genie/quickstart">
+    Create your first AI-powered workspace
+  </Card>
+  <Card title="Introduction" icon="book" href="/genie/introduction">
+    Learn more about Genie
+  </Card>
+</CardGroup>

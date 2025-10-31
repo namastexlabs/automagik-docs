@@ -1,0 +1,370 @@
+---
+title: "Installation"
+description: "Get Tools up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Tools, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Python (v3.10 or higher)">
+    ```bash
+    # Check your Python version
+    python --version
+
+    # Should output Python 3.10.0 or higher
+    ```
+
+    If you need to install or upgrade Python:
+    - **macOS**: `brew install python@3.11`
+    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    - **Windows**: Download from [python.org](https://www.python.org)
+  </Accordion>
+
+  <Accordion title="uv (Recommended)">
+    Tools works best with `uv` for instant execution:
+
+    ```bash
+    # Install uv
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Verify
+    uv --version
+    ```
+
+    This enables `uvx automagik-tools` deployment.
+  </Accordion>
+
+  <Accordion title="API Access (Optional)">
+    For generating tools from APIs, you may need:
+    - Access to OpenAPI/Swagger specifications
+    - API keys for the services you want to integrate
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="uvx (Instant - Recommended)">
+    Run Tools without installing:
+
+    ```bash
+    # Install uv first (if not already installed)
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Run Tools instantly
+    uvx automagik-tools
+
+    # Or with MCP server
+    uvx automagik-tools serve
+    ```
+
+    **Zero installation, instant execution!**
+  </Tab>
+
+  <Tab title="pip">
+    Install Tools via pip:
+
+    ```bash
+    pip install automagik-tools
+    ```
+
+    Verify installation:
+
+    ```bash
+    automagik-tools --version
+    ```
+  </Tab>
+
+  <Tab title="pipx (Isolated)">
+    Install Tools in an isolated environment:
+
+    ```bash
+    # Install pipx if you don't have it
+    pip install pipx
+    pipx ensurepath
+
+    # Install Tools
+    pipx install automagik-tools
+    ```
+
+    Avoids dependency conflicts!
+  </Tab>
+
+  <Tab title="From Source">
+    Clone and install from source:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-tools.git
+    cd automagik-tools
+
+    # Create virtual environment
+    python -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+    # Install in development mode
+    pip install -e .
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, initialize Tools:
+
+```bash
+# Initialize Tools workspace
+automagik-tools init
+
+# This creates:
+# - .tools/ directory
+# - config.json (Tools configuration)
+# - tools/ directory for generated tools
+```
+
+Configure Tools in `config.json`:
+
+```json
+{
+  "generator": {
+    "defaultLanguage": "python",
+    "includeExamples": true,
+    "includeTests": true
+  },
+  "mcp": {
+    "enabled": true,
+    "port": 3000,
+    "discovery": true
+  },
+  "registry": {
+    "enabled": true,
+    "autoPublish": false
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "token": "your-github-token"
+    },
+    "slack": {
+      "enabled": true,
+      "token": "your-slack-token"
+    }
+  }
+}
+```
+
+---
+
+## Generate Your First Tool
+
+Generate an MCP tool from an OpenAPI spec:
+
+```bash
+# From a URL
+automagik-tools generate \
+  --spec https://api.example.com/openapi.json \
+  --name example-api \
+  --output tools/
+
+# From a local file
+automagik-tools generate \
+  --spec ./api-spec.yaml \
+  --name my-api \
+  --output tools/
+
+# List pre-built integrations
+automagik-tools list-integrations
+```
+
+---
+
+## Start MCP Server
+
+Serve your tools via MCP:
+
+```bash
+# Start MCP server
+automagik-tools serve
+
+# Or with custom port
+automagik-tools serve --port 3001
+
+# Serve specific tools only
+automagik-tools serve --tools github,slack,stripe
+```
+
+You should see output like:
+
+```
+🛠️  Tools v1.0.0
+✓ Configuration loaded
+✓ Tools registry initialized
+✓ MCP server started on port 3000
+✓ Available tools: 9
+
+Ready to serve tools to AI agents!
+Available at: http://localhost:3000
+```
+
+---
+
+## Use Pre-Built Integrations
+
+Tools comes with 9 native integrations ready to use:
+
+```bash
+# List available integrations
+automagik-tools integrations list
+
+# Enable an integration
+automagik-tools integrations enable github --token your-github-token
+
+# Test an integration
+automagik-tools integrations test github
+
+# Use in MCP server
+automagik-tools serve --tools github,slack,stripe
+```
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+automagik-tools --version
+
+# List generated tools
+automagik-tools tools list
+
+# Test tool generation
+automagik-tools generate \
+  --spec https://petstore3.swagger.io/api/v3/openapi.json \
+  --name petstore \
+  --dry-run
+
+# Check MCP server status
+automagik-tools mcp status
+```
+
+---
+
+## Add to Claude Desktop (or other MCP clients)
+
+Configure your MCP client to use Tools. For Claude Desktop, edit `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "automagik-tools": {
+      "command": "uvx",
+      "args": ["automagik-tools", "serve"]
+    }
+  }
+}
+```
+
+Or if installed via pip:
+
+```json
+{
+  "mcpServers": {
+    "automagik-tools": {
+      "command": "automagik-tools",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="OpenAPI parsing errors">
+    Make sure your OpenAPI spec is valid:
+
+    ```bash
+    # Validate spec first
+    automagik-tools validate-spec \
+      --spec https://api.example.com/openapi.json
+
+    # Try different spec versions
+    automagik-tools generate \
+      --spec your-spec.yaml \
+      --openapi-version 3.0
+    ```
+  </Accordion>
+
+  <Accordion title="Tool generation fails">
+    Check for missing dependencies or permissions:
+
+    ```bash
+    # Generate with verbose output
+    automagik-tools generate \
+      --spec your-spec.yaml \
+      --verbose
+
+    # Check Python dependencies
+    pip list | grep pydantic
+
+    # Reinstall if needed
+    pip install --upgrade automagik-tools
+    ```
+  </Accordion>
+
+  <Accordion title="MCP server won't start">
+    Check if port is already in use:
+
+    ```bash
+    # Try different port
+    automagik-tools serve --port 3001
+
+    # Check what's using the port
+    # macOS/Linux
+    lsof -i :3000
+
+    # Windows
+    netstat -ano | findstr :3000
+    ```
+  </Accordion>
+
+  <Accordion title="Integration authentication fails">
+    Verify API tokens are correct:
+
+    ```bash
+    # Test integration authentication
+    automagik-tools integrations test github
+
+    # Update token
+    automagik-tools integrations config github \
+      --token new-token
+
+    # Check token permissions
+    automagik-tools integrations verify github
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/tools/quickstart">
+    Generate your first MCP tool
+  </Card>
+  <Card title="Introduction" icon="book" href="/tools/introduction">
+    Learn more about Tools
+  </Card>
+</CardGroup>

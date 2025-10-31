@@ -1,0 +1,335 @@
+---
+title: "Quick Start"
+description: "Create your first AI-powered task in Forge"
+icon: "rocket"
+---
+
+## Your First AI-Powered Task in 5 Minutes
+
+This guide will walk you through creating your first task with Forge, comparing outputs from multiple LLMs, and shipping code you understand.
+
+---
+
+## Step 1: Initialize Forge
+
+Make sure you're in a Git repository, then initialize Forge:
+
+```bash
+# Make sure you're in a Git repo
+git init  # if not already a Git repo
+
+# Initialize Forge
+forge init
+```
+
+This creates a `.forge/` directory with your configuration.
+
+---
+
+## Step 2: Configure Your LLMs
+
+Edit `.forge/config.json` to add your API keys:
+
+```json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-...",
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    "gemini": {
+      "apiKey": "AIza...",
+      "model": "gemini-2.0-flash-exp"
+    }
+  },
+  "worktrees": {
+    "enabled": true,
+    "basePath": "./.forge/worktrees"
+  }
+}
+```
+
+<Tip>
+Start with just one LLM if you're trying it out. You can add more later to compare results!
+</Tip>
+
+---
+
+## Step 3: Create Your First Task
+
+Open the Forge UI or use the CLI:
+
+```bash
+# Start Forge UI
+forge start
+
+# Or create task via CLI
+forge task create \
+  --title "Add user authentication" \
+  --description "Implement JWT-based authentication with login and signup endpoints" \
+  --llm claude
+```
+
+The Forge UI will open at `http://localhost:3000`.
+
+---
+
+## Step 4: Let AI Work in Isolation
+
+Forge creates a Git worktree for your task, keeping your main branch clean:
+
+```bash
+# Forge automatically creates a worktree
+# Your task runs in: .forge/worktrees/task-1-add-auth
+
+# Your main branch is untouched!
+# You can keep working on other things
+```
+
+---
+
+## Step 5: Review and Compare
+
+If you're using multiple LLMs, Forge shows you side-by-side results:
+
+```bash
+# Compare Claude vs Gemini on the same task
+forge task compare 1
+
+# See the differences
+forge diff task-1-claude task-1-gemini
+```
+
+Choose the approach you understand best, or combine elements from both!
+
+---
+
+## Step 6: Merge When Ready
+
+Once you're happy with the result:
+
+```bash
+# Review changes
+forge task review 1
+
+# Merge into main
+forge task merge 1
+
+# Cleanup worktree
+forge task close 1
+```
+
+---
+
+## Real-World Example
+
+Here's a complete workflow for adding a new feature:
+
+<Steps>
+  <Step title="Create Task">
+    ```bash
+    forge task create \
+      --title "Add dark mode toggle" \
+      --description "Create a toggle component that switches between light and dark themes" \
+      --llm claude \
+      --labels "feature,ui"
+    ```
+  </Step>
+
+  <Step title="AI Generates Code">
+    Forge creates a worktree and Claude generates:
+    - Theme toggle component
+    - CSS variables for themes
+    - LocalStorage persistence
+    - Tests
+  </Step>
+
+  <Step title="Try Another Approach">
+    ```bash
+    # Try with Gemini for comparison
+    forge task fork 1 --llm gemini
+    ```
+
+    Now you have two implementations to compare!
+  </Step>
+
+  <Step title="Review Both">
+    ```bash
+    # See them side-by-side
+    forge task compare 1
+
+    # Claude's approach: CSS-in-JS with styled-components
+    # Gemini's approach: Tailwind CSS with data attributes
+    ```
+  </Step>
+
+  <Step title="Choose and Merge">
+    ```bash
+    # You prefer Gemini's Tailwind approach
+    forge task merge 1-gemini
+
+    # Clean up
+    forge task close 1-claude
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Common Task Types
+
+<CardGroup cols={2}>
+  <Card title="Feature Development" icon="plus">
+    ```bash
+    forge task create \
+      --title "Add export to PDF" \
+      --type feature \
+      --llm claude
+    ```
+  </Card>
+
+  <Card title="Bug Fixes" icon="bug">
+    ```bash
+    forge task create \
+      --title "Fix memory leak in WebSocket" \
+      --type bugfix \
+      --llm gemini
+    ```
+  </Card>
+
+  <Card title="Refactoring" icon="code">
+    ```bash
+    forge task create \
+      --title "Refactor API client to use axios" \
+      --type refactor \
+      --llm claude
+    ```
+  </Card>
+
+  <Card title="Documentation" icon="book">
+    ```bash
+    forge task create \
+      --title "Add API documentation" \
+      --type docs \
+      --llm gemini
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Pro Tips
+
+<AccordionGroup>
+  <Accordion title="Use Multiple LLMs for Complex Tasks">
+    For important features, run the same task with 2-3 different LLMs and compare approaches:
+
+    ```bash
+    forge task create --title "Critical feature" --llm claude
+    forge task fork 1 --llm gemini
+    forge task fork 1 --llm gpt-4
+    ```
+
+    Choose the best implementation or cherry-pick from each!
+  </Accordion>
+
+  <Accordion title="Keep Tasks Small and Focused">
+    Instead of:
+    ```bash
+    forge task create --title "Rebuild entire auth system"
+    ```
+
+    Do:
+    ```bash
+    forge task create --title "Add JWT token generation"
+    forge task create --title "Add token validation middleware"
+    forge task create --title "Add refresh token logic"
+    ```
+
+    Smaller tasks = better AI results!
+  </Accordion>
+
+  <Accordion title="Use Labels for Organization">
+    ```bash
+    forge task create \
+      --title "Add search" \
+      --labels "feature,ui,priority:high"
+
+    # Filter by label
+    forge task list --labels "priority:high"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Kanban Board" icon="table-columns">
+    Explore the visual Kanban interface:
+    ```bash
+    forge start
+    ```
+    Open http://localhost:3000
+  </Card>
+
+  <Card title="Advanced Workflows" icon="diagram-project">
+    Learn about:
+    - Task dependencies
+    - Automated testing integration
+    - CI/CD integration
+    - Team collaboration
+  </Card>
+
+  <Card title="LLM Configuration" icon="brain">
+    Add more LLMs:
+    - OpenAI GPT-4
+    - Anthropic Claude
+    - Google Gemini
+    - Local models
+  </Card>
+
+  <Card title="Git Worktree Mastery" icon="code-branch">
+    Deep dive into:
+    - Parallel development
+    - Feature branches
+    - Safe experimentation
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Task creation fails">
+    Make sure you're in a Git repository:
+    ```bash
+    git status  # Should not error
+    git init    # If needed
+    ```
+  </Accordion>
+
+  <Accordion title="LLM not responding">
+    Check your API keys:
+    ```bash
+    forge config validate
+    ```
+  </Accordion>
+
+  <Accordion title="Worktree conflicts">
+    Clean up old worktrees:
+    ```bash
+    forge worktree cleanup
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Congratulations!** 🎉 You've created your first AI-powered task with Forge. You're now ready to bring structure to your vibe coding!
+
+<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+  Get help, share your workflows, and learn from other Forge users
+</Card>

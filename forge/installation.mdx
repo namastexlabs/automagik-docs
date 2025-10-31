@@ -1,0 +1,238 @@
+---
+title: "Installation"
+description: "Get Forge up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Forge, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Node.js (v18 or higher)">
+    ```bash
+    # Check your Node.js version
+    node --version
+
+    # Should output v18.0.0 or higher
+    ```
+
+    If you need to install or upgrade Node.js:
+    - **macOS**: `brew install node`
+    - **Ubuntu/Debian**: `sudo apt install nodejs npm`
+    - **Windows**: Download from [nodejs.org](https://nodejs.org)
+  </Accordion>
+
+  <Accordion title="Git">
+    ```bash
+    # Check if Git is installed
+    git --version
+    ```
+
+    Forge uses Git worktrees for isolation, so Git is required.
+  </Accordion>
+
+  <Accordion title="LLM API Keys">
+    You'll need API keys for the LLMs you want to use:
+    - **Claude**: Anthropic API key
+    - **Gemini**: Google AI API key
+    - **OpenAI**: OpenAI API key
+    - Others as needed
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="NPM (Global)">
+    Install Forge globally to use it from anywhere:
+
+    ```bash
+    npm install -g automagik-forge
+    ```
+
+    Verify installation:
+
+    ```bash
+    forge --version
+    ```
+  </Tab>
+
+  <Tab title="NPM (Project)">
+    Install Forge as a project dependency:
+
+    ```bash
+    npm install --save-dev automagik-forge
+    ```
+
+    Add to your `package.json` scripts:
+
+    ```json
+    {
+      "scripts": {
+        "forge": "forge"
+      }
+    }
+    ```
+
+    Run with:
+
+    ```bash
+    npm run forge
+    ```
+  </Tab>
+
+  <Tab title="NPX (No Install)">
+    Run Forge without installing:
+
+    ```bash
+    npx automagik-forge
+    ```
+
+    Great for trying it out or one-time use!
+  </Tab>
+
+  <Tab title="From Source">
+    Clone and build from source:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-forge.git
+    cd automagik-forge
+
+    # Install dependencies
+    npm install
+
+    # Build
+    npm run build
+
+    # Link globally
+    npm link
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, configure Forge with your LLM API keys:
+
+```bash
+# Initialize Forge in your project
+forge init
+
+# This creates a .forge/ directory with configuration
+```
+
+Set up your API keys in `.forge/config.json`:
+
+```json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "your-anthropic-api-key",
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    "gemini": {
+      "apiKey": "your-google-api-key",
+      "model": "gemini-2.0-flash-exp"
+    }
+  }
+}
+```
+
+<Info>
+**Security Tip**: Never commit `.forge/config.json` to version control! Add it to `.gitignore`.
+</Info>
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+forge --version
+
+# Get help
+forge --help
+
+# Initialize a project (if not done yet)
+forge init
+```
+
+You should see output similar to:
+
+```
+automagik-forge v1.0.0
+
+Forge initialized successfully!
+Configuration saved to .forge/config.json
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: forge">
+    If you installed globally but get "command not found":
+
+    1. Check NPM global bin path:
+       ```bash
+       npm config get prefix
+       ```
+
+    2. Add to your PATH (add to `~/.bashrc` or `~/.zshrc`):
+       ```bash
+       export PATH="$PATH:$(npm config get prefix)/bin"
+       ```
+
+    3. Reload your shell:
+       ```bash
+       source ~/.bashrc  # or ~/.zshrc
+       ```
+  </Accordion>
+
+  <Accordion title="Permission denied errors">
+    On macOS/Linux, you might need sudo for global installs:
+
+    ```bash
+    sudo npm install -g automagik-forge
+    ```
+
+    Or configure NPM to use a different directory (recommended):
+    ```bash
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    export PATH=~/.npm-global/bin:$PATH
+    ```
+  </Accordion>
+
+  <Accordion title="Git worktree errors">
+    Make sure you're in a Git repository:
+
+    ```bash
+    git init  # If not already a Git repo
+    ```
+
+    Forge requires Git to create isolated worktrees.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/forge/quickstart">
+    Create your first AI-powered task
+  </Card>
+  <Card title="Introduction" icon="book" href="/forge/introduction">
+    Learn more about Forge
+  </Card>
+</CardGroup>

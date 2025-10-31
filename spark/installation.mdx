@@ -1,0 +1,374 @@
+---
+title: "Installation"
+description: "Get Spark up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Spark, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Python (v3.10 or higher)">
+    ```bash
+    # Check your Python version
+    python --version
+
+    # Should output Python 3.10.0 or higher
+    ```
+
+    If you need to install or upgrade Python:
+    - **macOS**: `brew install python@3.11`
+    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    - **Windows**: Download from [python.org](https://www.python.org)
+  </Accordion>
+
+  <Accordion title="Git (for repository tasks)">
+    ```bash
+    # Check if Git is installed
+    git --version
+    ```
+
+    Spark can automate Git operations, so Git is recommended.
+  </Accordion>
+
+  <Accordion title="System Permissions">
+    Spark runs scheduled tasks, so you may need:
+    - **Linux/macOS**: Access to cron or systemd
+    - **Windows**: Task Scheduler access
+    - **Docker**: For containerized deployments
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="pip (Recommended)">
+    Install Spark via pip:
+
+    ```bash
+    pip install automagik-spark
+    ```
+
+    Verify installation:
+
+    ```bash
+    spark --version
+    ```
+  </Tab>
+
+  <Tab title="pipx (Isolated)">
+    Install Spark in an isolated environment:
+
+    ```bash
+    # Install pipx if you don't have it
+    pip install pipx
+    pipx ensurepath
+
+    # Install Spark
+    pipx install automagik-spark
+    ```
+
+    Avoids dependency conflicts!
+  </Tab>
+
+  <Tab title="uvx (Instant)">
+    Run Spark without installing:
+
+    ```bash
+    # Install uv first
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Run Spark
+    uvx automagik-spark
+    ```
+
+    Perfect for testing workflows!
+  </Tab>
+
+  <Tab title="Docker (Recommended for Production)">
+    Run Spark in a container:
+
+    ```bash
+    # Pull Spark image
+    docker pull namastexlabs/automagik-spark
+
+    # Run Spark
+    docker run -d \
+      -v $(pwd)/workflows:/app/workflows \
+      -v $(pwd)/.spark:/app/.spark \
+      namastexlabs/automagik-spark
+    ```
+
+    Best for 24/7 operation!
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, initialize Spark:
+
+```bash
+# Initialize Spark workspace
+spark init
+
+# This creates:
+# - .spark/ directory
+# - workflows/ directory for your workflow definitions
+# - config.json (Spark configuration)
+```
+
+Configure Spark in `config.json`:
+
+```json
+{
+  "scheduler": {
+    "timezone": "America/New_York",
+    "maxConcurrent": 5,
+    "retryAttempts": 3
+  },
+  "monitoring": {
+    "enabled": true,
+    "logLevel": "info",
+    "retentionDays": 90
+  },
+  "notifications": {
+    "enabled": true,
+    "onFailure": true,
+    "onSuccess": false,
+    "channels": ["email", "slack"]
+  }
+}
+```
+
+---
+
+## Create Your First Workflow
+
+Create a workflow file in `workflows/daily-report.yaml`:
+
+```yaml
+name: daily-report
+description: Generate and send daily project report
+schedule: "0 9 * * *"  # Every day at 9 AM
+timezone: America/New_York
+
+tasks:
+  - name: analyze-commits
+    type: git
+    action: log
+    args:
+      since: "24 hours ago"
+
+  - name: generate-report
+    type: script
+    script: |
+      python scripts/generate_report.py
+
+  - name: send-email
+    type: email
+    to: "team@example.com"
+    subject: "Daily Project Report"
+    body: "{{ tasks.generate-report.output }}"
+
+retryOn:
+  - network-error
+  - timeout
+
+notifications:
+  onSuccess: true
+  onFailure: true
+```
+
+---
+
+## Start Spark
+
+Start the Spark scheduler:
+
+```bash
+# Start Spark daemon
+spark start
+
+# Or run in foreground
+spark start --foreground
+
+# With specific workflows directory
+spark start --workflows ./my-workflows
+```
+
+You should see output like:
+
+```
+⚡ Spark v1.0.0
+✓ Configuration loaded
+✓ Workflows loaded: 3
+✓ Scheduler started (timezone: America/New_York)
+✓ Next execution: daily-report at 2025-10-31 09:00:00
+
+Spark is running! Press Ctrl+C to stop.
+```
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+spark --version
+
+# List workflows
+spark workflow list
+
+# Test a workflow
+spark workflow run daily-report --dry-run
+
+# Check scheduler status
+spark status
+
+# View execution history
+spark history --limit 10
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Scheduler not starting">
+    Check if another instance is running:
+
+    ```bash
+    # Check running processes
+    ps aux | grep spark
+
+    # Stop existing instance
+    spark stop
+
+    # Restart
+    spark start
+    ```
+  </Accordion>
+
+  <Accordion title="Timezone issues">
+    Make sure timezone is correctly configured:
+
+    ```bash
+    # Check available timezones
+    spark config timezones
+
+    # Set timezone in config.json or:
+    spark config set scheduler.timezone "America/Los_Angeles"
+
+    # Restart Spark
+    spark restart
+    ```
+  </Accordion>
+
+  <Accordion title="Workflow execution failures">
+    Check logs for details:
+
+    ```bash
+    # View recent logs
+    spark logs --tail 50
+
+    # View logs for specific workflow
+    spark logs --workflow daily-report
+
+    # Debug mode
+    spark start --debug
+    ```
+  </Accordion>
+
+  <Accordion title="Notifications not sending">
+    Verify notification configuration:
+
+    ```bash
+    # Test notification system
+    spark notify test
+
+    # Check notification config
+    spark config get notifications
+
+    # Test email (if using email)
+    spark notify test-email --to your@email.com
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## System Service Setup (Optional)
+
+For production deployments, run Spark as a system service:
+
+<Tabs>
+  <Tab title="systemd (Linux)">
+    Create `/etc/systemd/system/spark.service`:
+
+    ```ini
+    [Unit]
+    Description=Automagik Spark Scheduler
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=your-user
+    WorkingDirectory=/path/to/your/project
+    ExecStart=/usr/local/bin/spark start --foreground
+    Restart=on-failure
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    Enable and start:
+    ```bash
+    sudo systemctl enable spark
+    sudo systemctl start spark
+    sudo systemctl status spark
+    ```
+  </Tab>
+
+  <Tab title="Docker Compose">
+    Create `docker-compose.yml`:
+
+    ```yaml
+    version: '3.8'
+    services:
+      spark:
+        image: namastexlabs/automagik-spark
+        container_name: spark
+        restart: unless-stopped
+        volumes:
+          - ./workflows:/app/workflows
+          - ./.spark:/app/.spark
+        environment:
+          - TZ=America/New_York
+    ```
+
+    Start:
+    ```bash
+    docker-compose up -d
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/spark/quickstart">
+    Create your first automated workflow
+  </Card>
+  <Card title="Introduction" icon="book" href="/spark/introduction">
+    Learn more about Spark
+  </Card>
+</CardGroup>

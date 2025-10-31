@@ -1,0 +1,300 @@
+---
+title: "Installation"
+description: "Get Omni up and running"
+icon: "download"
+---
+
+## Prerequisites
+
+Before installing Omni, make sure you have:
+
+<AccordionGroup>
+  <Accordion title="Python (v3.10 or higher)">
+    ```bash
+    # Check your Python version
+    python --version
+
+    # Should output Python 3.10.0 or higher
+    ```
+
+    If you need to install or upgrade Python:
+    - **macOS**: `brew install python@3.11`
+    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    - **Windows**: Download from [python.org](https://www.python.org)
+  </Accordion>
+
+  <Accordion title="Evolution API (for WhatsApp)">
+    Omni uses Evolution API for WhatsApp integration:
+
+    ```bash
+    # Pull Evolution API Docker image
+    docker pull atendai/evolution-api
+
+    # Run Evolution API
+    docker run -p 8080:8080 atendai/evolution-api
+    ```
+
+    Or use Docker Compose (recommended).
+  </Accordion>
+
+  <Accordion title="Platform API Keys/Tokens">
+    Depending on which platforms you want to integrate:
+    - **Discord**: Bot token from Discord Developer Portal
+    - **Slack**: App token from Slack API
+    - **WhatsApp**: Evolution API instance
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="pip (Recommended)">
+    Install Omni via pip:
+
+    ```bash
+    pip install automagik-omni
+    ```
+
+    Verify installation:
+
+    ```bash
+    omni --version
+    ```
+  </Tab>
+
+  <Tab title="pipx (Isolated)">
+    Install Omni in an isolated environment:
+
+    ```bash
+    # Install pipx if you don't have it
+    pip install pipx
+    pipx ensurepath
+
+    # Install Omni
+    pipx install automagik-omni
+    ```
+
+    Avoids dependency conflicts!
+  </Tab>
+
+  <Tab title="uvx (Instant)">
+    Run Omni without installing:
+
+    ```bash
+    # Install uv first
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Run Omni
+    uvx automagik-omni
+    ```
+
+    Perfect for trying it out!
+  </Tab>
+
+  <Tab title="Docker Compose (Full Stack)">
+    Run complete stack with Docker Compose:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-omni.git
+    cd automagik-omni
+
+    # Start all services
+    docker-compose up -d
+    ```
+
+    Includes Evolution API, Omni, and database.
+  </Tab>
+</Tabs>
+
+---
+
+## Configuration
+
+After installation, initialize Omni:
+
+```bash
+# Initialize Omni workspace
+omni init
+
+# This creates:
+# - .omni/ directory
+# - config.json (Omni configuration)
+# - .env (API keys and secrets)
+```
+
+Configure Omni in `config.json`:
+
+```json
+{
+  "evolutionApi": {
+    "baseUrl": "http://localhost:8080",
+    "apiKey": "your-evolution-api-key"
+  },
+  "mcp": {
+    "enabled": true,
+    "port": 3000
+  },
+  "database": {
+    "type": "sqlite",
+    "path": ".omni/omni.db"
+  },
+  "tracing": {
+    "enabled": true,
+    "retentionDays": 30
+  }
+}
+```
+
+Set up platform credentials in `.env`:
+
+```bash
+# Evolution API
+EVOLUTION_API_KEY=your-evolution-api-key
+EVOLUTION_API_URL=http://localhost:8080
+
+# Discord (if using)
+DISCORD_BOT_TOKEN=your-discord-bot-token
+
+# Slack (if using)
+SLACK_BOT_TOKEN=xoxb-your-slack-token
+```
+
+<Warning>
+**Security**: Never commit `.env` to version control! Add it to `.gitignore`.
+</Warning>
+
+---
+
+## Start Omni
+
+Start the Omni server:
+
+```bash
+# Start Omni server
+omni serve
+
+# Or with custom port
+omni serve --port 3001
+
+# With MCP server enabled
+omni serve --mcp
+```
+
+You should see output like:
+
+```
+📱 Omni v1.0.0
+✓ Database initialized
+✓ Evolution API connected
+✓ MCP server started on port 3000
+✓ Omni server listening on http://localhost:8000
+
+Ready to handle omnichannel messages!
+```
+
+---
+
+## Create Your First Instance
+
+```bash
+# Create a WhatsApp instance
+omni instance create --name my-whatsapp --platform whatsapp
+
+# Get QR code for connection
+omni instance qr --name my-whatsapp
+
+# Check instance status
+omni instance status --name my-whatsapp
+```
+
+---
+
+## Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check version
+omni --version
+
+# List instances
+omni instance list
+
+# Check MCP server
+omni mcp status
+
+# Test message sending (after instance connected)
+omni send --instance my-whatsapp --to +1234567890 --message "Hello from Omni!"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Evolution API connection failed">
+    Make sure Evolution API is running:
+
+    ```bash
+    # Check if Evolution API is up
+    curl http://localhost:8080/health
+
+    # Restart Evolution API
+    docker restart evolution-api
+
+    # Check Evolution API logs
+    docker logs evolution-api
+    ```
+  </Accordion>
+
+  <Accordion title="QR code not displaying">
+    Make sure you're using a terminal that supports images, or use web interface:
+
+    ```bash
+    # Get QR code as URL
+    omni instance qr --name my-whatsapp --web
+
+    # This opens in your browser
+    ```
+  </Accordion>
+
+  <Accordion title="Message tracing not working">
+    Check database permissions and storage:
+
+    ```bash
+    # Check database file
+    ls -la .omni/omni.db
+
+    # Reset database (WARNING: deletes all traces)
+    omni db reset
+
+    # Check trace settings
+    omni config get tracing
+    ```
+  </Accordion>
+
+  <Accordion title="MCP server port conflict">
+    Change the MCP server port:
+
+    ```bash
+    # Edit config.json or use command line
+    omni serve --mcp-port 3001
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/omni/quickstart">
+    Send your first omnichannel message
+  </Card>
+  <Card title="Introduction" icon="book" href="/omni/introduction">
+    Learn more about Omni
+  </Card>
+</CardGroup>

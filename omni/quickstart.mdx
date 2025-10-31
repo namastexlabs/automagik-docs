@@ -1,0 +1,455 @@
+---
+title: "Quick Start"
+description: "Send your first omnichannel message in 5 minutes"
+icon: "rocket"
+---
+
+## Send Your First Omnichannel Message in 5 Minutes
+
+This guide will walk you through setting up Omni, connecting to WhatsApp, and sending your first message through the unified API.
+
+---
+
+## Step 1: Start Evolution API
+
+Omni uses Evolution API for WhatsApp. Start it with Docker:
+
+```bash
+# Pull and run Evolution API
+docker run -d \
+  --name evolution-api \
+  -p 8080:8080 \
+  atendai/evolution-api
+```
+
+Wait a few seconds for it to start, then verify:
+
+```bash
+curl http://localhost:8080/health
+# Should return: {"status":"ok"}
+```
+
+---
+
+## Step 2: Initialize Omni
+
+```bash
+# Initialize Omni workspace
+omni init
+
+# This creates:
+# - .omni/ directory
+# - config.json
+# - .env
+```
+
+---
+
+## Step 3: Configure Omni
+
+Edit `config.json`:
+
+```json
+{
+  "evolutionApi": {
+    "baseUrl": "http://localhost:8080",
+    "apiKey": "B6D711FCDE4D4FD5936544120E713976"
+  },
+  "mcp": {
+    "enabled": true,
+    "port": 3000
+  }
+}
+```
+
+<Tip>
+The default Evolution API key is `B6D711FCDE4D4FD5936544120E713976`. Change this in production!
+</Tip>
+
+---
+
+## Step 4: Start Omni
+
+```bash
+# Start Omni server
+omni serve
+
+# You should see:
+# 📱 Omni v1.0.0
+# ✓ Evolution API connected
+# ✓ MCP server started
+# ✓ Ready to handle messages
+```
+
+---
+
+## Step 5: Create a WhatsApp Instance
+
+```bash
+# Create instance
+omni instance create --name my-whatsapp --platform whatsapp
+
+# Get QR code to connect
+omni instance qr --name my-whatsapp
+```
+
+A QR code will appear in your terminal. **Scan it with WhatsApp** on your phone:
+1. Open WhatsApp
+2. Go to Settings → Linked Devices
+3. Tap "Link a Device"
+4. Scan the QR code
+
+---
+
+## Step 6: Send Your First Message
+
+Once connected, send a message:
+
+```bash
+# Send text message
+omni send \
+  --instance my-whatsapp \
+  --to "+1234567890" \
+  --message "Hello from Omni! 👋"
+
+# You should see:
+# ✓ Message sent successfully
+# Message ID: 3EB0ABC123...
+```
+
+**Congratulations!** You just sent your first omnichannel message! 🎉
+
+---
+
+## Real-World Example: Multi-Channel Notification
+
+Send the same message across multiple platforms:
+
+<Steps>
+  <Step title="Setup Instances">
+    ```bash
+    # WhatsApp
+    omni instance create --name whatsapp-prod --platform whatsapp
+
+    # Discord (if you have a bot)
+    omni instance create --name discord-bot --platform discord \
+      --token "your-discord-token"
+
+    # Slack (if you have an app)
+    omni instance create --name slack-workspace --platform slack \
+      --token "xoxb-your-slack-token"
+    ```
+  </Step>
+
+  <Step title="Send Across All Channels">
+    ```bash
+    # Same API, different platforms!
+
+    # WhatsApp
+    omni send --instance whatsapp-prod \
+      --to "+1234567890" \
+      --message "System update completed ✅"
+
+    # Discord
+    omni send --instance discord-bot \
+      --channel "general" \
+      --message "System update completed ✅"
+
+    # Slack
+    omni send --instance slack-workspace \
+      --channel "#engineering" \
+      --message "System update completed ✅"
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Message Types
+
+Omni supports rich message types:
+
+<Tabs>
+  <Tab title="Text">
+    ```bash
+    omni send \
+      --instance my-whatsapp \
+      --to "+1234567890" \
+      --message "Simple text message"
+    ```
+  </Tab>
+
+  <Tab title="Media (Image/Video)">
+    ```bash
+    omni send \
+      --instance my-whatsapp \
+      --to "+1234567890" \
+      --media "https://example.com/image.jpg" \
+      --caption "Check out this image!"
+    ```
+  </Tab>
+
+  <Tab title="Document">
+    ```bash
+    omni send \
+      --instance my-whatsapp \
+      --to "+1234567890" \
+      --document "https://example.com/report.pdf" \
+      --filename "Monthly_Report.pdf"
+    ```
+  </Tab>
+
+  <Tab title="Reaction">
+    ```bash
+    omni send \
+      --instance my-whatsapp \
+      --to "+1234567890" \
+      --reaction "👍" \
+      --message-id "3EB0ABC123..."
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Using with AI Agents (MCP)
+
+Connect Omni to Claude or any MCP-compatible agent:
+
+**1. Configure Claude Desktop**
+
+Edit `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "omni",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+**2. Now Claude can send messages!**
+
+```
+You: "Send a WhatsApp message to +1234567890 saying the report is ready"
+
+Claude: I'll send that message via Omni.
+[Uses omni_send_message tool]
+
+✓ Message sent successfully via WhatsApp!
+```
+
+---
+
+## Multi-Tenant Setup
+
+Manage multiple clients or teams:
+
+```bash
+# Create instances for different clients
+omni instance create --name client-a-whatsapp --platform whatsapp
+omni instance create --name client-b-whatsapp --platform whatsapp
+
+# Set default instance for easier commands
+omni config set default-instance client-a-whatsapp
+
+# Now omni send uses client-a by default
+omni send --to "+1234567890" --message "Hello!"
+
+# Or specify instance explicitly
+omni send --instance client-b-whatsapp --to "+0987654321" --message "Hi!"
+```
+
+---
+
+## Message Tracing
+
+Track and debug all messages:
+
+```bash
+# View recent messages
+omni traces list --limit 10
+
+# Filter by instance
+omni traces list --instance my-whatsapp
+
+# Filter by phone number
+omni traces by-phone "+1234567890"
+
+# Get detailed trace
+omni traces get <trace-id>
+```
+
+---
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Customer Support Bot" icon="headset">
+    ```bash
+    # Receive message → AI processes → Send reply
+    omni webhook setup --url https://yourapp.com/webhook
+    # Your app receives messages, processes with AI,
+    # sends responses via omni send
+    ```
+  </Card>
+
+  <Card title="Notification System" icon="bell">
+    ```bash
+    # Send alerts across all platforms
+    omni send --instance whatsapp \
+      --to "+list" --message "Alert: Server down"
+    omni send --instance discord \
+      --channel "alerts" --message "Alert: Server down"
+    ```
+  </Card>
+
+  <Card title="Marketing Campaigns" icon="bullhorn">
+    ```bash
+    # Broadcast to subscriber list
+    omni broadcast \
+      --instance my-whatsapp \
+      --list "subscribers.csv" \
+      --message "New product launch! 🚀"
+    ```
+  </Card>
+
+  <Card title="Order Updates" icon="box">
+    ```bash
+    # E-commerce order notifications
+    omni send \
+      --instance shop-whatsapp \
+      --to "$CUSTOMER_PHONE" \
+      --message "Your order #$ORDER_ID has shipped!"
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Pro Tips
+
+<AccordionGroup>
+  <Accordion title="Keep Instances Organized">
+    Use clear naming conventions:
+
+    ```bash
+    # Good
+    omni instance create --name prod-customer-support
+    omni instance create --name staging-notifications
+    omni instance create --name team-internal
+
+    # Not ideal
+    omni instance create --name instance1
+    omni instance create --name test123
+    ```
+  </Accordion>
+
+  <Accordion title="Use Environment Variables">
+    ```bash
+    # .env
+    OMNI_DEFAULT_INSTANCE=prod-customer-support
+    OMNI_EVOLUTION_API_KEY=your-key
+
+    # Now commands use defaults
+    omni send --to "+123" --message "Hi!"
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Instance Health">
+    ```bash
+    # Check connection status regularly
+    omni instance status --all
+
+    # Reconnect if needed
+    omni instance restart --name my-whatsapp
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Webhook Integration" icon="webhook">
+    Learn to:
+    - Receive incoming messages
+    - Process with AI
+    - Send automated replies
+  </Card>
+
+  <Card title="Advanced Messaging" icon="comments">
+    Explore:
+    - Group chats
+    - Media handling
+    - Message templates
+    - Bulk operations
+  </Card>
+
+  <Card title="Analytics & Monitoring" icon="chart-line">
+    Track:
+    - Message delivery rates
+    - Response times
+    - Usage patterns
+    - Error rates
+  </Card>
+
+  <Card title="Production Deployment" icon="server">
+    Deploy at scale:
+    - Load balancing
+    - High availability
+    - Backup strategies
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="QR code won't scan">
+    Try these solutions:
+    ```bash
+    # Get web-based QR
+    omni instance qr --name my-whatsapp --web
+
+    # Or regenerate
+    omni instance disconnect --name my-whatsapp
+    omni instance qr --name my-whatsapp
+    ```
+  </Accordion>
+
+  <Accordion title="Messages not sending">
+    Check instance status:
+    ```bash
+    omni instance status --name my-whatsapp
+    # Should show: connected
+
+    # If disconnected, reconnect:
+    omni instance restart --name my-whatsapp
+    ```
+  </Accordion>
+
+  <Accordion title="Evolution API errors">
+    Verify Evolution API is running:
+    ```bash
+    curl http://localhost:8080/health
+    docker logs evolution-api
+
+    # Restart if needed
+    docker restart evolution-api
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Congratulations!** 🎉 You've sent your first omnichannel message with Omni. You can now reach users on any platform!
+
+<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+  Share your integrations and get help from the community
+</Card>
