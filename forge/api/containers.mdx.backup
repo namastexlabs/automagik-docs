@@ -1,0 +1,155 @@
+---
+title: "Containers API"
+openapi: "GET /api/containers/:id"
+description: "Get information about worktree containers"
+icon: "box"
+---
+
+## Overview
+
+The Containers API provides information about git worktree containers used by task attempts. Each container represents an isolated workspace where AI agents execute tasks.
+
+**Base URL**: `http://localhost:8887/api/containers`
+
+---
+
+## Get Container Info
+
+Get detailed information about a worktree container.
+
+```http
+GET /api/containers/:id
+```
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Container/worktree ID |
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "container_abc123",
+    "taskAttemptId": "attempt_xyz789",
+    "worktreePath": "/path/to/.forge/worktrees/task-abc123-attempt-1",
+    "branch": "forge/task-abc123-attempt-1",
+    "baseBranch": "main",
+    "status": "active",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "diskUsage": {
+      "total": 52428800,
+      "used": 15728640,
+      "available": 36700160
+    },
+    "gitStatus": {
+      "ahead": 3,
+      "behind": 0,
+      "modified": 2,
+      "untracked": 1,
+      "conflicted": 0
+    },
+    "files": {
+      "total": 156,
+      "modified": 8,
+      "added": 3,
+      "deleted": 1
+    }
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Container ID |
+| `taskAttemptId` | string | Associated task attempt |
+| `worktreePath` | string | Absolute path to worktree |
+| `branch` | string | Worktree branch name |
+| `baseBranch` | string | Target branch for merge |
+| `status` | enum | `active`, `inactive`, `merged`, `deleted` |
+| `createdAt` | string | Creation timestamp |
+| `diskUsage` | object | Disk space information |
+| `gitStatus` | object | Git status summary |
+| `files` | object | File statistics |
+
+---
+
+## Use Cases
+
+### Monitor Disk Usage
+
+Track worktree disk usage to prevent space issues:
+
+```javascript
+const container = await forge.containers.get('container_abc123');
+
+if (container.diskUsage.available < 1000000000) { // < 1GB
+  console.warn('Low disk space in worktree');
+}
+```
+
+### Check Git Status
+
+Verify worktree state before merging:
+
+```javascript
+const container = await forge.containers.get('container_abc123');
+
+if (container.gitStatus.conflicted > 0) {
+  console.error('Container has merge conflicts');
+} else if (container.gitStatus.modified === 0) {
+  console.log('No changes in worktree');
+}
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Get container info
+const container = await forge.containers.get('container_abc123');
+
+console.log('Worktree path:', container.worktreePath);
+console.log('Modified files:', container.files.modified);
+console.log('Disk usage:', container.diskUsage.used / 1024 / 1024, 'MB');
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient()
+
+# Get container info
+container = forge.containers.get('container_abc123')
+
+print(f"Worktree: {container['worktreePath']}")
+print(f"Modified: {container['files']['modified']} files")
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Task attempts using containers
+  </Card>
+
+  <Card title="Git Worktrees" icon="code-branch" href="/forge/concepts/git-worktrees">
+    Learn about worktree isolation
+  </Card>
+</CardGroup>

@@ -1,0 +1,235 @@
+---
+title: "GitHub Integration API"
+openapi: "POST /api/task-attempts/:id/create-pr"
+description: "GitHub integration for PRs and repository management"
+icon: "github"
+---
+
+## Overview
+
+Forge integrates with GitHub for authentication, pull request creation, and repository operations.
+
+**Base URL**: `http://localhost:8887/api/github`
+
+---
+
+## Authentication
+
+### GitHub OAuth Device Flow
+
+Forge uses GitHub's device flow for authentication.
+
+#### Step 1: Initiate Device Flow
+
+```http
+POST /api/auth/github/device
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "device_code": "abc123...",
+    "user_code": "ABCD-1234",
+    "verification_uri": "https://github.com/login/device",
+    "expires_in": 900,
+    "interval": 5
+  }
+}
+```
+
+#### Step 2: Poll for Token
+
+```http
+POST /api/auth/github/device/poll
+```
+
+**Request**:
+```json
+{
+  "device_code": "abc123..."
+}
+```
+
+**Response (pending)**:
+```json
+{
+  "success": false,
+  "error": "authorization_pending"
+}
+```
+
+**Response (success)**:
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "gho_...",
+    "token_type": "bearer",
+    "scope": "repo,read:user"
+  }
+}
+```
+
+---
+
+## Pull Requests
+
+### Create Pull Request
+
+Create a GitHub PR from task attempt branch (covered in Attempts API).
+
+```http
+POST /api/task-attempts/:id/create-pr
+```
+
+See [Attempts API - Create GitHub PR](/forge/api/attempts#create-github-pr) for details.
+
+---
+
+### Attach Existing PR
+
+Link an existing GitHub PR to a task attempt.
+
+```http
+POST /api/task-attempts/:id/attach-pr
+```
+
+See [Attempts API - Attach Existing PR](/forge/api/attempts#attach-existing-pr) for details.
+
+---
+
+## Repository Operations
+
+### Get Repository Info
+
+Get information about the project's GitHub repository.
+
+```http
+GET /api/projects/:id/github/repository
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "owner": "namastexlabs",
+    "repo": "automagik-forge",
+    "fullName": "namastexlabs/automagik-forge",
+    "defaultBranch": "main",
+    "private": false,
+    "htmlUrl": "https://github.com/namastexlabs/automagik-forge",
+    "cloneUrl": "https://github.com/namastexlabs/automagik-forge.git"
+  }
+}
+```
+
+---
+
+### List Pull Requests
+
+List pull requests for a project.
+
+```http
+GET /api/projects/:id/github/pulls
+```
+
+**Query Parameters**:
+- `state`: `open`, `closed`, `all` (default: `open`)
+- `page`: Page number
+- `limit`: Items per page
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "number": 42,
+      "title": "Add authentication system",
+      "state": "open",
+      "author": "user",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "htmlUrl": "https://github.com/owner/repo/pull/42",
+      "head": "forge/task-abc123-attempt-1",
+      "base": "main"
+    }
+  ]
+}
+```
+
+---
+
+## Webhooks
+
+### Configure Webhook
+
+Set up GitHub webhook to receive events.
+
+```http
+POST /api/projects/:id/github/webhook
+```
+
+**Request**:
+```json
+{
+  "events": ["pull_request", "push", "issue_comment"],
+  "url": "https://forge.yourdomain.com/webhooks/github"
+}
+```
+
+**Supported Events**:
+- `pull_request` - PR opened, closed, merged
+- `push` - Commits pushed
+- `issue_comment` - Comments on issues/PRs
+- `pull_request_review` - PR reviews
+
+---
+
+## SDK Examples
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Authenticate with GitHub
+const deviceFlow = await forge.auth.github.initiateDeviceFlow();
+
+console.log(`Visit: ${deviceFlow.verification_uri}`);
+console.log(`Enter code: ${deviceFlow.user_code}`);
+
+// Poll for token
+const token = await forge.auth.github.pollForToken(deviceFlow.device_code);
+
+// Create PR from attempt
+const pr = await forge.attempts.createPR('attempt_123', {
+  title: 'Add authentication',
+  body: 'Implements JWT auth',
+  baseBranch: 'main',
+  draft: false
+});
+
+console.log(`PR created: ${pr.url}`);
+
+// List PRs
+const prs = await forge.projects.listPRs('proj_123', {
+  state: 'open'
+});
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Create PRs from task attempts
+  </Card>
+
+  <Card title="Authentication" icon="lock" href="/forge/config/github-oauth">
+    Configure GitHub OAuth
+  </Card>
+</CardGroup>

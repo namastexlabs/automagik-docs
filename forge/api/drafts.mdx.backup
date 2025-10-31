@@ -1,0 +1,583 @@
+---
+title: "Drafts API"
+openapi: "POST /api/task-attempts/:id/drafts"
+description: "Manage draft prompts and follow-up queues"
+icon: "pen-to-square"
+---
+
+## Overview
+
+The Drafts API allows you to save, manage, and queue prompts for task attempts. Useful for preparing follow-up instructions or retry strategies before execution.
+
+**Base URL**: `http://localhost:8887/api/task-attempts/:id/drafts`
+
+---
+
+## Save Draft
+
+Save a draft prompt for a task attempt.
+
+```http
+POST /api/task-attempts/:id/drafts
+```
+
+### Request Body
+
+```json
+{
+  "content": "Add unit tests for the authentication functions",
+  "type": "follow_up",
+  "metadata": {
+    "priority": "high",
+    "category": "testing"
+  }
+}
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `content` | string | ✅ | Draft prompt content |
+| `type` | enum | ✅ | Draft type: `follow_up`, `retry`, `initial` |
+| `metadata` | object | ⚠️ | Additional metadata |
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "draft_abc123",
+    "taskAttemptId": "attempt_xyz789",
+    "content": "Add unit tests for the authentication functions",
+    "type": "follow_up",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z",
+    "metadata": {
+      "priority": "high",
+      "category": "testing"
+    }
+  }
+}
+```
+
+---
+
+## Get Draft
+
+Retrieve a saved draft.
+
+```http
+GET /api/task-attempts/:attemptId/drafts/:draftId
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "draft_abc123",
+    "taskAttemptId": "attempt_xyz789",
+    "content": "Add unit tests for the authentication functions",
+    "type": "follow_up",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Delete Draft
+
+Delete a saved draft.
+
+```http
+DELETE /api/task-attempts/:attemptId/drafts/:draftId
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "draftId": "draft_abc123"
+  }
+}
+```
+
+---
+
+## Save Follow-Up Draft
+
+Save a draft for follow-up instructions to a running task.
+
+```http
+POST /api/task-attempts/:id/follow-up-draft
+```
+
+### Request Body
+
+```json
+{
+  "prompt": "Also add integration tests for the login flow",
+  "autoSend": false,
+  "sendAfter": "2024-01-15T11:00:00Z"
+}
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `prompt` | string | - | Follow-up instruction |
+| `autoSend` | boolean | `false` | Automatically send when ready |
+| `sendAfter` | string | null | Schedule send time |
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "draft_followup_abc123",
+    "taskAttemptId": "attempt_xyz789",
+    "prompt": "Also add integration tests for the login flow",
+    "autoSend": false,
+    "sendAfter": "2024-01-15T11:00:00Z",
+    "status": "scheduled",
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Save Retry Follow-Up Draft
+
+Save a draft for retry attempts with modified prompts.
+
+```http
+POST /api/task-attempts/:id/retry-follow-up-draft
+```
+
+### Request Body
+
+```json
+{
+  "originalPrompt": "Implement authentication",
+  "retryPrompt": "Implement authentication using JWT with refresh tokens",
+  "retryReason": "Initial attempt didn't include refresh token logic"
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "draft_retry_abc123",
+    "taskAttemptId": "attempt_xyz789",
+    "originalPrompt": "Implement authentication",
+    "retryPrompt": "Implement authentication using JWT with refresh tokens",
+    "retryReason": "Initial attempt didn't include refresh token logic",
+    "createdAt": "2024-01-15T10:35:00Z"
+  }
+}
+```
+
+---
+
+## Delete Retry Follow-Up Draft
+
+Delete a retry follow-up draft.
+
+```http
+DELETE /api/task-attempts/:id/retry-follow-up-draft/:draftId
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "draftId": "draft_retry_abc123"
+  }
+}
+```
+
+---
+
+## Set Follow-Up Queue
+
+Set a queue of follow-up prompts to be executed in sequence.
+
+```http
+POST /api/task-attempts/:id/follow-up-queue
+```
+
+### Request Body
+
+```json
+{
+  "queue": [
+    {
+      "prompt": "Add input validation",
+      "order": 1
+    },
+    {
+      "prompt": "Add error handling",
+      "order": 2
+    },
+    {
+      "prompt": "Add unit tests",
+      "order": 3
+    }
+  ],
+  "autoExecute": false
+}
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `queue` | array | - | Ordered list of follow-up prompts |
+| `queue[].prompt` | string | - | Follow-up instruction |
+| `queue[].order` | integer | - | Execution order |
+| `autoExecute` | boolean | `false` | Auto-execute queue |
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "taskAttemptId": "attempt_xyz789",
+    "queue": [
+      {
+        "id": "queue_item_1",
+        "prompt": "Add input validation",
+        "order": 1,
+        "status": "pending"
+      },
+      {
+        "id": "queue_item_2",
+        "prompt": "Add error handling",
+        "order": 2,
+        "status": "pending"
+      },
+      {
+        "id": "queue_item_3",
+        "prompt": "Add unit tests",
+        "order": 3,
+        "status": "pending"
+      }
+    ],
+    "autoExecute": false,
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Set Draft Queue
+
+Set a queue of draft prompts for task creation.
+
+```http
+POST /api/task-attempts/:id/draft-queue
+```
+
+### Request Body
+
+```json
+{
+  "queue": [
+    {
+      "title": "Implement user registration",
+      "description": "Create registration endpoint with email validation",
+      "order": 1
+    },
+    {
+      "title": "Implement user login",
+      "description": "Create login endpoint with JWT generation",
+      "order": 2
+    }
+  ]
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "projectId": "proj_abc123",
+    "queue": [
+      {
+        "id": "queue_draft_1",
+        "title": "Implement user registration",
+        "description": "Create registration endpoint with email validation",
+        "order": 1,
+        "status": "queued"
+      },
+      {
+        "id": "queue_draft_2",
+        "title": "Implement user login",
+        "description": "Create login endpoint with JWT generation",
+        "order": 2,
+        "status": "queued"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Stream Project Drafts
+
+Stream real-time updates of project drafts via WebSocket.
+
+```
+ws://localhost:8887/ws/projects/:projectId/drafts
+```
+
+**Example**:
+```javascript
+const projectId = 'proj_abc123';
+const ws = new WebSocket(`ws://localhost:8887/ws/projects/${projectId}/drafts`);
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+
+  switch (update.type) {
+    case 'draft_created':
+      console.log('New draft:', update.draft);
+      break;
+    case 'draft_updated':
+      console.log('Draft updated:', update.draft);
+      break;
+    case 'draft_deleted':
+      console.log('Draft deleted:', update.draftId);
+      break;
+  }
+};
+```
+
+---
+
+## Use Cases
+
+### Batch Follow-Ups
+
+Queue multiple follow-up instructions for sequential execution:
+
+```javascript
+// Set up a series of refinements
+await forge.attempts.setFollowUpQueue('attempt_123', {
+  queue: [
+    { prompt: 'Add TypeScript types', order: 1 },
+    { prompt: 'Add JSDoc comments', order: 2 },
+    { prompt: 'Add unit tests', order: 3 },
+    { prompt: 'Add integration tests', order: 4 }
+  ],
+  autoExecute: true
+});
+```
+
+### Scheduled Follow-Ups
+
+Schedule follow-up instructions for later:
+
+```javascript
+// Schedule a follow-up for after code review
+await forge.attempts.saveFollowUpDraft('attempt_123', {
+  prompt: 'Address code review comments',
+  autoSend: true,
+  sendAfter: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
+});
+```
+
+### Retry Strategy
+
+Save retry prompts with improved instructions:
+
+```javascript
+// If first attempt fails, retry with more specific instructions
+await forge.attempts.saveRetryFollowUpDraft('attempt_123', {
+  originalPrompt: 'Add authentication',
+  retryPrompt: 'Add authentication using Passport.js with JWT strategy and refresh tokens',
+  retryReason: 'Need more specific implementation approach'
+});
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Save a draft
+const draft = await forge.attempts.saveDraft('attempt_123', {
+  content: 'Add error handling',
+  type: 'follow_up',
+  metadata: { priority: 'high' }
+});
+
+// Get draft
+const savedDraft = await forge.attempts.getDraft('attempt_123', 'draft_abc');
+
+// Delete draft
+await forge.attempts.deleteDraft('attempt_123', 'draft_abc');
+
+// Save follow-up draft with auto-send
+await forge.attempts.saveFollowUpDraft('attempt_123', {
+  prompt: 'Add unit tests',
+  autoSend: true,
+  sendAfter: new Date('2024-01-15T11:00:00Z')
+});
+
+// Set follow-up queue
+await forge.attempts.setFollowUpQueue('attempt_123', {
+  queue: [
+    { prompt: 'Add validation', order: 1 },
+    { prompt: 'Add tests', order: 2 }
+  ],
+  autoExecute: false
+});
+
+// Stream drafts
+const draftStream = forge.projects.streamDrafts('proj_123');
+
+draftStream.on('draft_created', (draft) => {
+  console.log('New draft:', draft);
+});
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient()
+
+# Save draft
+draft = forge.attempts.save_draft(
+    'attempt_123',
+    content='Add error handling',
+    type='follow_up'
+)
+
+# Set follow-up queue
+forge.attempts.set_follow_up_queue(
+    'attempt_123',
+    queue=[
+        {'prompt': 'Add validation', 'order': 1},
+        {'prompt': 'Add tests', 'order': 2}
+    ],
+    auto_execute=False
+)
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Order Follow-Ups Logically" icon="list-ol">
+    ```javascript
+    // Good ✅
+    queue: [
+      { prompt: 'Add feature', order: 1 },
+      { prompt: 'Add tests', order: 2 },
+      { prompt: 'Add docs', order: 3 }
+    ]
+
+    // Avoid ❌
+    queue: [
+      { prompt: 'Add docs', order: 1 },
+      { prompt: 'Add feature', order: 2 },
+      { prompt: 'Add tests', order: 3 }
+    ]
+    ```
+  </Card>
+
+  <Card title="Use Auto-Execute Carefully" icon="robot">
+    Only auto-execute follow-ups when you're confident they won't require review:
+
+    ```javascript
+    // Safe for auto-execute ✅
+    { prompt: 'Format code', autoExecute: true }
+
+    // Review first ❌
+    { prompt: 'Refactor architecture', autoExecute: true }
+    ```
+  </Card>
+
+  <Card title="Include Context in Retries" icon="rotate">
+    ```javascript
+    // Good ✅
+    {
+      retryPrompt: 'Use bcrypt for password hashing with salt rounds of 12',
+      retryReason: 'Initial attempt used plain text storage'
+    }
+
+    // Unclear ❌
+    {
+      retryPrompt: 'Fix it',
+      retryReason: 'Didn't work'
+    }
+    ```
+  </Card>
+
+  <Card title="Clean Up Old Drafts" icon="trash">
+    ```javascript
+    // Delete obsolete drafts
+    const drafts = await forge.attempts.listDrafts('attempt_123');
+
+    for (const draft of drafts) {
+      if (draft.createdAt < oneWeekAgo) {
+        await forge.attempts.deleteDraft('attempt_123', draft.id);
+      }
+    }
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Task attempt execution
+  </Card>
+
+  <Card title="WebSockets" icon="bolt" href="/forge/api/websockets">
+    Real-time draft updates
+  </Card>
+
+  <Card title="Tasks API" icon="list-check" href="/forge/api/tasks">
+    Create tasks from drafts
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Draft-based workflows
+  </Card>
+</CardGroup>
