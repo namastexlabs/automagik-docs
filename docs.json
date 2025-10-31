@@ -1,20 +1,33 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Automagik Documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#FF00FF",
+    "light": "#00FFFF",
+    "dark": "#A020F0"
+  },
+  "font": {
+    "headings": {
+      "family": "Alegreya Sans",
+      "weight": 700
+    },
+    "body": {
+      "family": "Alegreya Sans",
+      "weight": 400
+    },
+    "code": {
+      "family": "Manrope"
+    }
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
               "index",
               "quickstart",
@@ -22,47 +35,103 @@
             ]
           },
           {
-            "group": "Customization",
+            "group": "Products",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "products/forge",
+              "products/hive",
+              "products/omni",
+              "products/spark",
+              "products/genie",
+              "products/tools"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Forge",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
+            "pages": [
+              "forge/introduction",
+              "forge/installation",
+              "forge/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Hive",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "hive/introduction",
+              "hive/installation",
+              "hive/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Omni",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "omni/introduction",
+              "omni/installation",
+              "omni/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Spark",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "spark/introduction",
+              "spark/installation",
+              "spark/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Genie",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "genie/introduction",
+              "genie/installation",
+              "genie/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Tools",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "tools/introduction",
+              "tools/installation",
+              "tools/quickstart"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Documentation",
             "pages": [
               "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
             ]
           }
         ]
@@ -71,34 +140,34 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Discord Community",
+          "href": "https://discord.gg/xcW8c7fF3R",
+          "icon": "discord"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "GitHub",
+          "href": "https://github.com/namastexlabs",
+          "icon": "github"
+        },
+        {
+          "anchor": "Product Roadmap",
+          "href": "https://github.com/orgs/namastexlabs/projects/9",
+          "icon": "map"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/logo-light.png",
+    "dark": "/logo/logo-dark.png"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Website",
+        "href": "https://namastex.ai"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
+    ]
   },
   "contextual": {
     "options": [
@@ -114,9 +183,10 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://twitter.com/namastexlabs",
+      "github": "https://github.com/namastexlabs",
+      "linkedin": "https://linkedin.com/company/namastexlabs",
+      "discord": "https://discord.gg/xcW8c7fF3R"
     }
   }
 }
