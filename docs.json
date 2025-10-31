@@ -20,7 +20,7 @@
       "family": "Manrope"
     }
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.ico",
   "navigation": {
     "tabs": [
       {
@@ -35,14 +35,14 @@
             ]
           },
           {
-            "group": "Products",
+            "group": "The Automagik Suite",
             "pages": [
-              "products/forge",
-              "products/hive",
-              "products/omni",
-              "products/spark",
-              "products/genie",
-              "products/tools"
+              "suite/forge",
+              "suite/hive",
+              "suite/omni",
+              "suite/spark",
+              "suite/genie",
+              "suite/tools"
             ]
           }
         ]
