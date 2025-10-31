@@ -1,80 +1,331 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start"
+description: "Get started with the Automagik Suite in minutes"
 ---
 
-## Get started in three steps
+<div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+  <h1 style={{ fontSize: '2.5rem', fontWeight: '300', marginBottom: '1rem' }}>
+    Start Building with <span style={{ fontWeight: '900', background: 'linear-gradient(to right, #FF00FF, #00FFFF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Automagik</span>
+  </h1>
+</div>
 
-Get your documentation site running locally and make your first customization.
+## Choose Your Tool
 
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+The Automagik Suite provides 6 powerful tools for AI automation. Choose the one that fits your needs:
 
 <CardGroup cols={2}>
+  <Card title="🔧 Forge" href="/forge/quickstart">
+    **Start Here If:** You want AI-powered task management with multi-LLM support
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    Install: `npm install -g automagik-forge`
+  </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Card title="🐝 Hive" href="/hive/quickstart">
+    **Start Here If:** You need multi-agent orchestration teams
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+    Install: `pip install automagik-hive`
+  </Card>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+  <Card title="📱 Omni" href="/omni/quickstart">
+    **Start Here If:** You want to connect AI to WhatsApp, Discord, Slack
 
+    Install: `pip install automagik-omni`
+  </Card>
+
+  <Card title="⚡ Spark" href="/spark/quickstart">
+    **Start Here If:** You need scheduled workflows and automation
+
+    Install: `pip install automagik-spark`
+  </Card>
+
+  <Card title="🧞 Genie" href="/genie/quickstart">
+    **Start Here If:** You want ready-to-run AI workspaces
+
+    Install: `npm install -g automagik-genie`
+  </Card>
+
+  <Card title="🛠️ Tools" href="/tools/quickstart">
+    **Start Here If:** You need to generate MCP tools from APIs
+
+    Install: `uvx automagik-tools`
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+---
+
+## The Complete Stack
+
+For the full experience, here's how the tools work together:
+
+<Steps>
+  <Step title="Genie: Orchestrate Your Workspace">
+    Start with Genie to set up your AI-ready workspace and manage your repository context.
+
+    ```bash
+    npm install -g automagik-genie
+    genie init
+    ```
+  </Step>
+
+  <Step title="Forge: Manage Tasks">
+    Use Forge to create and organize AI-powered tasks with multi-LLM support.
+
+    ```bash
+    npm install -g automagik-forge
+    forge init
+    forge task create "Build user authentication"
+    ```
+  </Step>
+
+  <Step title="Hive: Deploy Agent Teams">
+    Set up specialized agent teams to execute complex workflows.
+
+    ```bash
+    pip install automagik-hive
+    hive init
+    hive start
+    ```
+  </Step>
+
+  <Step title="Omni: Connect Channels">
+    Enable agents to communicate via WhatsApp, Discord, Slack, and more.
+
+    ```bash
+    pip install automagik-omni
+    omni init
+    omni serve
+    ```
+  </Step>
+
+  <Step title="Spark: Automate Workflows">
+    Schedule agents to work 24/7 with automated workflows.
+
+    ```bash
+    pip install automagik-spark
+    spark init
+    spark start
+    ```
+  </Step>
+
+  <Step title="Tools: Extend Capabilities">
+    Generate MCP tools to connect any API to your AI agents.
+
+    ```bash
+    uvx automagik-tools generate --spec https://api.example.com/openapi.json
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Quick Wins
+
+### 5-Minute Wins (Pick One)
+
+<AccordionGroup>
+  <Accordion title="Send a WhatsApp Message with AI (Omni)">
+    ```bash
+    # Install and start
+    pip install automagik-omni
+    omni init
+    omni serve
+
+    # Connect WhatsApp
+    omni instance create --name my-whatsapp
+    omni instance qr --name my-whatsapp
+    # Scan QR code with WhatsApp
+
+    # Send message
+    omni send --to "+1234567890" --message "Hello from Omni!"
+    ```
+
+    ✅ You just sent your first omnichannel message!
+  </Accordion>
+
+  <Accordion title="Generate an API Tool (Tools)">
+    ```bash
+    # Generate MCP tool from PetStore API
+    uvx automagik-tools generate \
+      --spec https://petstore3.swagger.io/api/v3/openapi.json \
+      --name petstore
+
+    # Serve it
+    uvx automagik-tools serve --tools petstore
+    ```
+
+    ✅ You just created an AI-ready API tool in 30 seconds!
+  </Accordion>
+
+  <Accordion title="Compare AI Models (Forge)">
+    ```bash
+    # Install Forge
+    npm install -g automagik-forge
+    forge init
+
+    # Create task with multiple LLMs
+    forge task create \
+      --title "Add dark mode toggle" \
+      --llm claude
+
+    forge task fork 1 --llm gemini
+
+    # Compare results
+    forge task compare 1
+    ```
+
+    ✅ You just compared Claude vs Gemini on the same task!
+  </Accordion>
+
+  <Accordion title="Schedule Daily Reports (Spark)">
+    ```bash
+    # Install Spark
+    pip install automagik-spark
+    spark init
+
+    # Create workflow
+    cat > workflows/daily-report.yaml <<EOF
+    name: daily-report
+    schedule: "0 9 * * *"  # 9 AM daily
+    tasks:
+      - name: generate-report
+        type: script
+        script: echo "Daily report generated!"
+    EOF
+
+    # Start scheduler
+    spark start
+    ```
+
+    ✅ You just automated a daily workflow!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Common Patterns
+
+### Pattern 1: AI-Powered Development Workflow
+
+```mermaid
+graph LR
+    A[Genie: Plan Feature] --> B[Forge: Create Task]
+    B --> C[Hive: Agent Implements]
+    C --> D[Spark: Automated Testing]
+    D --> E[Omni: Notify Team]
+```
+
+**Use Case:** Building features with AI assistance while keeping humans in control.
+
+<Card title="Learn This Pattern" icon="book" href="/forge/quickstart">
+  Follow the Forge quickstart to see this in action
+</Card>
+
+---
+
+### Pattern 2: Customer Support Automation
+
+```mermaid
+graph LR
+    A[Omni: Receive Message] --> B[Hive: AI Agent Processes]
+    B --> C[Tools: Check APIs]
+    C --> D[Omni: Send Response]
+```
+
+**Use Case:** AI-powered customer support across multiple channels.
+
+<Card title="Learn This Pattern" icon="book" href="/omni/quickstart">
+  Follow the Omni quickstart to see this in action
+</Card>
+
+---
+
+### Pattern 3: Automated Operations
+
+```mermaid
+graph LR
+    A[Spark: Trigger Schedule] --> B[Hive: Agents Execute]
+    B --> C[Tools: Update Systems]
+    C --> D[Omni: Alert Team]
+```
+
+**Use Case:** 24/7 automated operations and monitoring.
+
+<Card title="Learn This Pattern" icon="book" href="/spark/quickstart">
+  Follow the Spark quickstart to see this in action
+</Card>
+
+---
+
+## Prerequisites
+
+Before getting started, ensure you have:
+
+<AccordionGroup>
+  <Accordion title="For NPM Tools (Forge, Genie)">
+    - Node.js v18 or higher
+    - npm or yarn
+    - Git
+  </Accordion>
+
+  <Accordion title="For Python Tools (Hive, Omni, Spark, Tools)">
+    - Python 3.10 or higher
+    - pip or uv
+    - Virtual environment (recommended)
+  </Accordion>
+
+  <Accordion title="API Keys">
+    You'll need API keys for the LLMs you want to use:
+    - **Claude**: [Anthropic Console](https://console.anthropic.com)
+    - **OpenAI**: [OpenAI Platform](https://platform.openai.com)
+    - **Gemini**: [Google AI Studio](https://makersuite.google.com)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Join Discord" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help from the community and team
+  </Card>
+
+  <Card title="View Roadmap" icon="map" href="https://github.com/orgs/namastexlabs/projects/9">
+    See what's coming next
+  </Card>
+
+  <Card title="Report Issues" icon="github" href="https://github.com/namastexlabs">
+    Found a bug? Let us know!
+  </Card>
+
+  <Card title="Read Blog" icon="newspaper" href="https://namastex.ai">
+    Learn more about our philosophy
+  </Card>
+</CardGroup>
+
+---
+
+## What's Next?
+
+Now that you know what's available, dive into the tool that matches your needs:
+
+<CardGroup cols={3}>
+  <Card title="Forge" icon="hammer" href="/suite/forge">
+    AI Orchestration Kanban
+  </Card>
+  <Card title="Hive" icon="hexagon" href="/suite/hive">
+    Multi-Agent Factory
+  </Card>
+  <Card title="Omni" icon="messages" href="/suite/omni">
+    Omnipresent Messaging
+  </Card>
+  <Card title="Spark" icon="bolt" href="/suite/spark">
+    Temporal Automation
+  </Card>
+  <Card title="Genie" icon="wand-magic-sparkles" href="/suite/genie">
+    Universal AI Companion
+  </Card>
+  <Card title="Tools" icon="wrench" href="/suite/tools">
+    Instant MCP Generator
+  </Card>
+</CardGroup>

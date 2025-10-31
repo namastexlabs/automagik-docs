@@ -1,33 +1,260 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Automagik Suite API Documentation'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Overview
 
-## Welcome
+The Automagik Suite provides REST APIs and MCP (Model Context Protocol) interfaces for programmatic access to all tools. This section will contain comprehensive API documentation for:
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+<CardGroup cols={2}>
+  <Card title="Omni API" icon="messages">
+    **REST API for omnichannel messaging**
+    - Instance management
+    - Message sending
+    - Webhook configuration
+    - Trace analytics
+  </Card>
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+  <Card title="Hive API" icon="hexagon">
+    **REST API for agent orchestration**
+    - Agent management
+    - Task assignment
+    - Memory operations
+    - Workflow execution
+  </Card>
+
+  <Card title="Spark API" icon="bolt">
+    **REST API for workflow scheduling**
+    - Workflow management
+    - Schedule configuration
+    - Execution monitoring
+    - History and logs
+  </Card>
+
+  <Card title="MCP Servers" icon="microchip">
+    **Model Context Protocol interfaces**
+    - Genie MCP server
+    - Omni MCP integration
+    - Tools MCP generation
+  </Card>
+</CardGroup>
+
+---
+
+## Coming Soon
+
+We're currently building comprehensive API documentation with:
+
+- **Interactive API playground** - Test APIs directly in the browser
+- **OpenAPI specifications** - Machine-readable API definitions
+- **Code examples** - Copy-paste examples in multiple languages
+- **Authentication guides** - Detailed auth setup for each tool
+- **Rate limits & quotas** - Usage limits and best practices
+- **Webhook documentation** - Event-driven integration guides
+
+<Info>
+**Want to contribute?** Help us document the APIs! Join our [Discord](https://discord.gg/xcW8c7fF3R) or check the [GitHub repositories](https://github.com/namastexlabs).
+</Info>
+
+---
+
+## Current API Access
+
+While we build the comprehensive documentation, you can access the APIs directly:
+
+### Omni REST API
+
+```bash
+# Start Omni server
+omni serve --port 8000
+
+# API available at http://localhost:8000
+# Swagger docs at http://localhost:8000/docs
+```
+
+### Hive REST API
+
+```bash
+# Start Hive with API enabled
+hive start --api --port 8001
+
+# API available at http://localhost:8001
+# Swagger docs at http://localhost:8001/docs
+```
+
+### Spark REST API
+
+```bash
+# Start Spark with API enabled
+spark start --api --port 8002
+
+# API available at http://localhost:8002
+# Swagger docs at http://localhost:8002/docs
+```
+
+---
+
+## MCP Server Access
+
+Connect to MCP servers for AI agent integration:
+
+### Genie MCP Server
+
+```bash
+# Start Genie MCP server
+genie serve --mcp --port 3000
+```
+
+Add to Claude Desktop (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "genie",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+### Omni MCP Integration
+
+```bash
+# Start Omni with MCP enabled
+omni serve --mcp --port 3001
+```
+
+Add to Claude Desktop:
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "omni",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+### Tools MCP Server
+
+```bash
+# Serve generated tools via MCP
+uvx automagik-tools serve --tools github,slack
+```
+
+Add to Claude Desktop:
+```json
+{
+  "mcpServers": {
+    "automagik-tools": {
+      "command": "uvx",
+      "args": ["automagik-tools", "serve", "--tools", "github,slack"]
+    }
+  }
+}
+```
+
+---
+
+## Example: Using the Omni API
+
+Here's a quick example of sending a WhatsApp message via the REST API:
+
+```bash
+# Send a message
+curl -X POST http://localhost:8000/api/v1/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instance": "my-whatsapp",
+    "to": "+1234567890",
+    "message": "Hello from Automagik!"
+  }'
+```
+
+```python
+# Python example
+import requests
+
+response = requests.post(
+    "http://localhost:8000/api/v1/messages",
+    json={
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Hello from Automagik!"
+    }
+)
+
+print(response.json())
+```
+
+```javascript
+// JavaScript example
+const response = await fetch('http://localhost:8000/api/v1/messages', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    instance: 'my-whatsapp',
+    to: '+1234567890',
+    message: 'Hello from Automagik!'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+---
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+Most APIs support multiple authentication methods:
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
-```
+<AccordionGroup>
+  <Accordion title="API Key Authentication">
+    ```bash
+    curl -X GET http://localhost:8000/api/v1/instances \
+      -H "X-API-Key: your-api-key"
+    ```
+  </Accordion>
+
+  <Accordion title="Bearer Token Authentication">
+    ```bash
+    curl -X GET http://localhost:8000/api/v1/instances \
+      -H "Authorization: Bearer your-token"
+    ```
+  </Accordion>
+
+  <Accordion title="MCP Authentication">
+    MCP servers use stdio-based communication - no HTTP auth required.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Join Discord" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get API support from the community
+  </Card>
+
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs">
+    Report API bugs or request features
+  </Card>
+
+  <Card title="View Roadmap" icon="map" href="https://github.com/orgs/namastexlabs/projects/9">
+    See upcoming API features
+  </Card>
+
+  <Card title="Read Quickstarts" icon="rocket" href="/quickstart">
+    Learn the basics of each tool
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Contributing API Docs:** We welcome contributions! If you'd like to help document the APIs, check out the repositories and reach out on [Discord](https://discord.gg/xcW8c7fF3R).
+</Note>
