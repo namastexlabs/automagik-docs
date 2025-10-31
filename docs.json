@@ -70,6 +70,15 @@
               "hive/installation",
               "hive/quickstart"
             ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "hive/api/overview",
+              "hive/api/agents",
+              "hive/api/tasks",
+              "hive/api/memory"
+            ]
           }
         ]
       },
@@ -83,6 +92,15 @@
               "omni/installation",
               "omni/quickstart"
             ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "omni/api/overview",
+              "omni/api/send-message",
+              "omni/api/manage-instances",
+              "omni/api/traces"
+            ]
           }
         ]
       },
@@ -95,6 +113,15 @@
               "spark/introduction",
               "spark/installation",
               "spark/quickstart"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "spark/api/overview",
+              "spark/api/workflows",
+              "spark/api/schedules",
+              "spark/api/executions"
             ]
           }
         ]
@@ -121,17 +148,6 @@
               "tools/introduction",
               "tools/installation",
               "tools/quickstart"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
             ]
           }
         ]

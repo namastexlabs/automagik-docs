@@ -1,0 +1,203 @@
+---
+title: "Manage Instances"
+api: "GET /api/v1/instances"
+description: "Create, configure, and monitor messaging instances"
+---
+
+## List All Instances
+
+Get all configured messaging instances with their connection status.
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8000/api/v1/instances \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8000/api/v1/instances",
+    headers={"X-API-Key": "your-api-key"}
+)
+
+print(response.json())
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "instances": [
+    {
+      "name": "my-whatsapp",
+      "platform": "whatsapp",
+      "status": "connected",
+      "phone": "+1234567890",
+      "createdAt": "2025-10-01T00:00:00Z",
+      "lastActivity": "2025-10-31T12:00:00Z"
+    },
+    {
+      "name": "discord-bot",
+      "platform": "discord",
+      "status": "connected",
+      "serverId": "123456789",
+      "createdAt": "2025-10-15T00:00:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+## Create Instance
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8000/api/v1/instances \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "name": "my-whatsapp",
+    "platform": "whatsapp"
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8000/api/v1/instances",
+    headers={"X-API-Key": "your-api-key"},
+    json={
+        "name": "my-whatsapp",
+        "platform": "whatsapp"
+    }
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 201 Created
+{
+  "name": "my-whatsapp",
+  "platform": "whatsapp",
+  "status": "created",
+  "qrCode": "data:image/png;base64,...",
+  "message": "Scan QR code to connect WhatsApp"
+}
+```
+
+---
+
+## Get Instance Status
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8000/api/v1/instances/my-whatsapp/status \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "name": "my-whatsapp",
+  "platform": "whatsapp",
+  "status": "connected",
+  "phone": "+1234567890",
+  "lastPing": "2025-10-31T12:00:00Z",
+  "messagesLast24h": 42
+}
+```
+
+---
+
+## Get QR Code
+
+For WhatsApp instances, get the QR code for connection:
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8000/api/v1/instances/my-whatsapp/qr \
+  -H "X-API-Key": your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "expiresAt": "2025-10-31T12:05:00Z"
+}
+```
+
+---
+
+## Restart Instance
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8000/api/v1/instances/my-whatsapp/restart \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "name": "my-whatsapp",
+  "status": "restarting",
+  "message": "Instance is restarting..."
+}
+```
+
+---
+
+## Delete Instance
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE http://localhost:8000/api/v1/instances/my-whatsapp \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance 'my-whatsapp' deleted successfully"
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Message" icon="paper-plane" href="/omni/api/send-message">
+    Send messages with your instance
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track message history
+  </Card>
+</CardGroup>

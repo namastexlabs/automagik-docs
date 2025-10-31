@@ -1,0 +1,101 @@
+---
+title: "API Overview"
+description: "Hive REST API for multi-agent orchestration"
+icon: "code"
+---
+
+## Hive REST API
+
+The Hive REST API provides programmatic access to multi-agent orchestration features. Manage agents, assign tasks, and query memory systems.
+
+### Base URL
+
+```
+http://localhost:8001/api/v1
+```
+
+### Quick Start
+
+```bash
+# Start Hive with API enabled
+hive start --api --port 8001
+
+# API available at http://localhost:8001/api/v1
+# Swagger docs at http://localhost:8001/docs
+```
+
+---
+
+## Core Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Agents" icon="robot" href="/hive/api/agents">
+    Create, configure, and manage AI agents
+  </Card>
+
+  <Card title="Tasks" icon="list-check" href="/hive/api/tasks">
+    Assign and monitor agent tasks
+  </Card>
+
+  <Card title="Memory" icon="brain" href="/hive/api/memory">
+    Query and manage agent memory
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project">
+    **Coming Soon**: Multi-step workflow execution
+  </Card>
+</CardGroup>
+
+---
+
+## Authentication
+
+<Tabs>
+  <Tab title="API Key">
+    ```bash
+    curl -X GET http://localhost:8001/api/v1/agents \
+      -H "X-API-Key: your-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Bearer Token">
+    ```bash
+    curl -X GET http://localhost:8001/api/v1/agents \
+      -H "Authorization: Bearer your-token"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Interactive Documentation
+
+```bash
+# Start Hive
+hive start --api
+
+# Open Swagger UI
+open http://localhost:8001/docs
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Agents API" icon="robot" href="/hive/api/agents">
+    Manage AI agents
+  </Card>
+
+  <Card title="Tasks API" icon="list-check" href="/hive/api/tasks">
+    Assign and track tasks
+  </Card>
+
+  <Card title="Memory API" icon="brain" href="/hive/api/memory">
+    Query agent memory
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/hive/quickstart">
+    Get started with Hive
+  </Card>
+</CardGroup>

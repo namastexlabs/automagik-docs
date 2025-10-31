@@ -1,0 +1,99 @@
+---
+title: "Tasks API"
+api: "POST /api/v1/tasks"
+description: "Assign and monitor agent tasks"
+---
+
+## Create Task
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8001/api/v1/tasks \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "agent": "researcher",
+    "task": "Research latest AI trends",
+    "priority": "high"
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8001/api/v1/tasks",
+    headers={"X-API-Key": "your-api-key"},
+    json={
+        "agent": "researcher",
+        "task": "Research latest AI trends",
+        "priority": "high"
+    }
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 201 Created
+{
+  "taskId": "task_abc123",
+  "agent": "researcher",
+  "task": "Research latest AI trends",
+  "status": "assigned",
+  "createdAt": "2025-10-31T12:00:00Z"
+}
+```
+
+---
+
+## Get Task Status
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8001/api/v1/tasks/task_abc123 \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "taskId": "task_abc123",
+  "agent": "researcher",
+  "task": "Research latest AI trends",
+  "status": "completed",
+  "result": "Research findings stored in memory",
+  "completedAt": "2025-10-31T12:15:00Z"
+}
+```
+
+---
+
+## List Tasks
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8001/api/v1/tasks?agent=researcher&status=completed" \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Agents API" icon="robot" href="/hive/api/agents">
+    Manage AI agents
+  </Card>
+
+  <Card title="Memory API" icon="brain" href="/hive/api/memory">
+    Access task results
+  </Card>
+</CardGroup>

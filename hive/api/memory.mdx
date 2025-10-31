@@ -1,0 +1,99 @@
+---
+title: "Memory API"
+api: "GET /api/v1/memory"
+description: "Query and manage agent memory"
+---
+
+## Search Memory
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8001/api/v1/memory/search?q=AI+trends" \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8001/api/v1/memory/search",
+    headers={"X-API-Key": "your-api-key"},
+    params={"q": "AI trends", "limit": 10}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "results": [
+    {
+      "id": "mem_abc123",
+      "content": "AI trends research findings...",
+      "agent": "researcher",
+      "createdAt": "2025-10-31T12:15:00Z",
+      "relevance": 0.95
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+## Store in Memory
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8001/api/v1/memory \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "content": "Important information to remember",
+    "metadata": {"source": "research", "category": "AI"}
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Get Memory Stats
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8001/api/v1/memory/stats \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "totalEntries": 1234,
+  "byAgent": {
+    "researcher": 800,
+    "coder": 434
+  },
+  "storageSize": "15.2 MB"
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Agents API" icon="robot" href="/hive/api/agents">
+    Manage AI agents
+  </Card>
+
+  <Card title="Tasks API" icon="list-check" href="/hive/api/tasks">
+    Assign agent tasks
+  </Card>
+</CardGroup>

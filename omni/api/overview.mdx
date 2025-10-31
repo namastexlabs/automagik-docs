@@ -1,0 +1,249 @@
+---
+title: "API Overview"
+description: "Omni REST API for omnichannel messaging"
+icon: "code"
+---
+
+## Omni REST API
+
+The Omni REST API provides programmatic access to all omnichannel messaging features. Send messages, manage instances, and track conversations across WhatsApp, Discord, Slack, and more.
+
+### Base URL
+
+```
+http://localhost:8000/api/v1
+```
+
+For production deployments, replace `localhost:8000` with your Omni server address.
+
+---
+
+## Quick Start
+
+### 1. Start Omni Server
+
+```bash
+# Start Omni with API enabled
+omni serve --port 8000
+
+# API will be available at http://localhost:8000/api/v1
+# Swagger docs at http://localhost:8000/docs
+```
+
+### 2. Test the API
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# List instances
+curl http://localhost:8000/api/v1/instances
+```
+
+---
+
+## Authentication
+
+The Omni API supports multiple authentication methods:
+
+<Tabs>
+  <Tab title="API Key">
+    ```bash
+    curl -X GET http://localhost:8000/api/v1/instances \
+      -H "X-API-Key: your-api-key-here"
+    ```
+
+    Set your API key in the Omni configuration or via environment variable:
+    ```bash
+    export OMNI_API_KEY=your-secret-key
+    ```
+  </Tab>
+
+  <Tab title="Bearer Token">
+    ```bash
+    curl -X GET http://localhost:8000/api/v1/instances \
+      -H "Authorization: Bearer your-token-here"
+    ```
+  </Tab>
+
+  <Tab title="No Auth (Development)">
+    For local development, you can disable authentication:
+
+    ```bash
+    omni serve --no-auth
+    ```
+
+    <Warning>
+    Never disable authentication in production!
+    </Warning>
+  </Tab>
+</Tabs>
+
+---
+
+## Core Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Send Message" icon="paper-plane" href="/omni/api/send-message">
+    Send text, media, or reactions to any platform
+  </Card>
+
+  <Card title="Manage Instances" icon="server" href="/omni/api/manage-instances">
+    Create, configure, and monitor messaging instances
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track, debug, and analyze all messages
+  </Card>
+
+  <Card title="Webhooks" icon="webhook">
+    **Coming Soon**: Receive real-time message events
+  </Card>
+</CardGroup>
+
+---
+
+## Rate Limits
+
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| Send Message | 60 requests | 1 minute |
+| Manage Instances | 30 requests | 1 minute |
+| Get Traces | 100 requests | 1 minute |
+
+Rate limit headers are included in every response:
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
+X-RateLimit-Reset: 1635724800
+```
+
+---
+
+## Error Handling
+
+All errors follow a consistent format:
+
+```json
+{
+  "error": {
+    "code": "INSTANCE_NOT_FOUND",
+    "message": "Instance 'my-whatsapp' does not exist",
+    "details": {
+      "instance": "my-whatsapp",
+      "available_instances": ["prod-whatsapp", "test-discord"]
+    }
+  }
+}
+```
+
+### Common Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `INSTANCE_NOT_FOUND` | 404 | Instance doesn't exist |
+| `INSTANCE_NOT_CONNECTED` | 503 | Instance is disconnected |
+| `INVALID_PHONE_NUMBER` | 400 | Phone number format invalid |
+| `MESSAGE_SEND_FAILED` | 500 | Failed to send message |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+
+---
+
+## SDKs and Libraries
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Install
+    pip install automagik-omni-client
+
+    # Use
+    from omni_client import OmniClient
+
+    client = OmniClient(base_url="http://localhost:8000")
+
+    # Send message
+    result = client.send_message(
+        instance="my-whatsapp",
+        to="+1234567890",
+        message="Hello from Python!"
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript/TypeScript">
+    ```javascript
+    // Install
+    npm install @automagik/omni-client
+
+    // Use
+    import { OmniClient } from '@automagik/omni-client';
+
+    const client = new OmniClient({
+      baseUrl: 'http://localhost:8000'
+    });
+
+    // Send message
+    const result = await client.sendMessage({
+      instance: 'my-whatsapp',
+      to: '+1234567890',
+      message: 'Hello from JavaScript!'
+    });
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash
+    # Direct API calls
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Hello from cURL!"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Interactive Documentation
+
+Omni includes built-in Swagger/OpenAPI documentation:
+
+```bash
+# Start Omni
+omni serve
+
+# Open in browser
+open http://localhost:8000/docs
+```
+
+The interactive docs let you:
+- 🧪 Test all endpoints directly
+- 📖 See request/response schemas
+- 🔐 Configure authentication
+- 💾 Download OpenAPI spec
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Message" icon="paper-plane" href="/omni/api/send-message">
+    Learn how to send messages with the API
+  </Card>
+
+  <Card title="Manage Instances" icon="server" href="/omni/api/manage-instances">
+    Create and configure messaging instances
+  </Card>
+
+  <Card title="Track Messages" icon="chart-line" href="/omni/api/traces">
+    Debug and analyze message traces
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/omni/quickstart">
+    Get started with Omni
+  </Card>
+</CardGroup>

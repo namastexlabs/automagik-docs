@@ -1,0 +1,413 @@
+---
+title: "Send Message"
+api: "POST /api/v1/messages"
+description: "Send messages across WhatsApp, Discord, Slack, and more"
+---
+
+## Send a Message
+
+Send text messages, media, reactions, and more across any connected platform.
+
+<ParamField path="instance" type="string" required>
+  The name of the instance to send from
+</ParamField>
+
+<ParamField path="to" type="string" required>
+  Recipient phone number (with country code) or channel/user ID
+</ParamField>
+
+<ParamField path="message" type="string">
+  Text message content (required for text messages)
+</ParamField>
+
+<ParamField path="mediaUrl" type="string">
+  URL of media file for image/video/document messages
+</ParamField>
+
+<ParamField path="mediaType" type="string">
+  Type of media: `image`, `video`, `audio`, `document`
+</ParamField>
+
+<ParamField path="caption" type="string">
+  Caption for media messages
+</ParamField>
+
+<ParamField path="replyTo" type="string">
+  Message ID to reply to (creates a quoted reply)
+</ParamField>
+
+---
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8000/api/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "instance": "my-whatsapp",
+    "to": "+1234567890",
+    "message": "Hello from Omni! 👋"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/api/v1/messages",
+    headers={"X-API-Key": "your-api-key"},
+    json={
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Hello from Omni! 👋"
+    }
+)
+
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8000/api/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'your-api-key'
+  },
+  body: JSON.stringify({
+    instance: 'my-whatsapp',
+    to: '+1234567890',
+    message: 'Hello from Omni! 👋'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "messageId": "3EB0ABC123...",
+  "instance": "my-whatsapp",
+  "to": "+1234567890",
+  "timestamp": "2025-10-31T12:00:00Z",
+  "status": "sent"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_PHONE_NUMBER",
+    "message": "Phone number must include country code",
+    "details": {
+      "provided": "1234567890",
+      "expected": "+1234567890"
+    }
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "INSTANCE_NOT_FOUND",
+    "message": "Instance 'my-whatsapp' does not exist"
+  }
+}
+```
+
+```json 503 Service Unavailable
+{
+  "error": {
+    "code": "INSTANCE_NOT_CONNECTED",
+    "message": "Instance 'my-whatsapp' is not connected"
+  }
+}
+```
+
+---
+
+## Message Types
+
+<Tabs>
+  <Tab title="Text Message">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Simple text message"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Image">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "mediaUrl": "https://example.com/image.jpg",
+        "mediaType": "image",
+        "caption": "Check out this image!"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Video">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "mediaUrl": "https://example.com/video.mp4",
+        "mediaType": "video",
+        "caption": "Watch this video"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Document">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "mediaUrl": "https://example.com/document.pdf",
+        "mediaType": "document",
+        "caption": "Monthly report"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Reply to Message">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Thanks for your message!",
+        "replyTo": "3EB0ABC123..."
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Reaction">
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/messages/react \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "messageId": "3EB0ABC123...",
+        "emoji": "👍"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Platform-Specific Examples
+
+<AccordionGroup>
+  <Accordion title="WhatsApp">
+    ```bash
+    # WhatsApp uses phone numbers
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-whatsapp",
+        "to": "+1234567890",
+        "message": "Hello on WhatsApp!"
+      }'
+    ```
+
+    Phone number format:
+    - ✅ `+1234567890` (with country code)
+    - ✅ `+55 11 98765-4321` (formatted)
+    - ❌ `1234567890` (missing +)
+    - ❌ `(123) 456-7890` (invalid format)
+  </Accordion>
+
+  <Accordion title="Discord">
+    ```bash
+    # Discord uses channel IDs
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-discord",
+        "to": "1234567890123456789",
+        "message": "Hello on Discord!"
+      }'
+    ```
+
+    Channel ID format:
+    - ✅ `1234567890123456789` (numeric ID)
+    - ✅ `#general` (channel name, if configured)
+  </Accordion>
+
+  <Accordion title="Slack">
+    ```bash
+    # Slack uses channel IDs or names
+    curl -X POST http://localhost:8000/api/v1/messages \
+      -H "Content-Type: application/json" \
+      -d '{
+        "instance": "my-slack",
+        "to": "#engineering",
+        "message": "Hello on Slack!"
+      }'
+    ```
+
+    Channel format:
+    - ✅ `#general` (channel name)
+    - ✅ `C1234567890` (channel ID)
+    - ✅ `@username` (direct message)
+    - ✅ `U1234567890` (user ID)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Testing
+
+### Interactive Playground
+
+Try the API live using the built-in Swagger docs:
+
+```bash
+# Start Omni
+omni serve
+
+# Open Swagger UI
+open http://localhost:8000/docs
+```
+
+Navigate to `POST /api/v1/messages` and click "Try it out"!
+
+### Test with Postman
+
+<Steps>
+  <Step title="Import Collection">
+    Download our Postman collection:
+    ```bash
+    curl -O https://raw.githubusercontent.com/namastexlabs/automagik-omni/main/docs/postman-collection.json
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    Set these variables:
+    - `BASE_URL`: `http://localhost:8000`
+    - `API_KEY`: Your API key
+    - `INSTANCE`: Your instance name
+  </Step>
+
+  <Step title="Send Test Message">
+    Select "Send Text Message" and hit Send!
+  </Step>
+</Steps>
+
+---
+
+## Rate Limits
+
+<Note>
+**Message sending is rate-limited** to prevent spam and ensure fair usage.
+</Note>
+
+| Instance Type | Limit | Window |
+|---------------|-------|--------|
+| WhatsApp | 60 messages | 1 minute |
+| Discord | 120 messages | 1 minute |
+| Slack | 100 messages | 1 minute |
+
+Rate limit headers in response:
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 59
+X-RateLimit-Reset: 1635724800
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Include Country Code (WhatsApp)">
+    ```bash
+    # ✅ Good
+    "to": "+1234567890"
+
+    # ❌ Bad
+    "to": "1234567890"
+    ```
+  </Accordion>
+
+  <Accordion title="Check Instance Status First">
+    ```bash
+    # Check if instance is connected
+    curl http://localhost:8000/api/v1/instances/my-whatsapp/status
+
+    # Then send message
+    curl -X POST http://localhost:8000/api/v1/messages ...
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Errors Gracefully">
+    ```python
+    try:
+        response = send_message(...)
+        if response.status_code == 503:
+            # Instance disconnected, reconnect
+            reconnect_instance()
+        elif response.status_code == 429:
+            # Rate limited, wait and retry
+            time.sleep(60)
+    except Exception as e:
+        log_error(e)
+    ```
+  </Accordion>
+
+  <Accordion title="Use Message Traces for Debugging">
+    Every message gets a unique ID for tracking:
+
+    ```bash
+    # Get message details
+    curl http://localhost:8000/api/v1/traces/{messageId}
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Manage Instances" icon="server" href="/omni/api/manage-instances">
+    Create and configure messaging instances
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track and debug your messages
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/omni/quickstart">
+    Complete Omni tutorial
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/overview">
+    Back to API overview
+  </Card>
+</CardGroup>

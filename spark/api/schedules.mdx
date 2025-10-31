@@ -1,0 +1,90 @@
+---
+title: "Schedules API"
+api: "GET /api/v1/schedules"
+description: "Manage cron schedules"
+---
+
+## List Schedules
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8002/api/v1/schedules \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "schedules": [
+    {
+      "workflow": "daily-report",
+      "schedule": "0 9 * * *",
+      "timezone": "America/New_York",
+      "enabled": true,
+      "nextRun": "2025-11-01T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Update Schedule
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH http://localhost:8002/api/v1/schedules/daily-report \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "schedule": "0 8 * * *",
+    "timezone": "America/Los_Angeles"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Pause Schedule
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8002/api/v1/schedules/daily-report/pause \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+---
+
+## Resume Schedule
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8002/api/v1/schedules/daily-report/resume \
+  -H "X-API-Key: your-api-key"
+```
+
+</CodeGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Workflows API" icon="diagram-project" href="/spark/api/workflows">
+    Manage workflows
+  </Card>
+
+  <Card title="Executions API" icon="play" href="/spark/api/executions">
+    Monitor executions
+  </Card>
+</CardGroup>
