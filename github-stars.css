@@ -1,0 +1,142 @@
+/**
+ * Custom Styles for GitHub Star Count Button
+ *
+ * - Hides Mintlify's default GitHub button
+ * - Styles the custom button with hollow star icon
+ * - Provides hover effects for individual elements
+ * - Responsive design for mobile
+ */
+
+/* Hide the default Mintlify GitHub button - all variations */
+a[href*="github.com/namastexlabs/automagik-genie"],
+a[href*="github.com/namastexlabs"][data-stars-updated],
+a[href*="github.com/namastexlabs"][data-custom-stars-applied],
+a[href*="github.com/namastexlabs"]:not(#custom-github-button),
+nav a[href*="github.com"]:not(#custom-github-button) {
+  display: none !important;
+}
+
+/* Also hide the parent list item if it exists */
+li:has(> a[href*="github.com/namastexlabs"]:not(#custom-github-button)),
+li:has(> a[href*="github.com"]:not(#custom-github-button)) {
+  display: none !important;
+}
+
+/* Remove any hover backgrounds from Mintlify's navbar */
+nav a:hover,
+header a:hover {
+  background-color: transparent !important;
+}
+
+/* Custom GitHub button container */
+#custom-github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  background-color: transparent !important;
+  color: currentColor;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+}
+
+/* Remove ALL hover backgrounds */
+#custom-github-button:hover {
+  background-color: transparent !important;
+  background: none !important;
+}
+
+/* Individual clickable items */
+#custom-github-button > * {
+  transition: opacity 0.2s ease-in-out;
+}
+
+#custom-github-button > *:hover {
+  opacity: 0.7;
+}
+
+/* Ensure parent li also has no background */
+li.custom-github-li {
+  background: none !important;
+}
+
+li.custom-github-li:hover {
+  background: none !important;
+}
+
+/* GitHub icon - more standalone */
+#custom-github-button .github-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Organization name */
+#custom-github-button .org-name {
+  white-space: nowrap;
+}
+
+/* Star section - more standalone */
+#custom-github-button .star-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+}
+
+/* Star icon - hollow */
+#custom-github-button .star-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+#custom-github-button .star-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  #custom-github-button {
+    color: #e5e7eb;
+  }
+
+  #custom-github-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  #custom-github-button {
+    color: #374151;
+  }
+
+  #custom-github-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  #custom-github-button {
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  #custom-github-button svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  #custom-github-button .star-count {
+    font-size: 0.75rem;
+  }
+}

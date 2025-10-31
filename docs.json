@@ -56,6 +56,120 @@
               "forge/installation",
               "forge/quickstart"
             ]
+          },
+          {
+            "group": "Learn",
+            "pages": [
+              {
+                "group": "Core Concepts",
+                "pages": [
+                  "forge/concepts/vibe-coding-plus",
+                  "forge/concepts/tasks-and-attempts",
+                  "forge/concepts/git-worktrees",
+                  "forge/concepts/agents-and-executors",
+                  "forge/concepts/mcp-architecture"
+                ]
+              },
+              {
+                "group": "Working with Forge",
+                "pages": [
+                  "forge/working/creating-tasks",
+                  "forge/working/managing-attempts",
+                  "forge/working/comparing-results",
+                  "forge/working/kanban-interface",
+                  "forge/working/merging-cleanup"
+                ]
+              },
+              {
+                "group": "AI Coding Agents",
+                "pages": [
+                  "forge/agents/overview",
+                  "forge/agents/claude-code",
+                  "forge/agents/cursor-cli",
+                  "forge/agents/gemini",
+                  "forge/agents/openai-codex",
+                  "forge/agents/open-source"
+                ]
+              },
+              {
+                "group": "MCP Integration",
+                "pages": [
+                  "forge/mcp/overview",
+                  "forge/mcp/claude-code-setup",
+                  "forge/mcp/cursor-setup",
+                  "forge/mcp/vscode-cline-setup",
+                  "forge/mcp/custom-clients"
+                ]
+              },
+              {
+                "group": "Workflows & Use Cases",
+                "pages": [
+                  "forge/workflows/feature-development",
+                  "forge/workflows/bug-fixing",
+                  "forge/workflows/refactoring",
+                  "forge/workflows/code-review",
+                  "forge/workflows/team-collaboration"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              {
+                "group": "Setup & Config",
+                "pages": [
+                  "forge/config/environment-variables",
+                  "forge/config/llm-configuration",
+                  "forge/config/github-oauth",
+                  "forge/config/project-structure"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              {
+                "group": "API Reference",
+                "pages": [
+                  "forge/api/rest-overview",
+                  "forge/api/projects",
+                  "forge/api/tasks",
+                  "forge/api/attempts",
+                  "forge/api/processes",
+                  "forge/api/mcp-tools"
+                ]
+              },
+              {
+                "group": "CLI Reference",
+                "pages": [
+                  "forge/cli/overview",
+                  "forge/cli/task-commands",
+                  "forge/cli/project-commands",
+                  "forge/cli/config-commands"
+                ]
+              },
+              {
+                "group": "Advanced Features",
+                "pages": [
+                  "forge/advanced/specialized-agents",
+                  "forge/advanced/task-templates",
+                  "forge/advanced/parallel-execution",
+                  "forge/advanced/custom-executors",
+                  "forge/advanced/webhooks-events"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "forge/troubleshooting/common-issues",
+              "forge/troubleshooting/git-worktree-errors",
+              "forge/troubleshooting/api-errors",
+              "forge/troubleshooting/faq"
+            ]
           }
         ]
       },
@@ -182,7 +296,11 @@
         "label": "Website",
         "href": "https://namastex.ai"
       }
-    ]
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/namastexlabs/automagik-genie"
+    }
   },
   "contextual": {
     "options": [
