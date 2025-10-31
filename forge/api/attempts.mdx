@@ -372,6 +372,46 @@ This permanently deletes the attempt and removes the associated Git worktree.
 curl -X DELETE http://localhost:8887/api/attempts/attempt_abc123
 ```
 
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_abc123', {
+  method: 'DELETE'
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete('http://localhost:8887/api/attempts/attempt_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "attemptId": "attempt_abc123"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Attempt not found"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Get Attempt Logs
