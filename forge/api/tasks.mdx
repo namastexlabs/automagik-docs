@@ -1,0 +1,535 @@
+---
+title: "Tasks API"
+description: "Create and manage tasks via REST API"
+icon: "list-check"
+---
+
+## Overview
+
+Tasks represent individual pieces of work to be executed by AI agents.
+
+**Base URL**: `/api/tasks`
+
+---
+
+## List Tasks
+
+Get all tasks with filtering and pagination.
+
+```http
+GET /api/tasks
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `projectId` | string | Filter by project |
+| `status` | enum | Filter by status |
+| `priority` | enum | Filter by priority |
+| `labels` | string | Comma-separated labels |
+| `assignee` | string | Filter by assignee |
+| `search` | string | Search title/description |
+| `page` | integer | Page number |
+| `limit` | integer | Items per page |
+| `sort` | string | Sort field |
+
+### Status Values
+
+- `pending` - Not started
+- `in_progress` - Being executed
+- `review` - Awaiting review
+- `completed` - Successfully completed
+- `failed` - Execution failed
+- `cancelled` - Cancelled by user
+
+### Priority Values
+
+- `low`
+- `medium`
+- `high`
+- `critical`
+
+### Example Request
+
+```bash
+curl "http://localhost:8080/api/tasks?status=in_progress&priority=high&limit=20"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "task_abc123",
+      "projectId": "proj_xyz789",
+      "title": "Add user authentication",
+      "description": "Implement JWT-based authentication",
+      "status": "in_progress",
+      "priority": "high",
+      "labels": ["feature", "backend", "auth"],
+      "assignee": "claude",
+      "createdBy": "user_123",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z",
+      "attempts": [
+        {
+          "id": "attempt_1",
+          "llm": "claude",
+          "status": "running",
+          "startedAt": "2024-01-15T10:30:00Z"
+        }
+      ],
+      "stats": {
+        "totalAttempts": 1,
+        "activeAttempts": 1,
+        "cost": 0.23
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
+---
+
+## Get Task
+
+Retrieve a specific task with all details.
+
+```http
+GET /api/tasks/:id
+```
+
+### Example Request
+
+```bash
+curl http://localhost:8080/api/tasks/task_abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "task_abc123",
+    "projectId": "proj_xyz789",
+    "title": "Add user authentication",
+    "description": "Implement JWT-based authentication with login and signup endpoints",
+    "status": "completed",
+    "priority": "high",
+    "labels": ["feature", "backend", "auth"],
+    "assignee": "claude",
+    "createdBy": "user_123",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-15T10:45:00Z",
+    "completedAt": "2024-01-15T10:45:00Z",
+    "attempts": [
+      {
+        "id": "attempt_1",
+        "llm": "claude",
+        "status": "completed",
+        "startedAt": "2024-01-15T10:30:00Z",
+        "completedAt": "2024-01-15T10:45:00Z",
+        "duration": 900000,
+        "cost": 0.23,
+        "filesChanged": 8,
+        "linesAdded": 245,
+        "linesRemoved": 12
+      }
+    ],
+    "metadata": {
+      "repository": "https://github.com/user/repo",
+      "branch": "feature/auth",
+      "worktreePath": ".forge/worktrees/task-abc123-claude"
+    },
+    "stats": {
+      "totalAttempts": 1,
+      "successfulAttempts": 1,
+      "failedAttempts": 0,
+      "totalCost": 0.23,
+      "totalDuration": 900000
+    }
+  }
+}
+```
+
+---
+
+## Create Task
+
+Create a new task.
+
+```http
+POST /api/tasks
+```
+
+### Request Body
+
+```json
+{
+  "projectId": "proj_xyz789",
+  "title": "Add dark mode toggle",
+  "description": "Create a toggle component for dark/light mode with LocalStorage persistence",
+  "priority": "medium",
+  "labels": ["feature", "ui"],
+  "assignee": "gemini",
+  "metadata": {
+    "files": ["src/components/ThemeToggle.tsx"]
+  }
+}
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "proj_xyz789",
+    "title": "Add dark mode toggle",
+    "description": "Create toggle component with LocalStorage",
+    "priority": "medium",
+    "labels": ["feature", "ui"]
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "task_def456",
+    "projectId": "proj_xyz789",
+    "title": "Add dark mode toggle",
+    "status": "pending",
+    "priority": "medium",
+    "createdAt": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+---
+
+## Update Task
+
+Update task properties.
+
+```http
+PATCH /api/tasks/:id
+```
+
+### Request Body
+
+```json
+{
+  "title": "Updated title",
+  "description": "Updated description",
+  "status": "in_progress",
+  "priority": "high",
+  "labels": ["feature", "ui", "priority:high"],
+  "assignee": "claude"
+}
+```
+
+### Example Request
+
+```bash
+curl -X PATCH http://localhost:8080/api/tasks/task_abc123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "review",
+    "priority": "high"
+  }'
+```
+
+---
+
+## Delete Task
+
+Delete a task and all associated attempts.
+
+```http
+DELETE /api/tasks/:id
+```
+
+<Warning>
+This deletes the task and all attempts permanently.
+</Warning>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:8080/api/tasks/task_abc123
+```
+
+---
+
+## Start Task
+
+Start executing a task with an AI agent.
+
+```http
+POST /api/tasks/:id/start
+```
+
+### Request Body
+
+```json
+{
+  "llm": "claude",
+  "options": {
+    "temperature": 0.7,
+    "maxTokens": 4096
+  }
+}
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/tasks/task_abc123/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "llm": "claude"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "attemptId": "attempt_new123",
+    "status": "running",
+    "startedAt": "2024-01-15T11:05:00Z"
+  }
+}
+```
+
+---
+
+## Cancel Task
+
+Cancel a running task.
+
+```http
+POST /api/tasks/:id/cancel
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/tasks/task_abc123/cancel
+```
+
+---
+
+## Get Task Attempts
+
+Get all attempts for a task.
+
+```http
+GET /api/tasks/:id/attempts
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "attempt_1",
+      "llm": "claude",
+      "status": "completed",
+      "duration": 900000,
+      "cost": 0.23
+    },
+    {
+      "id": "attempt_2",
+      "llm": "gemini",
+      "status": "completed",
+      "duration": 450000,
+      "cost": 0.00
+    }
+  ]
+}
+```
+
+---
+
+## Get Task Logs
+
+Get execution logs for a task.
+
+```http
+GET /api/tasks/:id/logs
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `attemptId` | string | Filter by specific attempt |
+| `level` | enum | Filter by log level (info, warn, error) |
+| `follow` | boolean | Stream logs in real-time |
+
+### Example Request
+
+```bash
+curl "http://localhost:8080/api/tasks/task_abc123/logs?attemptId=attempt_1&follow=true"
+```
+
+---
+
+## Bulk Operations
+
+### Bulk Update
+
+Update multiple tasks at once.
+
+```http
+POST /api/tasks/bulk/update
+```
+
+### Request Body
+
+```json
+{
+  "taskIds": ["task_1", "task_2", "task_3"],
+  "updates": {
+    "status": "review",
+    "priority": "high"
+  }
+}
+```
+
+### Bulk Delete
+
+```http
+POST /api/tasks/bulk/delete
+```
+
+### Request Body
+
+```json
+{
+  "taskIds": ["task_1", "task_2", "task_3"]
+}
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// List tasks
+const tasks = await forge.tasks.list({
+  status: 'in_progress',
+  priority: 'high',
+  page: 1,
+  limit: 20
+});
+
+// Get task
+const task = await forge.tasks.get('task_abc123');
+
+// Create task
+const newTask = await forge.tasks.create({
+  projectId: 'proj_xyz789',
+  title: 'Add dark mode',
+  description: 'Implement dark mode toggle',
+  priority: 'medium',
+  labels: ['feature', 'ui']
+});
+
+// Update task
+await forge.tasks.update('task_abc123', {
+  status: 'review',
+  priority: 'high'
+});
+
+// Start task
+const attempt = await forge.tasks.start('task_abc123', {
+  llm: 'claude'
+});
+
+// Cancel task
+await forge.tasks.cancel('task_abc123');
+
+// Get attempts
+const attempts = await forge.tasks.attempts('task_abc123');
+
+// Get logs
+const logs = await forge.tasks.logs('task_abc123', {
+  attemptId: 'attempt_1',
+  follow: true
+});
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient()
+
+# List tasks
+tasks = forge.tasks.list(
+    status='in_progress',
+    priority='high',
+    page=1,
+    limit=20
+)
+
+# Create task
+new_task = forge.tasks.create(
+    project_id='proj_xyz789',
+    title='Add dark mode',
+    description='Implement dark mode toggle',
+    priority='medium',
+    labels=['feature', 'ui']
+)
+
+# Start task
+attempt = forge.tasks.start('task_abc123', llm='claude')
+
+# Get logs (streaming)
+for log in forge.tasks.logs('task_abc123', follow=True):
+    print(log)
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Manage task attempts
+  </Card>
+
+  <Card title="Projects API" icon="folder" href="/forge/api/projects">
+    Organize tasks in projects
+  </Card>
+
+  <Card title="Processes API" icon="gear" href="/forge/api/processes">
+    Monitor running processes
+  </Card>
+</CardGroup>

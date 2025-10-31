@@ -1,0 +1,555 @@
+---
+title: "Git Worktree Errors"
+description: "Troubleshooting git worktree issues in Forge"
+icon: "code-branch"
+---
+
+## Overview
+
+Forge uses **git worktrees** to isolate task execution. Each task runs in its own worktree, preventing conflicts and allowing parallel development. However, this can occasionally cause issues.
+
+---
+
+## Common Worktree Errors
+
+### Worktree Creation Failed
+
+**Problem**: `fatal: could not create worktree`
+
+**Causes & Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Not a Git Repository">
+    ```bash
+    # Verify you're in a git repo
+    git status
+
+    # If not, initialize
+    git init
+
+    # Add remote if needed
+    git remote add origin https://github.com/owner/repo.git
+
+    # Make initial commit
+    git add .
+    git commit -m "Initial commit"
+    ```
+  </Accordion>
+
+  <Accordion title="Dirty Working Directory">
+    ```bash
+    # Stash uncommitted changes
+    git stash
+
+    # Or commit them
+    git add .
+    git commit -m "WIP: save changes"
+
+    # Try task again
+    ```
+  </Accordion>
+
+  <Accordion title="Disk Space Issue">
+    ```bash
+    # Check available space
+    df -h
+
+    # Clean up old worktrees
+    rm -rf .forge/worktrees/*
+
+    # Or via Forge UI
+    # Settings → Cleanup → Remove Old Worktrees
+    ```
+  </Accordion>
+
+  <Accordion title="Permission Error">
+    ```bash
+    # Check permissions on .forge directory
+    ls -la .forge
+
+    # Fix permissions
+    chmod -R 755 .forge/worktrees
+
+    # Ensure you own the directory
+    sudo chown -R $USER .forge
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Worktree Already Exists
+
+**Problem**: `fatal: worktree already exists`
+
+**Solution**:
+
+```bash
+# List existing worktrees
+git worktree list
+
+# Remove stale worktree
+git worktree remove .forge/worktrees/task-123-attempt-1
+
+# Or force remove if it's corrupted
+git worktree remove --force .forge/worktrees/task-123-attempt-1
+
+# Prune worktree references
+git worktree prune
+
+# Try creating task again
+```
+
+---
+
+### Cannot Remove Worktree
+
+**Problem**: `fatal: worktree contains modified or untracked files`
+
+**Solution**:
+
+```bash
+# Navigate to worktree
+cd .forge/worktrees/task-123-attempt-1
+
+# See what's modified
+git status
+
+# Option 1: Stash changes
+git stash
+
+# Option 2: Discard changes
+git reset --hard HEAD
+git clean -fd
+
+# Option 3: Force remove (loses changes)
+cd ../..
+git worktree remove --force .forge/worktrees/task-123-attempt-1
+```
+
+---
+
+### Orphaned Worktrees
+
+**Problem**: Worktree directories exist but git doesn't know about them
+
+**Symptoms**:
+- `.forge/worktrees/` has directories
+- `git worktree list` doesn't show them
+- Disk space consumed
+
+**Solution**:
+
+```bash
+# List git's known worktrees
+git worktree list
+
+# List filesystem worktrees
+ls -la .forge/worktrees/
+
+# Clean up orphans manually
+rm -rf .forge/worktrees/task-*
+
+# Prune git worktree references
+git worktree prune
+
+# Or use Forge's cleanup
+# Settings → Cleanup → Remove Orphaned Worktrees
+```
+
+**Automatic Cleanup**:
+
+```json
+// Enable in .forge/config.json
+{
+  "worktrees": {
+    "cleanup_on_exit": true,
+    "auto_delete_merged": true
+  }
+}
+```
+
+---
+
+## Branch Issues
+
+### Branch Already Exists
+
+**Problem**: `fatal: a branch named 'forge/task-123' already exists`
+
+**Solution**:
+
+```bash
+# Delete the old branch
+git branch -D forge/task-123
+
+# Or delete from both local and remote
+git branch -D forge/task-123
+git push origin --delete forge/task-123
+
+# Retry task creation
+```
+
+---
+
+### Detached HEAD State
+
+**Problem**: Worktree is in detached HEAD state
+
+**Solution**:
+
+```bash
+# Navigate to worktree
+cd .forge/worktrees/task-123-attempt-1
+
+# Check current state
+git status
+
+# Create and checkout branch
+git checkout -b forge/task-123
+
+# Or checkout existing branch
+git checkout main
+git checkout -b forge/task-123
+```
+
+---
+
+### Cannot Switch Branches
+
+**Problem**: `error: you need to resolve your current index first`
+
+**Solution**:
+
+```bash
+cd .forge/worktrees/task-123-attempt-1
+
+# Reset index
+git reset
+
+# Or discard all changes
+git reset --hard HEAD
+
+# Clean untracked files
+git clean -fd
+```
+
+---
+
+## Merge Conflicts
+
+### Conflicts After Task Completion
+
+**Problem**: Merge conflicts when merging worktree back to main
+
+**Solution**:
+
+<Steps>
+  <Step title="Identify Conflicts">
+    ```bash
+    cd .forge/worktrees/task-123-attempt-1
+
+    # Check for conflicts
+    git status
+
+    # View conflicted files
+    git diff --name-only --diff-filter=U
+    ```
+  </Step>
+
+  <Step title="Resolve Conflicts">
+    ```bash
+    # Open conflicted files in editor
+    # Look for conflict markers:
+    # <<<<<<< HEAD
+    # =======
+    # >>>>>>> branch
+
+    # Edit files to resolve
+    vim conflicted-file.ts
+
+    # Or use merge tool
+    git mergetool
+    ```
+  </Step>
+
+  <Step title="Mark as Resolved">
+    ```bash
+    # Add resolved files
+    git add conflicted-file.ts
+
+    # Complete merge
+    git commit
+    ```
+  </Step>
+
+  <Step title="Merge to Main">
+    ```bash
+    # Return to main repo
+    cd ../../..
+
+    # Merge the worktree branch
+    git merge forge/task-123
+
+    # Or via Forge UI
+    # Review → Approve → Merge
+    ```
+  </Step>
+</Steps>
+
+---
+
+### Preventing Merge Conflicts
+
+**Best Practices**:
+
+1. **Keep main branch updated**:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. **Rebase before merging**:
+   ```bash
+   cd .forge/worktrees/task-123-attempt-1
+   git fetch origin
+   git rebase origin/main
+   ```
+
+3. **Use small, focused tasks**:
+   - Smaller changes = fewer conflicts
+   - Complete tasks quickly
+
+4. **Coordinate with team**:
+   - Avoid working on same files simultaneously
+   - Use task dependencies in Forge
+
+---
+
+## Performance Issues
+
+### Too Many Worktrees
+
+**Problem**: Hundreds of worktrees consuming disk space
+
+**Solution**:
+
+```bash
+# Check worktree count
+ls .forge/worktrees/ | wc -l
+
+# List worktrees with sizes
+du -sh .forge/worktrees/*
+
+# Clean up completed tasks
+# Via Forge UI: Settings → Cleanup
+
+# Or manually remove old worktrees
+find .forge/worktrees -type d -mtime +7 -exec rm -rf {} +
+
+# Prune git references
+git worktree prune
+```
+
+**Configure Auto-cleanup**:
+
+```json
+{
+  "worktrees": {
+    "auto_delete_merged": true,
+    "cleanup_on_exit": true,
+    "max_concurrent": 5
+  }
+}
+```
+
+---
+
+### Slow Worktree Creation
+
+**Problem**: Creating worktrees takes very long
+
+**Causes & Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Large Repository">
+    ```bash
+    # Check repo size
+    du -sh .git
+
+    # Use shallow clone for worktrees
+    git config worktree.guessRemote true
+
+    # Clean up old refs
+    git gc --aggressive --prune=now
+    ```
+  </Accordion>
+
+  <Accordion title="Many Submodules">
+    ```bash
+    # Skip submodule initialization in worktrees
+    git config worktree.submodules false
+
+    # Or update submodules only when needed
+    ```
+  </Accordion>
+
+  <Accordion title="Disk I/O Bottleneck">
+    ```bash
+    # Move worktrees to faster disk
+    {
+      "worktrees": {
+        "base_path": "/mnt/fast-ssd/forge-worktrees"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Debug Mode
+
+Enable worktree debugging to diagnose issues:
+
+```bash
+# Disable automatic cleanup
+export DISABLE_WORKTREE_ORPHAN_CLEANUP=1
+
+# Enable detailed logging
+export RUST_LOG=debug
+
+# Run Forge
+automagik-forge
+
+# Check logs for worktree operations
+# Look for "worktree" in output
+```
+
+---
+
+## Manual Worktree Management
+
+If Forge's automatic worktree management fails, use git directly:
+
+### Create Worktree Manually
+
+```bash
+# Create worktree for task
+git worktree add .forge/worktrees/task-123-attempt-1 -b forge/task-123
+
+# Do work in worktree
+cd .forge/worktrees/task-123-attempt-1
+# ... make changes ...
+
+# Commit
+git add .
+git commit -m "Implement feature"
+
+# Return to main repo
+cd ../../..
+
+# Merge
+git merge forge/task-123
+
+# Remove worktree
+git worktree remove .forge/worktrees/task-123-attempt-1
+```
+
+### List All Worktrees
+
+```bash
+# Show all worktrees
+git worktree list
+
+# Example output:
+# /path/to/repo        a1b2c3d [main]
+# /path/to/repo/.forge/worktrees/task-1  d4e5f6g [forge/task-1]
+# /path/to/repo/.forge/worktrees/task-2  h7i8j9k [forge/task-2]
+```
+
+### Remove All Worktrees
+
+```bash
+# Get list of worktree paths
+git worktree list --porcelain | grep worktree | cut -d' ' -f2
+
+# Remove each worktree
+git worktree list --porcelain | grep worktree | cut -d' ' -f2 | while read dir; do
+  [[ "$dir" != *"/.forge/worktrees/"* ]] || git worktree remove "$dir"
+done
+
+# Prune references
+git worktree prune
+```
+
+---
+
+## Recovery Procedures
+
+### Corrupted Worktree
+
+**Problem**: Worktree is corrupted and won't work
+
+**Solution**:
+
+```bash
+# Force remove corrupted worktree
+git worktree remove --force .forge/worktrees/task-123-attempt-1
+
+# Delete directory if still exists
+rm -rf .forge/worktrees/task-123-attempt-1
+
+# Delete branch
+git branch -D forge/task-123
+
+# Prune references
+git worktree prune
+
+# Recreate task in Forge UI
+```
+
+### Complete Reset
+
+**Problem**: Worktree system completely broken
+
+**Solution**:
+
+```bash
+# BACKUP FIRST
+cp -r .forge .forge-backup
+
+# Remove all worktrees
+rm -rf .forge/worktrees/*
+
+# Prune all worktree references
+git worktree prune
+
+# Delete all forge branches
+git branch | grep 'forge/' | xargs git branch -D
+
+# Reset Forge database
+rm .forge/db.sqlite
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="circle-exclamation" href="/forge/troubleshooting/common-issues">
+    General troubleshooting guide
+  </Card>
+  <Card title="API Errors" icon="plug" href="/forge/troubleshooting/api-errors">
+    API connection problems
+  </Card>
+  <Card title="Git Worktree Docs" icon="book" href="/forge/concepts/git-worktrees">
+    Learn how git worktrees work in Forge
+  </Card>
+  <Card title="Discord Support" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help from the community
+  </Card>
+</CardGroup>

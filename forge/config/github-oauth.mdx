@@ -1,0 +1,538 @@
+---
+title: "GitHub OAuth"
+description: "Configure GitHub authentication for Forge"
+icon: "github"
+---
+
+## Overview
+
+Forge integrates deeply with GitHub for repository management, authentication, and collaboration. GitHub OAuth enables secure, seamless access to your repositories.
+
+<Info>
+**Good News**: Forge includes default OAuth credentials for development. Custom configuration is optional!
+</Info>
+
+---
+
+## Quick Start (Default Credentials)
+
+For most users, no configuration is needed:
+
+<Steps>
+  <Step title="Launch Forge">
+    ```bash
+    forge start
+    # Opens http://localhost:3000
+    ```
+  </Step>
+
+  <Step title="Click GitHub Sign In">
+    The UI will show "Sign in with GitHub"
+  </Step>
+
+  <Step title="Authorize Namastex Labs">
+    GitHub will ask to authorize the default Forge OAuth app
+  </Step>
+
+  <Step title="Start Building">
+    You're authenticated and ready to create tasks!
+  </Step>
+</Steps>
+
+<Tip>
+The default credentials are perfect for local development and testing. No setup required!
+</Tip>
+
+---
+
+## Custom GitHub OAuth App
+
+Want to use your own OAuth app? Here's how to set it up.
+
+### Why Use Custom OAuth?
+
+- **Production deployments** on custom domains
+- **Enterprise environments** with specific security requirements
+- **Team collaboration** with your organization's branding
+- **Higher rate limits** specific to your app
+
+---
+
+## Creating Your OAuth App
+
+<Steps>
+  <Step title="Go to GitHub Settings">
+    Navigate to [GitHub Developer Settings](https://github.com/settings/developers)
+
+    → **OAuth Apps** → **New OAuth App**
+  </Step>
+
+  <Step title="Fill in Application Details">
+    ```yaml
+    Application name: My Forge Instance
+    Homepage URL: http://localhost:3000
+    Authorization callback URL: http://localhost:3000/auth/github/callback
+    ```
+
+    <Warning>
+    The **callback URL must match exactly**! Include protocol (`http://` or `https://`)
+    </Warning>
+  </Step>
+
+  <Step title="Register Application">
+    Click "Register application"
+  </Step>
+
+  <Step title="Generate Client Secret">
+    After creation, click **"Generate a new client secret"**
+
+    <Warning>
+    **Copy the secret immediately!** GitHub only shows it once.
+    </Warning>
+  </Step>
+
+  <Step title="Save Credentials">
+    You'll have:
+    - **Client ID**: `Iv1.1234567890abcdef`
+    - **Client Secret**: `1234567890abcdef1234567890abcdef12345678`
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Set your custom credentials via environment variables:
+
+```bash
+export GITHUB_CLIENT_ID=Iv1.1234567890abcdef
+export GITHUB_CLIENT_SECRET=1234567890abcdef1234567890abcdef12345678
+```
+
+Or in a `.env` file:
+
+```bash .env
+GITHUB_CLIENT_ID=Iv1.1234567890abcdef
+GITHUB_CLIENT_SECRET=1234567890abcdef1234567890abcdef12345678
+```
+
+### Start Forge
+
+```bash
+forge start
+
+# You should see:
+# ✓ GitHub OAuth: Using custom credentials
+# ✓ Backend running on http://127.0.0.1:8080
+# ✓ Frontend running on http://localhost:3000
+```
+
+---
+
+## Multiple Environments
+
+### Development
+
+```bash .env.development
+# Use default Forge credentials (no config needed)
+# OR set custom:
+GITHUB_CLIENT_ID=Iv1.dev_client_id
+GITHUB_CLIENT_SECRET=dev_secret
+```
+
+**OAuth App Settings**:
+```yaml
+Homepage URL: http://localhost:3000
+Callback URL: http://localhost:3000/auth/github/callback
+```
+
+### Staging
+
+```bash .env.staging
+GITHUB_CLIENT_ID=Iv1.staging_client_id
+GITHUB_CLIENT_SECRET=${STAGING_GITHUB_SECRET}
+```
+
+**OAuth App Settings**:
+```yaml
+Homepage URL: https://forge-staging.yourdomain.com
+Callback URL: https://forge-staging.yourdomain.com/auth/github/callback
+```
+
+### Production
+
+```bash .env.production
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+```
+
+**OAuth App Settings**:
+```yaml
+Homepage URL: https://forge.yourdomain.com
+Callback URL: https://forge.yourdomain.com/auth/github/callback
+```
+
+<Warning>
+**Never hardcode production secrets!** Use secret management:
+- AWS Secrets Manager
+- HashiCorp Vault
+- Kubernetes Secrets
+- Azure Key Vault
+- Google Secret Manager
+</Warning>
+
+---
+
+## Permissions & Scopes
+
+### Required Scopes
+
+Forge requests these GitHub OAuth scopes:
+
+| Scope | Purpose | Required |
+|-------|---------|----------|
+| `repo` | Read/write repository access | ✅ Yes |
+| `user:email` | Access user email | ✅ Yes |
+| `read:user` | Read user profile | ✅ Yes |
+| `workflow` | Manage GitHub Actions | ⚠️ Optional |
+
+### Why Each Scope?
+
+<AccordionGroup>
+  <Accordion title="repo - Repository Access">
+    **What it does**: Full control of private repositories
+
+    **Why needed**:
+    - Clone repositories for tasks
+    - Create and manage git worktrees
+    - Commit changes from AI agents
+    - Push branches and create PRs
+
+    <Info>
+    This is the core permission Forge needs to function
+    </Info>
+  </Accordion>
+
+  <Accordion title="user:email - Email Access">
+    **What it does**: Access user email addresses
+
+    **Why needed**:
+    - Associate commits with correct author
+    - Send notifications (if enabled)
+    - User identification in audit logs
+  </Accordion>
+
+  <Accordion title="read:user - Profile Access">
+    **What it does**: Read user profile information
+
+    **Why needed**:
+    - Display username and avatar in UI
+    - Team collaboration features
+    - Activity tracking
+  </Accordion>
+
+  <Accordion title="workflow - GitHub Actions (Optional)">
+    **What it does**: Access GitHub Actions workflows
+
+    **Why needed**:
+    - Trigger CI/CD on task completion
+    - Monitor workflow status
+    - Auto-deployment features
+
+    <Tip>
+    Only needed if you use GitHub Actions integration
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Testing Your OAuth Setup
+
+### Verify Configuration
+
+```bash
+# Start Forge with your credentials
+GITHUB_CLIENT_ID=your_id GITHUB_CLIENT_SECRET=your_secret forge start
+
+# Check logs for:
+✓ GitHub OAuth: Using custom credentials
+✓ Client ID: Iv1.xxx...
+```
+
+### Test Authentication Flow
+
+<Steps>
+  <Step title="Open Forge UI">
+    Navigate to http://localhost:3000
+  </Step>
+
+  <Step title="Click GitHub Sign In">
+    Should redirect to GitHub authorization page
+  </Step>
+
+  <Step title="Verify OAuth App Name">
+    Should show YOUR app name (not "Forge by Namastex Labs")
+  </Step>
+
+  <Step title="Authorize Access">
+    Click "Authorize" and you should be redirected back
+  </Step>
+
+  <Step title="Check User Info">
+    You should see your GitHub avatar and username in Forge UI
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Callback URL mismatch">
+    **Error**: "The redirect_uri MUST match the registered callback URL for this application"
+
+    **Solution**:
+    1. Check your OAuth app settings on GitHub
+    2. Ensure callback URL exactly matches (including protocol and port)
+    3. For local dev: `http://localhost:3000/auth/github/callback`
+    4. Update OAuth app if needed
+  </Accordion>
+
+  <Accordion title="Invalid client">
+    **Error**: "Invalid OAuth client_id"
+
+    **Solution**:
+    - Verify `GITHUB_CLIENT_ID` is correct
+    - Check for extra spaces or quotes
+    - Ensure OAuth app isn't deleted
+    - Try regenerating client secret
+  </Accordion>
+
+  <Accordion title="Authorization failed">
+    **Error**: Authentication completes but user not logged in
+
+    **Solution**:
+    - Check `GITHUB_CLIENT_SECRET` is correct
+    - Ensure secret hasn't been rotated
+    - Verify environment variables are loaded
+    - Check backend logs for detailed errors
+  </Accordion>
+
+  <Accordion title="Rate limit errors">
+    **Error**: "API rate limit exceeded"
+
+    **Solution**:
+    - Create authenticated OAuth app (higher limits)
+    - Use personal access token for development
+    - Implement caching for repository data
+    - Contact GitHub for higher limits
+  </Accordion>
+
+  <Accordion title="Localhost not working">
+    **Error**: OAuth redirect fails in browser
+
+    **Solution**:
+    Use `127.0.0.1` instead of `localhost`:
+    ```yaml
+    Callback URL: http://127.0.0.1:3000/auth/github/callback
+    ```
+
+    Some browsers treat these differently!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Rotate Secrets Regularly" icon="rotate">
+    Generate new client secrets every 90 days
+
+    ```bash
+    # GitHub Settings → OAuth Apps
+    # → Your App → Generate new client secret
+    ```
+  </Card>
+
+  <Card title="Use Minimal Scopes" icon="shield">
+    Only request permissions you actually need
+
+    Remove `workflow` scope if not using Actions
+  </Card>
+
+  <Card title="Monitor Access Logs" icon="eye">
+    Review GitHub OAuth authorizations periodically
+
+    [github.com/settings/applications](https://github.com/settings/applications)
+  </Card>
+
+  <Card title="Secure Production Secrets" icon="lock">
+    Never commit secrets to version control
+
+    ```bash .gitignore
+    .env
+    .env.production
+    .env.local
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Advanced: Organization OAuth Apps
+
+For team deployments, use GitHub Organization OAuth apps:
+
+<Steps>
+  <Step title="Go to Organization Settings">
+    `https://github.com/organizations/YOUR_ORG/settings/applications`
+  </Step>
+
+  <Step title="Create OAuth App">
+    Same process as personal OAuth app
+  </Step>
+
+  <Step title="Set Organization Restrictions">
+    Configure which repositories Forge can access
+  </Step>
+
+  <Step title="Add to Forge">
+    Use organization OAuth credentials in Forge config
+  </Step>
+</Steps>
+
+### Organization Benefits
+
+- **Centralized management**: Admins control OAuth apps
+- **Fine-grained permissions**: Restrict repository access
+- **Audit logs**: Track all OAuth usage
+- **Team collaboration**: Share Forge instance across team
+
+---
+
+## Production Deployment Checklist
+
+<Steps>
+  <Step title="Create Production OAuth App">
+    - Use your production domain
+    - Set HTTPS callback URL
+    - Document client ID/secret securely
+  </Step>
+
+  <Step title="Store Secrets Securely">
+    ```bash
+    # AWS Secrets Manager
+    aws secretsmanager create-secret \
+      --name forge/github/client-secret \
+      --secret-string "your_secret"
+
+    # Kubernetes
+    kubectl create secret generic forge-github \
+      --from-literal=client-id=your_id \
+      --from-literal=client-secret=your_secret
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    GITHUB_CLIENT_ID=$(get-secret forge/github/client-id)
+    GITHUB_CLIENT_SECRET=$(get-secret forge/github/client-secret)
+    ```
+  </Step>
+
+  <Step title="Test Production Flow">
+    - Test OAuth from production domain
+    - Verify callback redirects correctly
+    - Check user can access repositories
+  </Step>
+
+  <Step title="Monitor & Rotate">
+    - Set calendar reminder for 90-day rotation
+    - Monitor OAuth access logs
+    - Track API rate limits
+  </Step>
+</Steps>
+
+---
+
+## Rate Limits
+
+### GitHub API Limits
+
+| Authentication | Requests/Hour | Notes |
+|----------------|---------------|-------|
+| Unauthenticated | 60 | Very limited |
+| OAuth App | 5,000 | Standard limit |
+| GitHub App | 15,000+ | Higher limit |
+| Enterprise | Custom | Contact GitHub |
+
+### Optimizing Rate Limit Usage
+
+<Tabs>
+  <Tab title="Caching">
+    ```typescript
+    // Cache repository data locally
+    const cache = new Map();
+
+    async function getRepo(owner, repo) {
+      const key = `${owner}/${repo}`;
+      if (cache.has(key)) return cache.get(key);
+
+      const data = await github.getRepo(owner, repo);
+      cache.set(key, data);
+      return data;
+    }
+    ```
+  </Tab>
+
+  <Tab title="Batch Requests">
+    ```typescript
+    // Batch multiple operations
+    const repos = await github.listRepos({ per_page: 100 });
+
+    // Instead of:
+    // for (const repo of repos) {
+    //   await github.getRepo(repo.name);
+    // }
+    ```
+  </Tab>
+
+  <Tab title="Webhooks">
+    Use webhooks instead of polling:
+
+    ```yaml
+    # Receive events instead of checking
+    webhook_url: https://forge.yourdomain.com/webhooks/github
+    events:
+      - push
+      - pull_request
+      - issues
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/forge/config/environment-variables">
+    Complete configuration reference
+  </Card>
+
+  <Card title="LLM Configuration" icon="brain" href="/forge/config/llm-configuration">
+    Set up AI coding agents
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/forge/quickstart">
+    Create your first task
+  </Card>
+
+  <Card title="Project Structure" icon="folder-tree" href="/forge/config/project-structure">
+    Understand Forge's organization
+  </Card>
+</CardGroup>

@@ -1,0 +1,639 @@
+---
+title: "Open Source Agents"
+description: "Run AI coding agents locally with OpenCode and Qwen"
+icon: "code"
+---
+
+## Overview
+
+Run powerful AI coding agents **completely local** - no API keys, no cloud services, no data leaving your machine. Perfect for privacy-sensitive work, learning, or unlimited free usage.
+
+<Info>
+**Privacy First**: All code stays on your machine. No external API calls.
+</Info>
+
+---
+
+## Supported Models
+
+### OpenCode
+
+<Card title="OpenCode" icon="code-branch">
+  **Open-source coding model**
+
+  - **By**: Open-source community
+  - **Size**: 15B parameters
+  - **Context**: 16K tokens
+  - **Requirements**: 16GB+ RAM, GPU recommended
+  - **License**: Apache 2.0
+
+  Best for: General coding, privacy-sensitive work
+</Card>
+
+### Qwen Code
+
+<Card title="Qwen Code" icon="alibaba">
+  **Alibaba's open-source coder**
+
+  - **By**: Alibaba DAMO Academy
+  - **Size**: 7B, 14B, 32B parameters
+  - **Context**: 32K tokens
+  - **Requirements**: 8GB-64GB RAM depending on size
+  - **License**: Apache 2.0
+
+  Best for: Cost-conscious development, competitive with commercial
+</Card>
+
+---
+
+## Quick Start with Ollama
+
+[Ollama](https://ollama.ai) makes running local models easy:
+
+<Steps>
+  <Step title="Install Ollama">
+    ```bash
+    # macOS
+    brew install ollama
+
+    # Linux
+    curl https://ollama.ai/install.sh | sh
+
+    # Windows
+    # Download from https://ollama.ai
+    ```
+  </Step>
+
+  <Step title="Start Ollama">
+    ```bash
+    ollama serve
+    ```
+
+    Runs on http://localhost:11434
+  </Step>
+
+  <Step title="Pull Models">
+    ```bash
+    # OpenCode
+    ollama pull opencode
+
+    # Qwen Code (choose size)
+    ollama pull qwen2.5-coder:7b    # Small, fast
+    ollama pull qwen2.5-coder:14b   # Balanced
+    ollama pull qwen2.5-coder:32b   # Best quality
+    ```
+  </Step>
+
+  <Step title="Configure Forge">
+    Edit `.forge/config.json`:
+
+    ```json
+    {
+      "llms": {
+        "opencode": {
+          "type": "ollama",
+          "model": "opencode",
+          "endpoint": "http://localhost:11434"
+        },
+        "qwen": {
+          "type": "ollama",
+          "model": "qwen2.5-coder:32b",
+          "endpoint": "http://localhost:11434"
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test">
+    ```bash
+    forge task create \
+      --title "Test local model" \
+      --description "Print 'Hello from OpenCode!'" \
+      --llm opencode
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Hardware Requirements
+
+### Minimum Specs
+
+| Model | RAM | GPU | Storage | Speed |
+|-------|-----|-----|---------|-------|
+| **Qwen 7B** | 8GB | Optional | 5GB | Good |
+| **Qwen 14B** | 16GB | Recommended | 10GB | Better |
+| **OpenCode** | 16GB | Recommended | 12GB | Good |
+| **Qwen 32B** | 32GB | Required | 25GB | Best |
+
+### Recommended Setup
+
+For best experience:
+
+```
+CPU:  Modern multi-core (8+ cores)
+RAM:  32GB+
+GPU:  NVIDIA RTX 3060+ (12GB VRAM)
+      or Apple Silicon M1/M2/M3
+
+Storage: SSD with 50GB+ free space
+```
+
+<Tip>
+**Apple Silicon users**: Metal acceleration makes M1/M2/M3 excellent for local models!
+</Tip>
+
+---
+
+## Configuration
+
+### Basic Ollama Setup
+
+```json
+{
+  "llms": {
+    "opencode": {
+      "type": "ollama",
+      "model": "opencode",
+      "endpoint": "http://localhost:11434"
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "qwen": {
+      "type": "ollama",
+      "model": "qwen2.5-coder:32b",
+      "endpoint": "http://localhost:11434",
+      "options": {
+        "temperature": 0.7,
+        "num_ctx": 32768,      // Context window
+        "num_predict": 2048,   // Max output tokens
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.1
+      },
+      "timeout": 120000  // 2 minutes
+    }
+  }
+}
+```
+
+### GPU Acceleration
+
+Enable GPU support for faster inference:
+
+```json
+{
+  "llms": {
+    "qwen": {
+      "type": "ollama",
+      "model": "qwen2.5-coder:32b",
+      "options": {
+        "num_gpu": 1,         // Number of GPUs
+        "main_gpu": 0,        // Primary GPU index
+        "low_vram": false     // Enable for under 8GB VRAM
+      }
+    }
+  }
+}
+```
+
+---
+
+## Strengths of Local Models
+
+### Complete Privacy
+
+<CardGroup cols={2}>
+  <Card title="No Data Leakage" icon="lock">
+    - Code never leaves your machine
+    - No API calls to external services
+    - No telemetry or tracking
+    - Perfect for sensitive codebases
+  </Card>
+
+  <Card title="Compliance-Ready" icon="shield">
+    - GDPR compliant by design
+    - No third-party data sharing
+    - Full audit trail
+    - Meets enterprise security requirements
+  </Card>
+</CardGroup>
+
+### No Usage Limits
+
+```bash
+# Unlimited usage!
+forge task create "Task 1" --llm qwen
+forge task create "Task 2" --llm qwen
+forge task create "Task 3" --llm qwen
+# ... as many as you want
+
+# No rate limits
+# No token costs
+# No monthly fees
+```
+
+### No Internet Required
+
+Work anywhere:
+- ✈️ On airplanes
+- 🏔️ Remote locations
+- 🔌 During outages
+- 🔒 Air-gapped environments
+
+---
+
+## Limitations
+
+### Lower Quality
+
+Local models are less capable than cloud models:
+
+| Task Type | Local | Claude | GPT-4 |
+|-----------|-------|--------|-------|
+| **Simple fixes** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Architecture** | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Bug fixing** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Testing** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+### Slower
+
+```bash
+# Speed comparison: "Add authentication"
+Gemini Flash:  2m 15s  ⚡
+Claude Sonnet: 5m 22s
+GPT-4 Turbo:   6m 01s
+Qwen 32B:      12m 30s  (local)
+OpenCode:      15m 45s  (local)
+```
+
+### Hardware Intensive
+
+- Requires powerful machine
+- GPU strongly recommended
+- High RAM usage
+- Slower on CPU-only
+
+---
+
+## Best Use Cases
+
+### Privacy-Sensitive Work
+
+```bash
+# Medical records processing
+forge task create \
+  --title "Process patient data" \
+  --files "data/patients/*.csv" \
+  --llm qwen  # Stays local!
+```
+
+### Learning & Experimentation
+
+```bash
+# Unlimited free usage for learning
+forge task create "Try approach 1" --llm opencode
+forge task create "Try approach 2" --llm opencode
+forge task create "Try approach 3" --llm opencode
+# ... no cost!
+```
+
+### Air-Gapped Environments
+
+```bash
+# Government, military, high-security environments
+# No internet connection required
+forge task create "Classified work" --llm qwen
+```
+
+### Cost Reduction
+
+```bash
+# After initial hardware investment
+# Zero ongoing costs
+forge task create "Feature 1" --llm qwen  # $0
+forge task create "Feature 2" --llm qwen  # $0
+forge task create "Feature 3" --llm qwen  # $0
+```
+
+---
+
+## Model Comparison
+
+### OpenCode vs Qwen
+
+| Feature | OpenCode | Qwen 7B | Qwen 14B | Qwen 32B |
+|---------|----------|---------|----------|----------|
+| **Quality** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Speed** | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+| **RAM** | 16GB | 8GB | 16GB | 32GB |
+| **Best for** | General | Quick tasks | Balanced | Quality |
+
+### Local vs Cloud
+
+| Feature | Local (Qwen 32B) | Claude Sonnet | Gemini Pro |
+|---------|------------------|---------------|------------|
+| **Privacy** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
+| **Quality** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Speed** | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Cost** | $$$ hardware, $0 usage | $0 hardware, $$$ usage | $0 hardware, $$ usage |
+
+---
+
+## Performance Optimization
+
+### Use GPU
+
+```bash
+# Check GPU usage
+nvidia-smi
+
+# Or on Mac
+system_profiler SPDisplaysDataType
+```
+
+### Adjust Context Window
+
+```json
+{
+  "llms": {
+    "qwen": {
+      "options": {
+        "num_ctx": 16384  // Reduce for speed
+      }
+    }
+  }
+}
+```
+
+### Use Smaller Models for Simple Tasks
+
+```bash
+# Simple task → Qwen 7B (fast)
+forge task create "Add comment" --llm qwen-7b
+
+# Complex task → Qwen 32B (quality)
+forge task create "Refactor architecture" --llm qwen-32b
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Ollama not running">
+    **Error**: "Connection refused to localhost:11434"
+
+    **Solution**:
+    ```bash
+    # Start Ollama
+    ollama serve
+
+    # Or as background service (Linux)
+    systemctl start ollama
+
+    # macOS (via brew services)
+    brew services start ollama
+    ```
+  </Accordion>
+
+  <Accordion title="Out of memory">
+    **Error**: "Failed to allocate memory"
+
+    **Solutions**:
+    - Use smaller model (7B instead of 32B)
+    - Close other applications
+    - Enable low VRAM mode:
+      ```json
+      {
+        "llms": {
+          "qwen": {
+            "options": {
+              "low_vram": true
+            }
+          }
+        }
+      }
+      ```
+    - Upgrade RAM
+  </Accordion>
+
+  <Accordion title="Very slow inference">
+    **Issue**: Model taking forever
+
+    **Solutions**:
+    - Enable GPU acceleration
+    - Use smaller model
+    - Reduce context window
+    - Close background apps
+    - Check CPU usage (should be high)
+  </Accordion>
+
+  <Accordion title="Model not found">
+    **Error**: "Model 'qwen2.5-coder:32b' not found"
+
+    **Solution**:
+    ```bash
+    # Pull the model
+    ollama pull qwen2.5-coder:32b
+
+    # List available models
+    ollama list
+
+    # Check model size before pulling
+    ollama show qwen2.5-coder:32b
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Cost Analysis
+
+### Hardware Investment
+
+```
+One-time costs:
+├── Mid-range GPU (RTX 4060): $300
+├── Additional RAM (32GB): $100
+└── SSD storage (1TB): $80
+────────────────────────────
+Total: ~$480
+
+Break-even vs Claude:
+$480 / $50/month = ~10 months of usage
+```
+
+### Ongoing Costs
+
+```
+Electricity:
+├── GPU power: ~200W
+├── Running 8hrs/day
+└── Cost: ~$5-10/month
+
+vs Cloud APIs:
+├── Claude: $50-200/month typical usage
+├── GPT-4: $80-300/month
+└── Gemini: $0-50/month (free tier)
+```
+
+<Tip>
+**Heavy users** (>$100/month on APIs) break even quickly with local setup!
+</Tip>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use for Sensitive Work" icon="shield-halved">
+    ```bash
+    # Proprietary code
+    forge task create \
+      --title "Refactor proprietary algorithm" \
+      --llm qwen  # Stays local
+    ```
+  </Card>
+
+  <Card title="Start Small" icon="seedling">
+    Begin with Qwen 7B:
+    ```bash
+    ollama pull qwen2.5-coder:7b
+    ```
+
+    Upgrade to 32B if needed
+  </Card>
+
+  <Card title="Monitor Resources" icon="chart-line">
+    ```bash
+    # Check resource usage
+    htop
+    nvidia-smi  # GPU
+
+    # Adjust if needed
+    ```
+  </Card>
+
+  <Card title="Combine with Cloud" icon="cloud">
+    ```bash
+    # Quick iteration: local
+    forge task create "Try A" --llm qwen
+
+    # Final polish: cloud
+    forge task fork 1 --llm claude
+    ```
+
+    Best of both worlds!
+  </Card>
+</CardGroup>
+
+---
+
+## Hybrid Strategy
+
+Combine local and cloud models:
+
+### Strategy 1: Privacy Tiers
+
+```bash
+# Sensitive code → local
+forge task create \
+  --title "Process customer data" \
+  --llm qwen
+
+# Public code → cloud (faster, better)
+forge task create \
+  --title "Update README" \
+  --llm gemini
+```
+
+### Strategy 2: Cost Optimization
+
+```bash
+# Experimentation → local (free)
+forge task create "Try approach A" --llm qwen
+forge task create "Try approach B" --llm qwen
+forge task create "Try approach C" --llm qwen
+
+# Production → cloud (quality)
+forge task fork <winner> --llm claude
+```
+
+### Strategy 3: Network-Aware
+
+```bash
+# Offline → local
+if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+  LLM=gemini  # Online, use fast cloud
+else
+  LLM=qwen    # Offline, use local
+fi
+
+forge task create "Task" --llm $LLM
+```
+
+---
+
+## Real-World Example
+
+### Setup for Privacy-First Development
+
+```bash
+# 1. Install Ollama
+brew install ollama
+
+# 2. Pull Qwen 32B (best quality)
+ollama pull qwen2.5-coder:32b
+
+# 3. Configure Forge
+cat > .forge/config.json <<EOF
+{
+  "llms": {
+    "qwen": {
+      "type": "ollama",
+      "model": "qwen2.5-coder:32b",
+      "endpoint": "http://localhost:11434",
+      "options": {
+        "num_gpu": 1,
+        "num_ctx": 32768
+      }
+    }
+  }
+}
+EOF
+
+# 4. Start building (all local!)
+forge task create "Sensitive feature" --llm qwen
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install Ollama" icon="download" href="https://ollama.ai">
+    Get started with local models
+  </Card>
+
+  <Card title="Other Agents" icon="robot" href="/forge/agents/overview">
+    Compare with cloud agents
+  </Card>
+
+  <Card title="Privacy Workflows" icon="shield" href="/forge/workflows/feature-development">
+    Privacy-first development patterns
+  </Card>
+
+  <Card title="Ollama Library" icon="book" href="https://ollama.ai/library">
+    Browse available models
+  </Card>
+</CardGroup>

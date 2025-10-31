@@ -1,0 +1,646 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Automagik Forge"
+icon: "question"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Automagik Forge?">
+    Automagik Forge is a **Vibe Coding++™ platform** that brings structure to AI-assisted development. It's a visual Kanban board where you plan tasks, choose AI agents to execute them in isolated git worktrees, compare results from multiple agents, and ship code you understand.
+
+    **Key Features:**
+    - Visual task management Kanban
+    - 8+ AI coding agent integrations (Claude, Cursor, Gemini, etc.)
+    - Git worktree isolation for safe experimentation
+    - Multiple attempts per task (try different agents)
+    - MCP server for AI agent integration
+    - 100% open source and self-hostable
+  </Accordion>
+
+  <Accordion title="How is Forge different from regular AI coding?">
+    **Regular "Vibe Coding" (Chaotic):**
+    - Chat with AI, get code, ship it
+    - Lost in chat history
+    - Code breaks in 2 weeks
+    - No experimentation or comparison
+    - Vendor lock-in to one AI
+
+    **Vibe Coding++™ with Forge (Structured):**
+    - You plan tasks in persistent Kanban
+    - AI agents execute in isolated worktrees
+    - Compare multiple agent approaches
+    - Review and understand before merge
+    - Code stays maintainable
+    - No vendor lock-in (8+ agents supported)
+  </Accordion>
+
+  <Accordion title="Is Forge free?">
+    **Yes!** Forge is **100% free and open source** (MIT License).
+
+    - No subscription fees
+    - No usage limits
+    - Self-hostable on your machine
+    - No vendor lock-in
+    - Community-driven development
+
+    **Costs you pay:**
+    - AI agent API costs (Claude, Gemini, etc.) - BYOL (Bring Your Own LLM)
+    - Or use free/open-source agents (OpenCode, Qwen Code)
+  </Accordion>
+
+  <Accordion title="Which AI coding agents does Forge support?">
+    Forge supports **8+ AI coding agents**:
+
+    **Commercial Agents:**
+    - **Claude Code** (Anthropic) - Best for complex logic, security
+    - **Cursor CLI** - Modern React patterns, frontend
+    - **Gemini** (Google) - Fast iterations, good all-rounder
+    - **OpenAI Codex** - GPT-4 based coding
+    - **Amp** (Sourcegraph) - Code intelligence
+
+    **Open Source/Local Agents:**
+    - **OpenCode** - Free, runs locally
+    - **Qwen Code** (Alibaba) - Open source
+    - **Claude Router** - LLM-agnostic, use ANY model
+
+    Plus: You can add custom agents!
+  </Accordion>
+
+  <Accordion title="Do I need to pay for multiple AI subscriptions?">
+    **No!** You only need API access to the agents you want to use.
+
+    **Options:**
+    1. **Single AI** - Use just Claude or just Gemini
+    2. **Free Agents** - Use OpenCode or Qwen (100% free)
+    3. **Pay-as-you-go** - Most AI APIs are pay-per-use, not subscriptions
+
+    **Recommendation:**
+    - Start with one AI (Claude Code or Gemini)
+    - Add more later to compare approaches
+    - Use free agents for experimentation
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Technical Questions
+
+<AccordionGroup>
+  <Accordion title="How does git worktree isolation work?">
+    **Git worktrees** allow multiple working directories from one repository.
+
+    **Normal git workflow:**
+    ```bash
+    git checkout feature-branch  # Switches your code
+    # Risk: Can break your main branch
+    ```
+
+    **Forge worktree workflow:**
+    ```bash
+    # Main repo stays on main branch
+    # Each task gets isolated worktree
+    .forge/worktrees/task-1-attempt-1/  # AI works here
+    .forge/worktrees/task-2-attempt-1/  # Another task here
+
+    # Your main codebase is never touched
+    # Review results, merge when ready
+    ```
+
+    **Benefits:**
+    - Multiple tasks execute simultaneously
+    - Main branch stays clean
+    - Safe experimentation
+    - Easy rollback
+  </Accordion>
+
+  <Accordion title="What are task attempts?">
+    **Attempts** let you try the same task with different AI agents.
+
+    **Example:**
+    ```
+    Task: "Add user authentication"
+
+    Attempt 1: Claude Code → Comprehensive but complex
+    Attempt 2: Gemini → Simple but missing edge cases
+    Attempt 3: Cursor → Perfect balance ✅
+
+    You choose: Attempt 3 to merge
+    ```
+
+    **Benefits:**
+    - Compare different approaches
+    - Learn which agent works best for what
+    - No risk (each in isolated worktree)
+    - Choose best implementation
+  </Accordion>
+
+  <Accordion title="Can I use Forge without git?">
+    **No**, Forge requires a git repository.
+
+    **Why:**
+    - Git worktrees provide isolation
+    - Version control tracks changes
+    - Safe rollback if needed
+
+    **Quick setup if you don't have git:**
+    ```bash
+    cd your-project
+    git init
+    git add .
+    git commit -m "Initial commit"
+
+    # Now run Forge
+    automagik-forge
+    ```
+  </Accordion>
+
+  <Accordion title="Does Forge work with monorepos?">
+    **Yes!** Forge works great with monorepos.
+
+    Each sub-project can have its own Forge instance:
+
+    ```bash
+    # Frontend
+    cd monorepo/frontend
+    automagik-forge --port 3000
+
+    # Backend
+    cd monorepo/backend
+    automagik-forge --port 3001
+
+    # Mobile
+    cd monorepo/mobile
+    automagik-forge --port 3002
+    ```
+
+    Or use one Forge for entire monorepo with labeled tasks.
+  </Accordion>
+
+  <Accordion title="Can I use Forge in CI/CD?">
+    **Not recommended.** Forge is designed for **development**, not CI/CD.
+
+    **Instead, use Forge to:**
+    - Develop features locally
+    - Review AI-generated code
+    - Merge to main when approved
+
+    **Then use normal CI/CD:**
+    - GitHub Actions
+    - GitLab CI
+    - Jenkins
+    - etc.
+
+    Forge tasks create branches → you review → merge → CI/CD runs.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Usage Questions
+
+<AccordionGroup>
+  <Accordion title="How do I create my first task?">
+    <Steps>
+      <Step title="Start Forge">
+        ```bash
+        cd your-project
+        automagik-forge
+        ```
+
+        Opens at `http://localhost:3000`
+      </Step>
+
+      <Step title="Create Task">
+        - Click "New Task" button
+        - Title: "Add dark mode toggle"
+        - Description: "Create toggle component for light/dark theme"
+        - Labels: feature, frontend
+        - Click "Create"
+      </Step>
+
+      <Step title="Choose Agent">
+        - Click on task card
+        - Click "New Attempt"
+        - Select agent: Claude Code, Gemini, or Cursor
+        - Click "Start"
+      </Step>
+
+      <Step title="Monitor Execution">
+        - Watch real-time logs
+        - See code changes as they happen
+        - Review when complete
+      </Step>
+
+      <Step title="Merge or Retry">
+        - If good: Click "Merge to Main"
+        - If not: Create new attempt with different agent
+        - Compare results
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="How do I compare multiple agents?">
+    <Steps>
+      <Step title="Create Task">
+        Create a task normally
+      </Step>
+
+      <Step title="Run First Attempt">
+        - Choose agent (e.g., Claude Code)
+        - Start execution
+        - Wait for completion
+      </Step>
+
+      <Step title="Create Alternative Attempt">
+        - Click "New Attempt" on same task
+        - Choose different agent (e.g., Gemini)
+        - Start execution
+      </Step>
+
+      <Step title="Compare Results">
+        - Click "Compare Attempts"
+        - See side-by-side diff
+        - Review pros/cons
+        - Choose best approach
+      </Step>
+
+      <Step title="Merge Winner">
+        - Select best attempt
+        - Click "Merge"
+        - Other attempts auto-cleanup
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Can I use Forge from my AI coding assistant?">
+    **Yes!** Via **MCP (Model Context Protocol)**.
+
+    **Supported AI agents:**
+    - Claude Code
+    - Cursor
+    - VSCode + Cline
+    - Roo Code
+    - Gemini CLI
+    - Any MCP-compatible agent
+
+    **Setup:**
+
+    1. Get your Project ID:
+       ```bash
+       cat .forge/config.json | grep project_id
+       ```
+
+    2. Configure MCP server (example for Claude Code):
+       ```json
+       {
+         "mcpServers": {
+           "automagik-forge": {
+             "command": "npx",
+             "args": ["automagik-forge", "--mcp"],
+             "env": {
+               "PROJECT_ID": "your-uuid-here"
+             }
+           }
+         }
+       }
+       ```
+
+    3. Use from AI agent:
+       ```
+       "Create a new task: Add user authentication with JWT"
+       "List all high-priority tasks"
+       "Update task-123 status to done"
+       ```
+
+    See [MCP Integration](/forge/mcp/overview) for details.
+  </Accordion>
+
+  <Accordion title="How do I integrate Forge with GitHub Issues?">
+    <Steps>
+      <Step title="Set Up GitHub OAuth">
+        - Create GitHub OAuth App: https://github.com/settings/developers
+        - Callback URL: `http://localhost:3000/auth/callback`
+        - Copy Client ID
+      </Step>
+
+      <Step title="Configure Forge">
+        ```bash
+        export GITHUB_CLIENT_ID=your_client_id
+        automagik-forge
+        ```
+      </Step>
+
+      <Step title="Connect in UI">
+        - Settings → GitHub
+        - Click "Connect GitHub"
+        - Authorize app
+        - Select repository
+      </Step>
+
+      <Step title="Sync Issues">
+        - Forge can import GitHub issues as tasks
+        - Tasks can link to GitHub issues
+        - PRs can be created from tasks
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Can multiple people use the same Forge instance?">
+    **Possible but not recommended.**
+
+    **Forge is designed for individual use:**
+    - Each developer runs their own Forge instance
+    - Tasks in personal Kanban
+    - Individual git worktrees
+
+    **For team collaboration:**
+    - Each person runs Forge locally
+    - Coordinate via GitHub/GitLab
+    - Share task templates and patterns
+    - Use same agents/settings across team
+
+    **Future:** Team collaboration features planned for later versions.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting Questions
+
+<AccordionGroup>
+  <Accordion title="Why is my task execution failing?">
+    **Common causes:**
+
+    1. **API Key Issues:**
+       ```bash
+       # Verify API key is set
+       echo $ANTHROPIC_API_KEY  # For Claude
+
+       # Set if missing
+       export ANTHROPIC_API_KEY=sk-ant-...
+       ```
+
+    2. **Git Issues:**
+       ```bash
+       # Ensure you're in a git repo
+       git status
+
+       # Commit uncommitted changes
+       git add .
+       git commit -m "Save work"
+       ```
+
+    3. **Executor Not Configured:**
+       ```bash
+       # Check executors enabled
+       cat .forge/config.json | jq '.executors'
+
+       # Enable in UI: Settings → Executors
+       ```
+
+    4. **Worktree Issues:**
+       ```bash
+       # Clean up old worktrees
+       git worktree prune
+       rm -rf .forge/worktrees/*
+       ```
+
+    See [Troubleshooting](/forge/troubleshooting/common-issues) for more.
+  </Accordion>
+
+  <Accordion title="How do I clean up old worktrees?">
+    **Via UI (Recommended):**
+    - Settings → Cleanup → Remove Old Worktrees
+
+    **Manually:**
+    ```bash
+    # Remove all worktree directories
+    rm -rf .forge/worktrees/*
+
+    # Prune git references
+    git worktree prune
+
+    # Restart Forge
+    automagik-forge
+    ```
+
+    **Automatically:**
+    ```json
+    // In .forge/config.json
+    {
+      "worktrees": {
+        "auto_delete_merged": true,
+        "cleanup_on_exit": true
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Why is Forge consuming so much disk space?">
+    **Causes:**
+    - Many git worktrees (each is full code copy)
+    - Large git repository
+    - Many task attempts
+    - Database growth
+
+    **Solutions:**
+
+    1. **Clean up worktrees:**
+       ```bash
+       rm -rf .forge/worktrees/*
+       git worktree prune
+       ```
+
+    2. **Clean up database:**
+       ```bash
+       sqlite3 .forge/db.sqlite "DELETE FROM tasks WHERE status='done' AND updated_at < datetime('now', '-30 days');"
+       sqlite3 .forge/db.sqlite "VACUUM;"
+       ```
+
+    3. **Enable auto-cleanup:**
+       ```json
+       {
+         "worktrees": {
+           "auto_delete_merged": true,
+           "max_concurrent": 3
+         }
+       }
+       ```
+  </Accordion>
+
+  <Accordion title="Can I run Forge on a server/headless?">
+    **Yes**, but with limitations.
+
+    **Headless mode:**
+    ```bash
+    # Start backend only
+    BACKEND_PORT=5000 automagik-forge
+
+    # Access via API
+    curl http://server-ip:5000/api/projects
+
+    # Or use MCP mode
+    automagik-forge --mcp
+    ```
+
+    **Limitations:**
+    - No web UI (can build separately and point to API)
+    - Need to manage via API or MCP only
+    - GitHub OAuth requires redirect to localhost
+
+    **Better approach:**
+    - Run Forge on your local machine
+    - Use git/GitHub to share code changes
+    - Each developer has own Forge instance
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Questions
+
+<AccordionGroup>
+  <Accordion title="Can I create custom AI agents?">
+    **Yes!** You can add custom executors.
+
+    **Example custom agent:**
+    ```json
+    // In .forge/config.json
+    {
+      "executors": {
+        "my-custom-agent": {
+          "enabled": true,
+          "type": "http",
+          "endpoint": "http://localhost:8080/api/execute",
+          "headers": {
+            "Authorization": "Bearer ${CUSTOM_AGENT_TOKEN}"
+          },
+          "timeout": 600000
+        }
+      }
+    }
+    ```
+
+    Your custom agent must accept Forge's execution API format.
+
+    See [Custom Executors](/forge/advanced/custom-executors) for details.
+  </Accordion>
+
+  <Accordion title="How can I contribute to Forge?">
+    **Forge is open source!** Contributions welcome.
+
+    **Ways to contribute:**
+
+    1. **Report bugs:**
+       - https://github.com/namastexlabs/automagik-forge/issues
+
+    2. **Suggest features:**
+       - GitHub Discussions or Discord
+
+    3. **Submit pull requests:**
+       - Fork the repo
+       - Create feature branch
+       - Submit PR
+
+    4. **Improve documentation:**
+       - Docs are in `/docs` directory
+       - Submit PR with improvements
+
+    5. **Join community:**
+       - Discord: https://discord.gg/xcW8c7fF3R
+       - Help other users
+       - Share templates and patterns
+
+    See [CONTRIBUTING.md](https://github.com/namastexlabs/automagik-forge/blob/main/CONTRIBUTING.md)
+  </Accordion>
+
+  <Accordion title="What's on the roadmap?">
+    **Upcoming features:**
+
+    ### Q4 2024
+    - Template marketplace
+    - Task dependencies visualization
+    - UI revamp
+    - Analytics dashboard
+    - Spark integration (scheduled tasks)
+
+    ### Q1-Q2 2025
+    - Cross-Forge sync (share tasks)
+    - Hive executor (proprietary agent)
+    - Non-code workflows (docs, PPTs)
+    - Enterprise features
+    - Mobile companion app
+
+    ### Future
+    - AI intelligence layer
+    - Global template marketplace
+    - Industry verticals
+    - Cloud offering (optional SaaS)
+
+    See full roadmap: https://github.com/orgs/namastexlabs/projects/9
+  </Accordion>
+
+  <Accordion title="How is my data stored? Is it secure?">
+    **Local storage:**
+    - All data stored locally in `.forge/` directory
+    - SQLite database (unencrypted)
+    - GitHub OAuth tokens encrypted
+
+    **No cloud sync** (by default):
+    - Your code never leaves your machine
+    - Tasks stored locally only
+    - No telemetry (except optional PostHog)
+
+    **Security recommendations:**
+
+    1. **Never commit `.forge/` to git:**
+       ```gitignore
+       .forge/
+       .env
+       ```
+
+    2. **Restrict file permissions:**
+       ```bash
+       chmod 600 .forge/config.json
+       chmod 700 .forge/
+       ```
+
+    3. **Use environment variables for secrets:**
+       ```bash
+       export ANTHROPIC_API_KEY=...
+       # Not in config files
+       ```
+
+    4. **Backup important data:**
+       ```bash
+       cp -r .forge .forge-backup
+       ```
+
+    Forge is 100% self-hosted. You control your data.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Join our Discord for real-time help and discussion
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs/automagik-forge/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="Documentation" icon="book" href="/forge/introduction">
+    Browse complete documentation
+  </Card>
+  <Card title="Twitter/X" icon="twitter" href="https://twitter.com/namastexlabs">
+    Follow for updates and tips
+  </Card>
+</CardGroup>
+
+---
+
+**Still have questions?** Ask in [Discord](https://discord.gg/xcW8c7fF3R) or open a [GitHub Discussion](https://github.com/namastexlabs/automagik-forge/discussions)!

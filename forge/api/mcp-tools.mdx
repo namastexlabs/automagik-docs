@@ -1,0 +1,431 @@
+---
+title: "MCP Tools"
+description: "Control Forge from AI coding agents via MCP"
+icon: "plug"
+---
+
+## Overview
+
+Forge's Model Context Protocol (MCP) server enables AI coding agents to programmatically manage tasks. Control your Forge instance directly from Claude Code, Cursor, or any MCP-compatible agent.
+
+<Info>
+MCP Tools allow bidirectional communication between your AI agent and Forge!
+</Info>
+
+---
+
+## Available Tools
+
+### list_projects
+
+Get all Forge projects.
+
+**Parameters**: None
+
+**Returns**: Array of projects
+
+**Example**:
+```
+You: "Show me all my Forge projects"
+
+Claude: [Uses list_projects tool]
+
+Projects:
+1. my-web-app (42 tasks)
+2. mobile-app (18 tasks)
+3. api-backend (35 tasks)
+```
+
+---
+
+### list_tasks
+
+Get tasks with optional filtering.
+
+**Parameters**:
+- `projectId` (optional): Filter by project
+- `status` (optional): Filter by status
+- `limit` (optional): Number of tasks to return
+
+**Returns**: Array of tasks
+
+**Example**:
+```
+You: "Show me all high-priority tasks"
+
+Claude: [Uses list_tasks tool with filters]
+
+High Priority Tasks:
+1. #42 - Add user authentication (pending)
+2. #38 - Fix security vulnerability (in_progress)
+3. #35 - Optimize database queries (review)
+```
+
+---
+
+### create_task
+
+Create a new task in Forge.
+
+**Parameters**:
+- `projectId` (required): Project ID
+- `title` (required): Task title
+- `description` (optional): Task description
+- `priority` (optional): low, medium, high, critical
+- `labels` (optional): Array of labels
+
+**Returns**: Created task object
+
+**Example**:
+```
+You: "Create a task to add dark mode with LocalStorage persistence"
+
+Claude: [Uses create_task tool]
+
+Task #43 created: "Add dark mode toggle"
+- Priority: medium
+- Labels: feature, ui
+- Status: pending
+
+Ready to start this task?
+```
+
+---
+
+### get_task
+
+Get detailed information about a task.
+
+**Parameters**:
+- `taskId` (required): Task ID
+
+**Returns**: Task object with attempts
+
+**Example**:
+```
+You: "Show me details for task #42"
+
+Claude: [Uses get_task tool]
+
+Task #42: Add user authentication
+- Status: completed
+- Created: 2024-01-15
+- Attempts: 2
+  - Attempt 1 (claude): completed, $0.23
+  - Attempt 2 (gemini): completed, $0.00
+- Winner: Attempt 1 (better error handling)
+```
+
+---
+
+### update_task
+
+Update task properties.
+
+**Parameters**:
+- `taskId` (required): Task ID
+- `title` (optional): New title
+- `description` (optional): New description
+- `status` (optional): New status
+- `priority` (optional): New priority
+
+**Returns**: Updated task object
+
+**Example**:
+```
+You: "Mark task #42 as high priority and move to review"
+
+Claude: [Uses update_task tool]
+
+Task #42 updated:
+- Priority: high ← Changed
+- Status: review ← Changed
+```
+
+---
+
+### delete_task
+
+Delete a task.
+
+**Parameters**:
+- `taskId` (required): Task ID
+
+**Returns**: Deletion confirmation
+
+**Example**:
+```
+You: "Delete task #35, it's no longer needed"
+
+Claude: [Uses delete_task tool]
+
+Task #35 "Old feature" deleted successfully.
+All associated attempts and worktrees have been cleaned up.
+```
+
+---
+
+## Setup Instructions
+
+### Claude Code
+
+Add to your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid"
+      }
+    }
+  }
+}
+```
+
+See [Claude Code Setup](/forge/mcp/claude-code-setup) for details.
+
+### Cursor
+
+Add to Cursor settings:
+
+```json
+{
+  "mcp.servers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "projectId": "your-project-uuid"
+    }
+  }
+}
+```
+
+See [Cursor Setup](/forge/mcp/cursor-setup) for details.
+
+---
+
+## Usage Examples
+
+### Planning Phase
+
+```
+You: "Help me plan a user authentication system"
+
+Claude: Let me help you break this down into tasks using Forge.
+
+[Uses create_task multiple times]
+
+I've created 5 tasks in Forge:
+1. #44 - Design authentication schema
+2. #45 - Implement JWT generation
+3. #46 - Add login/signup endpoints
+4. #47 - Create auth middleware
+5. #48 - Write integration tests
+
+Ready to start with task #44?
+```
+
+### Bug Discovery
+
+```
+You: "I found a bug in the payment processing"
+
+Claude: Let me create a bug report in Forge.
+
+[Uses create_task]
+
+Bug task #49 created:
+- Title: "Fix payment processing error"
+- Description: [Captured from conversation]
+- Priority: high
+- Labels: bug, payment, urgent
+
+I'll also add reproduction steps from our conversation.
+```
+
+### Status Updates
+
+```
+You: "What's the status of all my auth tasks?"
+
+Claude: [Uses list_tasks with filter]
+
+Authentication Tasks:
+- #44: Design schema ✅ completed
+- #45: JWT generation 🔄 in_progress
+- #46: Endpoints ⏳ pending
+- #47: Middleware ⏳ pending
+- #48: Tests ⏳ pending
+
+Currently working on JWT generation. ETA: 5 minutes.
+```
+
+---
+
+## Advanced Mode
+
+Enable advanced mode for access to **56 total tools**:
+
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp-advanced"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid"
+      }
+    }
+  }
+}
+```
+
+**Additional tools in advanced mode**:
+- Attempt management
+- Process control
+- Worktree operations
+- Draft management
+- Container operations
+- Filesystem access
+- Omni integration
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Natural Language" icon="comments">
+    Use natural language - the AI handles tool calls:
+
+    ```
+    "Create a high-priority task for adding tests"
+    ```
+
+    Not:
+    ```
+    "Use create_task with priority=high"
+    ```
+  </Card>
+
+  <Card title="Let AI Plan" icon="brain">
+    Let the AI break down work:
+
+    ```
+    "Help me implement a payment system"
+    ```
+
+    AI will create multiple tasks automatically
+  </Card>
+
+  <Card title="Conversational Updates" icon="message">
+    Update tasks conversationally:
+
+    ```
+    "That auth task is done, mark it complete"
+    ```
+
+    AI uses update_task for you
+  </Card>
+
+  <Card title="Context Aware" icon="lightbulb">
+    AI maintains context:
+
+    ```
+    You: "Create a task for dark mode"
+    AI: [Creates task #50]
+
+    You: "Actually make it high priority"
+    AI: [Updates task #50 automatically]
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP tools not available">
+    **Issue**: AI says "I don't have access to Forge"
+
+    **Solutions**:
+    - Verify Forge is running: `forge start`
+    - Check MCP configuration is correct
+    - Restart your AI agent
+    - Check PROJECT_ID is set
+  </Accordion>
+
+  <Accordion title="PROJECT_ID not found">
+    **Error**: "Project not found"
+
+    **Solution**:
+    1. Open Forge UI: http://localhost:3000
+    2. Select or create project
+    3. Copy PROJECT_ID from URL:
+       ```
+       http://localhost:3000/projects/{PROJECT_ID}/tasks
+       ```
+    4. Update MCP config with correct ID
+  </Accordion>
+
+  <Accordion title="Tool calls failing">
+    **Issue**: Tools return errors
+
+    **Solutions**:
+    - Check Forge backend is running on port 8080
+    - Verify firewall allows localhost connections
+    - Check Forge logs: `forge logs`
+    - Try basic mode instead of advanced
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Programmatic Access
+
+### Via SDK
+
+```typescript
+import { ForgeMCPClient } from '@automagik/forge-mcp';
+
+const mcp = new ForgeMCPClient({
+  projectId: 'your-project-uuid'
+});
+
+// Use MCP tools programmatically
+const tasks = await mcp.listTasks({
+  status: 'pending',
+  priority: 'high'
+});
+
+const newTask = await mcp.createTask({
+  title: 'Add feature',
+  description: 'Feature description',
+  priority: 'medium'
+});
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Setup" icon="plug" href="/forge/mcp/overview">
+    Complete MCP integration guide
+  </Card>
+
+  <Card title="Claude Code Setup" icon="anthropic" href="/forge/mcp/claude-code-setup">
+    Configure Claude Code
+  </Card>
+
+  <Card title="REST API" icon="code" href="/forge/api/rest-overview">
+    Direct API access
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    MCP-powered workflows
+  </Card>
+</CardGroup>

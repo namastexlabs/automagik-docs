@@ -1,0 +1,520 @@
+---
+title: "LLM Configuration"
+description: "Configure AI coding agents in Forge"
+icon: "brain"
+---
+
+## Overview
+
+Forge supports **8 AI coding agents** out of the box. Each agent needs proper configuration before use.
+
+<Info>
+**BYOL Architecture**: Forge uses a "Bring Your Own LLM" model - you provide API keys, Forge handles orchestration.
+</Info>
+
+---
+
+## Supported AI Agents
+
+| Agent | Type | Setup Required |
+|-------|------|----------------|
+| **Claude Code** | API | Anthropic API key |
+| **Claude Code Router** | API | Any LLM API key (agnostic) |
+| **Cursor CLI** | CLI | Cursor account |
+| **Gemini** | API | Google AI API key |
+| **OpenAI Codex** | API | OpenAI API key |
+| **Amp** | API | Sourcegraph token |
+| **OpenCode** | Local | Model weights |
+| **Qwen Code** | Local | Model weights |
+
+---
+
+## Configuration File
+
+Forge stores LLM configuration in `.forge/config.json`:
+
+```json .forge/config.json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-...",
+      "model": "claude-3-5-sonnet-20241022",
+      "maxTokens": 4096
+    },
+    "gemini": {
+      "apiKey": "AIza...",
+      "model": "gemini-2.0-flash-exp"
+    },
+    "openai": {
+      "apiKey": "sk-...",
+      "model": "gpt-4-turbo",
+      "organization": "org-..."
+    }
+  },
+  "worktrees": {
+    "enabled": true,
+    "basePath": "./.forge/worktrees"
+  }
+}
+```
+
+<Warning>
+**Never commit `.forge/config.json`!** Add it to `.gitignore` immediately:
+
+```bash
+echo ".forge/" >> .gitignore
+```
+</Warning>
+
+---
+
+## Claude Code Setup
+
+### Get Your API Key
+
+<Steps>
+  <Step title="Create Anthropic Account">
+    Go to [console.anthropic.com](https://console.anthropic.com)
+  </Step>
+
+  <Step title="Generate API Key">
+    Navigate to API Keys → Create Key
+  </Step>
+
+  <Step title="Configure Forge">
+    ```json
+    {
+      "llms": {
+        "claude": {
+          "apiKey": "sk-ant-api03-...",
+          "model": "claude-3-5-sonnet-20241022",
+          "maxTokens": 8192
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Available Models
+
+| Model | Context | Best For |
+|-------|---------|----------|
+| `claude-3-5-sonnet-20241022` | 200K | General coding (recommended) |
+| `claude-3-opus-20240229` | 200K | Complex refactoring |
+| `claude-3-haiku-20240307` | 200K | Fast iterations |
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-...",
+      "model": "claude-3-5-sonnet-20241022",
+      "maxTokens": 8192,
+      "temperature": 0.7,
+      "timeout": 60000,
+      "retries": 3
+    }
+  }
+}
+```
+
+---
+
+## Claude Code Router Setup
+
+<Info>
+Claude Code Router is **LLM-agnostic** - use any model with an OpenAI-compatible API!
+</Info>
+
+### Configuration
+
+```json
+{
+  "llms": {
+    "claude-router": {
+      "apiKey": "your-api-key",
+      "baseUrl": "https://api.openai.com/v1",  // Or any compatible endpoint
+      "model": "gpt-4-turbo",
+      "provider": "openai"  // openai, anthropic, custom
+    }
+  }
+}
+```
+
+### Supported Providers
+
+<Tabs>
+  <Tab title="OpenAI">
+    ```json
+    {
+      "claude-router": {
+        "apiKey": "sk-...",
+        "baseUrl": "https://api.openai.com/v1",
+        "model": "gpt-4-turbo",
+        "provider": "openai"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Anthropic">
+    ```json
+    {
+      "claude-router": {
+        "apiKey": "sk-ant-...",
+        "baseUrl": "https://api.anthropic.com/v1",
+        "model": "claude-3-5-sonnet-20241022",
+        "provider": "anthropic"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Local (Ollama)">
+    ```json
+    {
+      "claude-router": {
+        "baseUrl": "http://localhost:11434/v1",
+        "model": "codellama:34b",
+        "provider": "ollama"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Custom">
+    ```json
+    {
+      "claude-router": {
+        "apiKey": "your-key",
+        "baseUrl": "https://your-api.example.com/v1",
+        "model": "your-model",
+        "provider": "custom"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Gemini Setup
+
+### Get Your API Key
+
+<Steps>
+  <Step title="Go to Google AI Studio">
+    Visit [aistudio.google.com](https://aistudio.google.com)
+  </Step>
+
+  <Step title="Get API Key">
+    Click "Get API Key" → Create API key
+  </Step>
+
+  <Step title="Configure Forge">
+    ```json
+    {
+      "llms": {
+        "gemini": {
+          "apiKey": "AIza...",
+          "model": "gemini-2.0-flash-exp"
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Available Models
+
+| Model | Context | Best For |
+|-------|---------|----------|
+| `gemini-2.0-flash-exp` | 1M | Fast iterations (recommended) |
+| `gemini-1.5-pro` | 2M | Large codebases |
+| `gemini-1.5-flash` | 1M | Quick tasks |
+
+---
+
+## Cursor CLI Setup
+
+<Info>
+Cursor CLI is separate from the Cursor IDE. You can use it independently!
+</Info>
+
+### Installation
+
+```bash
+# Install Cursor CLI
+npm install -g @cursor/cli
+
+# Authenticate
+cursor auth login
+```
+
+### Configuration
+
+```json
+{
+  "llms": {
+    "cursor": {
+      "enabled": true,
+      "model": "claude-3.5-sonnet",
+      "workingDirectory": "."
+    }
+  }
+}
+```
+
+<Tip>
+Cursor CLI respects your Cursor account subscription - no additional API keys needed!
+</Tip>
+
+---
+
+## OpenAI Codex Setup
+
+### Get Your API Key
+
+<Steps>
+  <Step title="Create OpenAI Account">
+    Go to [platform.openai.com](https://platform.openai.com)
+  </Step>
+
+  <Step title="Generate API Key">
+    Navigate to API Keys → Create new secret key
+  </Step>
+
+  <Step title="Configure Forge">
+    ```json
+    {
+      "llms": {
+        "openai": {
+          "apiKey": "sk-...",
+          "model": "gpt-4-turbo",
+          "organization": "org-..."  // Optional
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Available Models
+
+| Model | Context | Best For |
+|-------|---------|----------|
+| `gpt-4-turbo` | 128K | General coding |
+| `gpt-4` | 8K | Legacy tasks |
+| `gpt-3.5-turbo` | 16K | Simple tasks |
+
+---
+
+## Open Source Agents
+
+### OpenCode (Local)
+
+```bash
+# Download model
+ollama pull opencode
+
+# Configure Forge
+```
+
+```json
+{
+  "llms": {
+    "opencode": {
+      "enabled": true,
+      "model": "opencode:latest",
+      "endpoint": "http://localhost:11434"
+    }
+  }
+}
+```
+
+### Qwen Code (Local)
+
+```bash
+# Download model
+ollama pull qwen2.5-coder:32b
+
+# Configure Forge
+```
+
+```json
+{
+  "llms": {
+    "qwen": {
+      "enabled": true,
+      "model": "qwen2.5-coder:32b",
+      "endpoint": "http://localhost:11434"
+    }
+  }
+}
+```
+
+---
+
+## Configuration Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Simple" icon="rocket">
+    Begin with one agent (Claude or Gemini), add more later
+  </Card>
+
+  <Card title="Test Each Agent" icon="flask">
+    Create a test task to verify configuration
+  </Card>
+
+  <Card title="Secure API Keys" icon="lock">
+    Never commit `.forge/config.json` to version control
+  </Card>
+
+  <Card title="Monitor Usage" icon="chart-line">
+    Track API costs per agent to optimize spending
+  </Card>
+</CardGroup>
+
+---
+
+## Validation
+
+Test your configuration:
+
+```bash
+# Start Forge
+forge start
+
+# Create test task
+forge task create \
+  --title "Test configuration" \
+  --description "Print 'Hello from Forge!'" \
+  --llm claude
+
+# Should execute successfully
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Invalid API key">
+    **Symptoms**: Authentication errors when running tasks
+
+    **Solutions**:
+    - Verify API key is correct (no extra spaces)
+    - Check API key has proper permissions
+    - Ensure API key isn't expired
+    - Confirm you have credits/quota remaining
+  </Accordion>
+
+  <Accordion title="Model not found">
+    **Symptoms**: "Model not available" errors
+
+    **Solutions**:
+    - Check model name spelling (case-sensitive)
+    - Verify model is available in your region
+    - Ensure your API tier has access to the model
+  </Accordion>
+
+  <Accordion title="Timeout errors">
+    **Symptoms**: Tasks fail with timeout
+
+    **Solutions**:
+    - Increase `timeout` value in config
+    - Check network connectivity
+    - Try a faster model (e.g., Haiku, Flash)
+  </Accordion>
+
+  <Accordion title="Cursor CLI not authenticated">
+    **Symptoms**: Cursor tasks fail immediately
+
+    **Solutions**:
+    ```bash
+    # Re-authenticate
+    cursor auth logout
+    cursor auth login
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Cost Optimization
+
+### Model Selection Strategy
+
+<Steps>
+  <Step title="Use Fast Models for Iteration">
+    Start with fast, cheap models:
+    - Claude Haiku
+    - Gemini Flash
+    - GPT-3.5 Turbo
+  </Step>
+
+  <Step title="Use Powerful Models for Complex Tasks">
+    Switch to stronger models for:
+    - Large refactoring
+    - Architecture changes
+    - Critical bug fixes
+  </Step>
+
+  <Step title="Compare Results">
+    Run the same task with multiple models to find the sweet spot for each task type
+  </Step>
+</Steps>
+
+### Cost Comparison
+
+| Model | Input | Output | Sweet Spot |
+|-------|-------|--------|------------|
+| Claude Haiku | $0.25/MTok | $1.25/MTok | Quick iterations |
+| Gemini Flash | Free tier | Free tier | Experimentation |
+| GPT-3.5 Turbo | $0.50/MTok | $1.50/MTok | Simple tasks |
+| Claude Sonnet | $3/MTok | $15/MTok | General work |
+| GPT-4 Turbo | $10/MTok | $30/MTok | Complex tasks |
+
+---
+
+## Advanced: Multiple Configurations
+
+Create environment-specific configs:
+
+```bash
+# Development
+.forge/config.dev.json
+
+# Production
+.forge/config.prod.json
+
+# CI/CD
+.forge/config.ci.json
+```
+
+Switch between them:
+
+```bash
+FORGE_CONFIG=.forge/config.prod.json forge start
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Task" icon="rocket" href="/forge/quickstart">
+    Put your configuration to work
+  </Card>
+
+  <Card title="AI Agents Guide" icon="robot" href="/forge/agents/overview">
+    Deep dive into each agent's capabilities
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/forge/config/environment-variables">
+    Additional configuration options
+  </Card>
+</CardGroup>

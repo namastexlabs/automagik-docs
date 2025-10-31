@@ -1,0 +1,617 @@
+---
+title: "Custom Executors"
+description: "Build your own AI agent executors for Forge"
+icon: "code"
+---
+
+## Overview
+
+Custom executors allow you to integrate any AI coding tool or custom logic into Forge. Extend beyond the 8 built-in agents to add your own automation.
+
+<Info>
+**Use cases**: Custom APIs, internal tools, specialized workflows, proprietary models
+</Info>
+
+---
+
+## Executor Interface
+
+Create a custom executor by implementing the Executor interface:
+
+```typescript
+interface Executor {
+  name: string;
+  version: string;
+
+  // Execute a task
+  execute(task: Task, options: ExecutorOptions): Promise<ExecutionResult>;
+
+  // Check if executor can handle this task
+  canHandle(task: Task): boolean;
+
+  // Optional: Estimate cost
+  estimateCost?(task: Task): Promise<number>;
+
+  // Optional: Cancel execution
+  cancel?(executionId: string): Promise<void>;
+}
+```
+
+---
+
+## Basic Custom Executor
+
+### Simple Example
+
+```typescript
+import { Executor, Task, ExecutionResult } from '@automagik/forge-sdk';
+
+export class MyCustomExecutor implements Executor {
+  name = 'my-custom-executor';
+  version = '1.0.0';
+
+  async execute(task: Task, options: any): Promise<ExecutionResult> {
+    console.log(`Executing task: ${task.title}`);
+
+    // Your custom logic here
+    const result = await this.runCustomLogic(task);
+
+    return {
+      success: true,
+      output: result,
+      filesChanged: [],
+      cost: 0
+    };
+  }
+
+  canHandle(task: Task): boolean {
+    // Only handle tasks with specific label
+    return task.labels.includes('custom-executor');
+  }
+
+  private async runCustomLogic(task: Task): Promise<string> {
+    // Implement your custom logic
+    return `Task ${task.title} completed!`;
+  }
+}
+```
+
+### Register Executor
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+import { MyCustomExecutor } from './my-custom-executor';
+
+const forge = new ForgeClient();
+
+// Register custom executor
+forge.executors.register(new MyCustomExecutor());
+
+// Now use it
+await forge.tasks.create({
+  title: 'Custom task',
+  labels: ['custom-executor']  // Will use MyCustomExecutor
+});
+```
+
+---
+
+## Advanced Executor
+
+### Full-Featured Executor
+
+```typescript
+import { Executor, Task, ExecutionResult } from '@automagik/forge-sdk';
+import axios from 'axios';
+
+export class CustomAPIExecutor implements Executor {
+  name = 'custom-api-executor';
+  version = '1.0.0';
+
+  private apiKey: string;
+  private baseUrl: string;
+  private activeExecutions: Map<string, AbortController>;
+
+  constructor(config: { apiKey: string; baseUrl: string }) {
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl;
+    this.activeExecutions = new Map();
+  }
+
+  async execute(task: Task, options: any): Promise<ExecutionResult> {
+    const executionId = this.generateExecutionId();
+    const controller = new AbortController();
+    this.activeExecutions.set(executionId, controller);
+
+    try {
+      // Call your custom API
+      const response = await axios.post(
+        `${this.baseUrl}/execute`,
+        {
+          task: {
+            title: task.title,
+            description: task.description,
+            files: task.metadata?.files || []
+          },
+          options
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        }
+      );
+
+      // Process response
+      const result = this.processResponse(response.data);
+
+      return {
+        success: true,
+        output: result.output,
+        filesChanged: result.filesChanged,
+        cost: result.cost || 0,
+        metadata: {
+          executionId,
+          duration: result.duration
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        cost: 0
+      };
+    } finally {
+      this.activeExecutions.delete(executionId);
+    }
+  }
+
+  canHandle(task: Task): boolean {
+    // Handle tasks with specific metadata
+    return task.metadata?.executor === 'custom-api';
+  }
+
+  async estimateCost(task: Task): Promise<number> {
+    // Estimate based on task complexity
+    const complexity = this.calculateComplexity(task);
+    return complexity * 0.01; // $0.01 per complexity point
+  }
+
+  async cancel(executionId: string): Promise<void> {
+    const controller = this.activeExecutions.get(executionId);
+    if (controller) {
+      controller.abort();
+      this.activeExecutions.delete(executionId);
+    }
+  }
+
+  private generateExecutionId(): string {
+    return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private calculateComplexity(task: Task): number {
+    const descriptionLength = task.description?.length || 0;
+    const fileCount = task.metadata?.files?.length || 0;
+    return Math.ceil(descriptionLength / 100) + fileCount * 10;
+  }
+
+  private processResponse(data: any): any {
+    // Process your API response
+    return {
+      output: data.result,
+      filesChanged: data.files || [],
+      cost: data.cost,
+      duration: data.duration
+    };
+  }
+}
+```
+
+---
+
+## Use Cases
+
+### Internal Company Tool
+
+```typescript
+export class InternalToolExecutor implements Executor {
+  name = 'company-internal-tool';
+  version = '1.0.0';
+
+  async execute(task: Task, options: any): Promise<ExecutionResult> {
+    // Connect to internal tool
+    const tool = await this.connectToInternalTool();
+
+    // Run company-specific workflow
+    const result = await tool.generateCode({
+      spec: task.description,
+      template: options.template,
+      standards: 'company-standards-v2'
+    });
+
+    return {
+      success: true,
+      output: result.code,
+      filesChanged: result.files,
+      cost: 0  // Internal tool, no cost
+    };
+  }
+
+  canHandle(task: Task): boolean {
+    return task.labels.includes('company-tool');
+  }
+
+  private async connectToInternalTool() {
+    // Internal API connection
+    return {
+      generateCode: async (params: any) => {
+        // Implementation
+        return {
+          code: '// Generated code',
+          files: []
+        };
+      }
+    };
+  }
+}
+```
+
+### Proprietary Model
+
+```typescript
+export class ProprietaryModelExecutor implements Executor {
+  name = 'proprietary-model';
+  version = '1.0.0';
+
+  private modelEndpoint: string;
+
+  async execute(task: Task, options: any): Promise<ExecutionResult> {
+    // Use your proprietary model
+    const response = await fetch(this.modelEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt: this.buildPrompt(task),
+        temperature: options.temperature || 0.7
+      })
+    });
+
+    const result = await response.json();
+
+    return {
+      success: true,
+      output: result.generated_code,
+      filesChanged: this.extractFiles(result),
+      cost: result.cost || 0
+    };
+  }
+
+  canHandle(task: Task): boolean {
+    return task.metadata?.model === 'proprietary';
+  }
+
+  private buildPrompt(task: Task): string {
+    return `
+      Task: ${task.title}
+      Description: ${task.description}
+
+      Generate production-ready code following our standards.
+    `;
+  }
+
+  private extractFiles(result: any): string[] {
+    // Extract changed files from result
+    return result.files || [];
+  }
+}
+```
+
+### Hybrid Human-AI
+
+```typescript
+export class HumanReviewExecutor implements Executor {
+  name = 'human-review';
+  version = '1.0.0';
+
+  async execute(task: Task, options: any): Promise<ExecutionResult> {
+    // Step 1: AI generates initial code
+    const aiResult = await this.runAI(task);
+
+    // Step 2: Send to human for review
+    const reviewRequest = await this.requestHumanReview({
+      task,
+      aiOutput: aiResult,
+      reviewers: options.reviewers || ['team-lead']
+    });
+
+    // Step 3: Wait for human approval
+    const approved = await this.waitForApproval(reviewRequest.id);
+
+    if (approved.status === 'approved') {
+      return {
+        success: true,
+        output: approved.finalCode,
+        filesChanged: aiResult.filesChanged,
+        cost: aiResult.cost,
+        metadata: {
+          aiGenerated: true,
+          humanReviewed: true,
+          reviewer: approved.reviewer
+        }
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Human review rejected',
+        cost: aiResult.cost
+      };
+    }
+  }
+
+  canHandle(task: Task): boolean {
+    return task.priority === 'critical';
+  }
+
+  private async runAI(task: Task) {
+    // Use AI to generate initial code
+    return {
+      code: '// AI generated code',
+      filesChanged: [],
+      cost: 0.23
+    };
+  }
+
+  private async requestHumanReview(params: any) {
+    // Send to review system (Slack, email, etc.)
+    return { id: 'review_123' };
+  }
+
+  private async waitForApproval(reviewId: string) {
+    // Poll or wait for webhook
+    return {
+      status: 'approved',
+      finalCode: '// Reviewed code',
+      reviewer: 'john@company.com'
+    };
+  }
+}
+```
+
+---
+
+## Configuration
+
+### Executor Config File
+
+Create `.forge/executors/my-executor.json`:
+
+```json
+{
+  "name": "my-custom-executor",
+  "enabled": true,
+  "config": {
+    "apiKey": "${CUSTOM_API_KEY}",
+    "baseUrl": "https://api.example.com",
+    "timeout": 60000,
+    "retries": 3
+  },
+  "priority": 10,
+  "capabilities": ["code-generation", "refactoring"],
+  "supportedLanguages": ["typescript", "python", "go"]
+}
+```
+
+### Load Executors
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+import { loadExecutorConfig } from './executor-loader';
+
+const forge = new ForgeClient();
+
+// Load from config
+const executorConfig = loadExecutorConfig('.forge/executors');
+
+for (const config of executorConfig) {
+  const executor = createExecutor(config);
+  forge.executors.register(executor);
+}
+```
+
+---
+
+## Testing Custom Executors
+
+### Unit Tests
+
+```typescript
+import { MyCustomExecutor } from './my-custom-executor';
+
+describe('MyCustomExecutor', () => {
+  let executor: MyCustomExecutor;
+
+  beforeEach(() => {
+    executor = new MyCustomExecutor({
+      apiKey: 'test-key',
+      baseUrl: 'http://localhost:3000'
+    });
+  });
+
+  it('should execute task successfully', async () => {
+    const task = {
+      id: 'task_1',
+      title: 'Test task',
+      description: 'Test description',
+      labels: ['custom-executor']
+    };
+
+    const result = await executor.execute(task, {});
+
+    expect(result.success).toBe(true);
+    expect(result.output).toBeDefined();
+  });
+
+  it('should handle errors gracefully', async () => {
+    const task = {
+      id: 'task_2',
+      title: 'Failing task',
+      description: 'This will fail',
+      labels: ['custom-executor']
+    };
+
+    const result = await executor.execute(task, {});
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it('should estimate cost accurately', async () => {
+    const task = {
+      id: 'task_3',
+      title: 'Cost estimation test',
+      description: 'A'.repeat(1000),  // 1000 chars
+      labels: []
+    };
+
+    const cost = await executor.estimateCost(task);
+
+    expect(cost).toBeGreaterThan(0);
+  });
+});
+```
+
+---
+
+## Publishing Executors
+
+### NPM Package
+
+```json
+// package.json
+{
+  "name": "@your-org/forge-executor-custom",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "@automagik/forge-sdk": "^0.4.0"
+  }
+}
+```
+
+### Usage by Others
+
+```bash
+# Install your executor
+npm install @your-org/forge-executor-custom
+```
+
+```typescript
+import { CustomExecutor } from '@your-org/forge-executor-custom';
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+forge.executors.register(new CustomExecutor({
+  apiKey: process.env.CUSTOM_API_KEY
+}));
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Error Handling" icon="shield">
+    ```typescript
+    async execute(task: Task): Promise<ExecutionResult> {
+      try {
+        const result = await this.runTask(task);
+        return { success: true, ...result };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message,
+          cost: 0
+        };
+      }
+    }
+    ```
+
+    Never throw unhandled errors
+  </Card>
+
+  <Card title="Cost Tracking" icon="coins">
+    ```typescript
+    async execute(task: Task): Promise<ExecutionResult> {
+      const startCost = await this.getCurrentCost();
+
+      // Execute task
+      const result = await this.runTask(task);
+
+      const endCost = await this.getCurrentCost();
+
+      return {
+        success: true,
+        output: result,
+        cost: endCost - startCost
+      };
+    }
+    ```
+
+    Track actual costs
+  </Card>
+
+  <Card title="Cancellation Support" icon="stop">
+    ```typescript
+    private activeExecutions = new Map();
+
+    async cancel(executionId: string) {
+      const controller = this.activeExecutions.get(executionId);
+      if (controller) {
+        controller.abort();
+      }
+    }
+    ```
+
+    Allow cancelling long-running tasks
+  </Card>
+
+  <Card title="Progress Updates" icon="chart-line">
+    ```typescript
+    async execute(task: Task, options: any) {
+      const onProgress = options.onProgress;
+
+      onProgress?.({ stage: 'initializing', percent: 0 });
+      // ... work ...
+      onProgress?.({ stage: 'generating', percent: 50 });
+      // ... work ...
+      onProgress?.({ stage: 'complete', percent: 100 });
+    }
+    ```
+
+    Report progress for long tasks
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Specialized Agents" icon="user-gear" href="/forge/advanced/specialized-agents">
+    Combine with specialized agents
+  </Card>
+
+  <Card title="Webhooks & Events" icon="webhook" href="/forge/advanced/webhooks-events">
+    Trigger executors via webhooks
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/forge/api/rest-overview">
+    Integrate with Forge API
+  </Card>
+
+  <Card title="SDK Documentation" icon="book" href="https://github.com/namastexlabs/automagik-forge/tree/main/sdk">
+    Full SDK reference
+  </Card>
+</CardGroup>

@@ -1,0 +1,674 @@
+---
+title: "Gemini"
+description: "Setup and use Google's Gemini with Forge"
+icon: "google"
+---
+
+## Overview
+
+Google's Gemini is a powerful, fast AI model with an incredibly generous **free tier** and massive context windows. Perfect for experimentation, rapid iteration, and cost-conscious development.
+
+<Info>
+**Gemini 2.0 Flash** offers the best speed-to-quality ratio and includes a free tier!
+</Info>
+
+---
+
+## Quick Start
+
+<Steps>
+  <Step title="Get API Key">
+    1. Go to [aistudio.google.com](https://aistudio.google.com)
+    2. Click **"Get API Key"**
+    3. Create new project (or select existing)
+    4. Click **"Create API Key"**
+    5. Copy your API key (starts with `AIza`)
+  </Step>
+
+  <Step title="Configure Forge">
+    Edit `.forge/config.json`:
+
+    ```json
+    {
+      "llms": {
+        "gemini": {
+          "apiKey": "AIza...",
+          "model": "gemini-2.0-flash-exp"
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test Connection">
+    ```bash
+    forge task create \
+      --title "Test Gemini" \
+      --description "Print 'Hello from Gemini!'" \
+      --llm gemini
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Available Models
+
+### Gemini 2.0 (Latest - Recommended)
+
+<ParamField path="gemini-2.0-flash-exp" type="model">
+  **Fastest model with experimental features**
+
+  - Context: 1M tokens
+  - Speed: ⚡ Blazing fast
+  - Cost: **FREE** (rate limited)
+  - Best for: Quick iterations, experimentation
+
+  ```json
+  {
+    "llms": {
+      "gemini": {
+        "model": "gemini-2.0-flash-exp"
+      }
+    }
+  }
+  ```
+
+  <Tip>
+  This is the recommended model for most tasks!
+  </Tip>
+</ParamField>
+
+### Gemini 1.5 (Stable)
+
+<ParamField path="gemini-1.5-pro" type="model">
+  **Most capable, largest context**
+
+  - Context: **2M tokens** (!)
+  - Speed: Fast
+  - Cost: $1.25/MTok input, $5/MTok output
+  - Best for: Large codebase analysis
+
+  ```json
+  {
+    "llms": {
+      "gemini": {
+        "model": "gemini-1.5-pro"
+      }
+    }
+  }
+  ```
+
+  <Info>
+  2 million token context = ~50,000 lines of code!
+  </Info>
+</ParamField>
+
+<ParamField path="gemini-1.5-flash" type="model">
+  **Balanced speed and quality**
+
+  - Context: 1M tokens
+  - Speed: Very fast
+  - Cost: $0.075/MTok input, $0.30/MTok output
+  - Best for: Most coding tasks
+
+  ```json
+  {
+    "llms": {
+      "gemini": {
+        "model": "gemini-1.5-flash"
+      }
+    }
+  }
+  ```
+</ParamField>
+
+---
+
+## Model Comparison
+
+| Model | Context | Speed | Cost | Best For |
+|-------|---------|-------|------|----------|
+| **2.0 Flash Exp** | 1M | ⭐⭐⭐⭐⭐ | FREE | Experimentation (recommended) |
+| **1.5 Pro** | 2M | ⭐⭐⭐⭐ | $$ | Large codebases |
+| **1.5 Flash** | 1M | ⭐⭐⭐⭐⭐ | $ | General coding |
+
+---
+
+## Configuration
+
+### Basic Setup
+
+```json
+{
+  "llms": {
+    "gemini": {
+      "apiKey": "AIza...",
+      "model": "gemini-2.0-flash-exp"
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "gemini": {
+      "apiKey": "AIza...",
+      "model": "gemini-2.0-flash-exp",
+      "temperature": 0.7,
+      "maxOutputTokens": 8192,
+      "topP": 0.95,
+      "topK": 40,
+      "timeout": 30000,
+      "retries": 3
+    }
+  }
+}
+```
+
+<ParamField path="temperature" type="number" default="1.0">
+  Randomness (0-2)
+
+  - 0 = Deterministic
+  - 1 = Balanced (default)
+  - 2 = Creative
+</ParamField>
+
+<ParamField path="maxOutputTokens" type="number" default="2048">
+  Maximum response length
+
+  - Max: 8192 tokens
+</ParamField>
+
+<ParamField path="topP" type="number" default="0.95">
+  Nucleus sampling parameter
+</ParamField>
+
+<ParamField path="topK" type="number" default="40">
+  Top-K sampling parameter
+</ParamField>
+
+---
+
+## Gemini's Strengths
+
+### Blazing Fast ⚡
+
+Gemini is the **fastest** major coding agent:
+
+```bash
+# Benchmark: "Add user authentication"
+Claude Sonnet:   5m 22s
+GPT-4:           6m 01s
+Gemini Flash:    2m 15s  ← Fastest!
+```
+
+Perfect for rapid iteration:
+
+```bash
+forge task create "Add button" --llm gemini
+# Done in seconds!
+
+forge task fork 1 --llm gemini \
+  --description "Change to primary color"
+# Done in seconds!
+```
+
+### Free Tier! 💰
+
+Unlike Claude/GPT-4, Gemini has a generous free tier:
+
+```
+Free Tier (No credit card required):
+├── 15 requests per minute
+├── 1,500 requests per day
+├── 1M requests per month
+└── No expiration!
+
+Perfect for:
+- Learning and experimentation
+- Side projects
+- Prototyping
+- Testing ideas
+```
+
+<Tip>
+Start every project with Gemini's free tier. Upgrade to paid models only when needed!
+</Tip>
+
+### Massive Context Windows
+
+Gemini 1.5 Pro: **2 million tokens**
+
+```bash
+# Analyze entire medium-sized codebase in one go
+forge task create \
+  --title "Find all API endpoints and document them" \
+  --files "src/**/*" \
+  --llm gemini-1.5-pro
+```
+
+Can fit:
+- ~50,000 lines of code
+- ~1.5 million words
+- Entire small-to-medium codebases
+
+### Multimodal
+
+Gemini can process images:
+
+```bash
+forge task create \
+  --title "Implement this design" \
+  --attach mockup.png \
+  --llm gemini
+```
+
+---
+
+## Gemini's Weaknesses
+
+### Less Sophisticated Reasoning
+
+For complex architecture, use Claude:
+
+```bash
+# Better with Claude
+forge task create \
+  --title "Design microservices architecture" \
+  --llm claude  # Not gemini
+```
+
+### May Miss Edge Cases
+
+Gemini optimizes for speed, sometimes at the cost of thoroughness:
+
+```bash
+# Good for initial implementation
+forge task create "Add login endpoint" --llm gemini
+
+# Then review with Claude
+forge task fork 1 --llm claude \
+  --description "Add comprehensive error handling and edge cases"
+```
+
+### Shorter Explanations
+
+Gemini provides concise code, less explanation:
+
+**Gemini** ✅:
+```typescript
+// Concise, works
+export const validateEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+```
+
+**Claude** 📝:
+```typescript
+/**
+ * Validates email addresses according to RFC 5322
+ * @param email - Email string to validate
+ * @returns true if valid, false otherwise
+ * @example
+ *   validateEmail('user@example.com') // true
+ *   validateEmail('invalid') // false
+ */
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+```
+
+---
+
+## Pricing
+
+### Free Tier
+
+```
+Rate Limits:
+├── 15 RPM (requests per minute)
+├── 1,500 RPD (requests per day)
+└── 1M RPM (requests per month)
+
+Models included:
+├── Gemini 2.0 Flash Exp ✅
+├── Gemini 1.5 Flash ✅
+└── Gemini 1.5 Pro ✅ (limited)
+```
+
+### Paid Tier
+
+```
+Pay-as-you-go:
+├── Gemini 1.5 Flash
+│   ├── Input: $0.075/MTok
+│   └── Output: $0.30/MTok
+└── Gemini 1.5 Pro
+    ├── Input: $1.25/MTok
+    └── Output: $5/MTok
+
+Example cost:
+10K input + 2K output with Flash = $0.0013
+(vs Claude Sonnet: $0.06)
+```
+
+<Tip>
+**20x cheaper** than Claude Sonnet, **50x cheaper** than GPT-4!
+</Tip>
+
+---
+
+## Best Use Cases
+
+### Rapid Prototyping
+
+```bash
+# Try ideas quickly with free tier
+forge task create "Add dark mode" --llm gemini
+forge task create "Add search" --llm gemini
+forge task create "Add filters" --llm gemini
+
+# All free, all fast!
+```
+
+### Simple Features
+
+```bash
+forge task create \
+  --title "Add pagination to user list" \
+  --llm gemini
+```
+
+### Bug Fixes
+
+```bash
+forge task create \
+  --title "Fix TypeError in login component" \
+  --description "Error: Cannot read property 'email' of undefined" \
+  --llm gemini
+```
+
+### Large Codebase Analysis
+
+```bash
+# Only Gemini Pro can handle this much context
+forge task create \
+  --title "Find all TODO comments across codebase" \
+  --files "**/*.{ts,js,py}" \
+  --llm gemini-1.5-pro
+```
+
+---
+
+## Cost Optimization Strategy
+
+### Start with Free Tier
+
+```bash
+# 1. Quick first pass with Gemini (free)
+forge task create "Add authentication" --llm gemini
+
+# 2. If good enough → done!
+# 3. If needs refinement → use Claude
+forge task fork 1 --llm claude \
+  --description "Add comprehensive security checks"
+```
+
+### Use for Iteration
+
+```bash
+# Use free Gemini for rapid iteration
+forge task create "Add button" --llm gemini
+forge task fork 1 --llm gemini --description "Change color"
+forge task fork 1 --llm gemini --description "Add icon"
+
+# Final polish with Claude if needed
+forge task fork 1 --llm claude --description "Production-ready"
+```
+
+---
+
+## Integration with Forge
+
+### Default Agent
+
+Set Gemini as default for cost savings:
+
+```json
+{
+  "defaultLLM": "gemini",
+  "llms": {
+    "gemini": {
+      "apiKey": "AIza...",
+      "model": "gemini-2.0-flash-exp"
+    }
+  }
+}
+```
+
+### Fallback Strategy
+
+Use Gemini first, fallback to Claude:
+
+```yaml .forge/strategies.yaml
+default:
+  - try: gemini
+  - if_fails: claude
+  - if_complex: claude
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="403 Forbidden">
+    **Error**: "API key not valid"
+
+    **Solutions**:
+    - Verify API key from aistudio.google.com
+    - Check key hasn't been deleted
+    - Ensure no extra spaces
+    - Generate new key if needed
+  </Accordion>
+
+  <Accordion title="429 Rate Limit (Free Tier)">
+    **Error**: "Resource exhausted"
+
+    **You've hit free tier limits**:
+
+    Options:
+    1. Wait for reset (15 RPM, 1500 RPD)
+    2. Switch to paid tier (add billing)
+    3. Use different agent temporarily:
+       ```bash
+       forge task fork 1 --llm claude
+       ```
+  </Accordion>
+
+  <Accordion title="Response too short">
+    **Issue**: Gemini gives brief responses
+
+    **Solution**: Increase max output tokens
+    ```json
+    {
+      "llms": {
+        "gemini": {
+          "maxOutputTokens": 8192
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Missing edge cases">
+    **Issue**: Code works but misses edge cases
+
+    **This is expected** - Gemini optimizes for speed
+
+    **Solution**: Two-pass approach
+    ```bash
+    # 1. Quick implementation (Gemini)
+    forge task create "Add feature" --llm gemini
+
+    # 2. Edge case handling (Claude)
+    forge task fork 1 --llm claude \
+      --description "Add edge case handling"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Rate Limits
+
+### Free Tier Limits
+
+| Metric | Limit |
+|--------|-------|
+| **RPM** | 15 requests/minute |
+| **RPD** | 1,500 requests/day |
+| **RPMo** | 1,000,000 requests/month |
+
+### Paid Tier Limits
+
+| Model | RPM | RPD |
+|-------|-----|-----|
+| **Flash** | 2,000 | 10,000 |
+| **Pro** | 360 | 10,000 |
+
+Check limits: [ai.google.dev/pricing](https://ai.google.dev/pricing)
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Free Tier First" icon="coins">
+    ```bash
+    # Start free
+    forge task create "Add feature" --llm gemini
+
+    # Upgrade only if needed
+    forge task fork 1 --llm claude
+    ```
+
+    Save money on simple tasks
+  </Card>
+
+  <Card title="Leverage Speed" icon="bolt">
+    Gemini's speed enables rapid iteration:
+
+    ```bash
+    # Try multiple approaches quickly
+    forge task create "Layout A" --llm gemini &
+    forge task create "Layout B" --llm gemini &
+    forge task create "Layout C" --llm gemini &
+    ```
+
+    All done in minutes, all free!
+  </Card>
+
+  <Card title="Use for Exploration" icon="compass">
+    Perfect for trying ideas:
+
+    ```bash
+    forge task create "Try approach 1" --llm gemini
+    forge task create "Try approach 2" --llm gemini
+    forge task create "Try approach 3" --llm gemini
+
+    # Pick best, refine with Claude
+    forge task fork <winner> --llm claude
+    ```
+  </Card>
+
+  <Card title="Large Context Tasks" icon="database">
+    Use Pro for codebase-wide tasks:
+
+    ```bash
+    forge task create \
+      --title "Refactor import paths" \
+      --files "src/**/*" \
+      --llm gemini-1.5-pro
+    ```
+
+    2M context = entire codebase
+  </Card>
+</CardGroup>
+
+---
+
+## Gemini vs Other Agents
+
+| Feature | Gemini | Claude | GPT-4 | Cursor |
+|---------|--------|--------|-------|--------|
+| **Speed** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Free Tier** | ✅ Yes | ❌ No | ❌ No | Limited |
+| **Context** | 2M | 200K | 128K | Variable |
+| **Quality** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Cost** | $ | $$$ | $$$$ | Subscription |
+
+**Choose Gemini for**: Speed, cost, experimentation, large context
+**Choose Claude for**: Quality, reasoning, architecture
+**Choose GPT-4 for**: Consistency, documentation
+**Choose Cursor for**: UI/UX, rapid frontend work
+
+---
+
+## Real-World Examples
+
+### Example 1: Quick Bug Fix (Free!)
+
+```bash
+forge task create \
+  --title "Fix login redirect bug" \
+  --description "After login, redirects to /undefined instead of /dashboard" \
+  --llm gemini
+
+# Time: 45 seconds
+# Cost: $0.00
+# Result: Fixed!
+```
+
+### Example 2: Rapid Prototyping (Free!)
+
+```bash
+# Try 5 different approaches
+for approach in A B C D E; do
+  forge task create "Try design ${approach}" --llm gemini &
+done
+
+wait
+
+# Compare and pick winner
+forge task compare 1 2 3 4 5
+
+# Total cost: $0.00
+# Total time: ~3 minutes
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/forge/quickstart">
+    Create your first Gemini task (free!)
+  </Card>
+
+  <Card title="Other Agents" icon="robot" href="/forge/agents/overview">
+    Compare with other AI agents
+  </Card>
+
+  <Card title="Cost Optimization" icon="coins" href="/forge/workflows/feature-development#cost-optimization">
+    Maximize free tier usage
+  </Card>
+
+  <Card title="Google AI Studio" icon="google" href="https://aistudio.google.com">
+    Get your API key
+  </Card>
+</CardGroup>

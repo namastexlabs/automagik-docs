@@ -1,0 +1,526 @@
+---
+title: "Common Issues"
+description: "Solutions to frequently encountered problems"
+icon: "circle-exclamation"
+---
+
+## Installation Issues
+
+### Command Not Found
+
+**Problem**: `automagik-forge: command not found` after global install
+
+<AccordionGroup>
+  <Accordion title="Solution 1: Check NPM Global Path">
+    ```bash
+    # Find NPM global bin directory
+    npm config get prefix
+
+    # Add to PATH (Linux/macOS)
+    echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+
+    # For zsh users
+    echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+
+    # Verify
+    which automagik-forge
+    ```
+  </Accordion>
+
+  <Accordion title="Solution 2: Use NPX">
+    ```bash
+    # Run directly without installing
+    npx automagik-forge
+
+    # Create alias for convenience
+    echo 'alias forge="npx automagik-forge"' >> ~/.bashrc
+    ```
+  </Accordion>
+
+  <Accordion title="Solution 3: Reinstall Globally">
+    ```bash
+    # Remove old installation
+    npm uninstall -g automagik-forge
+
+    # Clear npm cache
+    npm cache clean --force
+
+    # Reinstall
+    npm install -g automagik-forge
+
+    # Verify
+    automagik-forge --version
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Unsupported Platform
+
+**Problem**: `❌ Unsupported platform: linux-arm32`
+
+**Supported Platforms:**
+- Linux x64
+- Linux ARM64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+- Windows ARM64
+
+**Solution**:
+
+```bash
+# Build from source for unsupported platforms
+git clone https://github.com/namastexlabs/automagik-forge.git
+cd automagik-forge
+./local-build.sh
+
+# This requires:
+# - Rust 1.83+
+# - Node.js 18+
+# - pnpm 8+
+```
+
+---
+
+### Permission Denied
+
+**Problem**: `EACCES: permission denied` during installation
+
+<Tabs>
+  <Tab title="macOS/Linux (Recommended)">
+    **Fix NPM permissions** (don't use sudo):
+
+    ```bash
+    # Create directory for global packages
+    mkdir ~/.npm-global
+
+    # Configure npm to use new directory
+    npm config set prefix '~/.npm-global'
+
+    # Add to PATH
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+
+    # Now install without sudo
+    npm install -g automagik-forge
+    ```
+  </Tab>
+
+  <Tab title="Quick Fix (Not Recommended)">
+    ```bash
+    # Use sudo (not ideal, but works)
+    sudo npm install -g automagik-forge
+
+    # You may need sudo to run it
+    sudo automagik-forge
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Server Issues
+
+### Port Already in Use
+
+**Problem**: `Error: listen EADDRINUSE: address already in use :::3000`
+
+**Solution**:
+
+```bash
+# Find process using the port
+lsof -i :3000  # macOS/Linux
+netstat -ano | findstr :3000  # Windows
+
+# Kill the process
+kill -9 <PID>  # macOS/Linux
+taskkill /PID <PID> /F  # Windows
+
+# Or use different port
+automagik-forge --port 8080 --backend-port 5001
+```
+
+---
+
+### Backend Not Responding
+
+**Problem**: Frontend loads but API requests fail
+
+**Symptoms**:
+- Empty task board
+- "Failed to fetch" errors
+- Network errors in console
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check Backend Port">
+    ```bash
+    # Verify backend is running
+    curl http://localhost:5000/api/projects
+
+    # If it fails, check the port
+    # Look for "Backend server listening on: http://127.0.0.1:XXXX" in logs
+
+    # Update frontend proxy if needed
+    # Frontend auto-detects backend port from environment
+    ```
+  </Accordion>
+
+  <Accordion title="Check Firewall">
+    ```bash
+    # macOS
+    sudo /usr/libexec/ApplicationFirewall/socketfilterfw --list
+
+    # Linux (ufw)
+    sudo ufw status
+
+    # Windows
+    # Check Windows Defender Firewall settings
+    ```
+  </Accordion>
+
+  <Accordion title="Restart Forge">
+    ```bash
+    # Stop Forge (Ctrl+C)
+
+    # Clear any stale processes
+    pkill -f automagik-forge
+
+    # Restart
+    automagik-forge
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Database Locked
+
+**Problem**: `database is locked` errors
+
+**Solution**:
+
+```bash
+# Stop Forge
+# Ctrl+C or pkill -f automagik-forge
+
+# Check for lock file
+ls -la .forge/
+
+# Remove lock if exists
+rm .forge/db.sqlite-shm
+rm .forge/db.sqlite-wal
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+## GitHub Integration Issues
+
+### OAuth Authentication Failed
+
+**Problem**: GitHub authentication fails or redirects to error page
+
+**Solutions**:
+
+<Steps>
+  <Step title="Verify OAuth App Settings">
+    Go to: https://github.com/settings/developers
+
+    Check your OAuth app:
+    - **Homepage URL**: `http://localhost:3000`
+    - **Callback URL**: `http://localhost:3000/auth/callback`
+  </Step>
+
+  <Step title="Set Environment Variable">
+    ```bash
+    # Set GitHub Client ID
+    export GITHUB_CLIENT_ID=your_client_id_here
+
+    # Or add to .env file
+    echo "GITHUB_CLIENT_ID=your_client_id" >> .env
+    ```
+  </Step>
+
+  <Step title="Clear Cached Tokens">
+    ```bash
+    # Remove cached GitHub token
+    rm .forge/github-token.enc
+
+    # Restart Forge
+    automagik-forge
+    ```
+  </Step>
+
+  <Step title="Re-authenticate">
+    - Open Forge UI
+    - Go to Settings → GitHub
+    - Click "Connect GitHub"
+    - Complete OAuth flow
+  </Step>
+</Steps>
+
+---
+
+### Repository Not Found
+
+**Problem**: "Repository not found" after GitHub authentication
+
+**Solution**:
+
+```bash
+# Verify repository access
+gh repo view owner/repo
+
+# Check if repo is private
+# Ensure OAuth app has correct permissions
+
+# Re-select repository in Forge UI
+# Settings → GitHub → Select Repository
+```
+
+---
+
+## Executor/AI Agent Issues
+
+### API Key Not Working
+
+**Problem**: Tasks fail with "Invalid API key" or "Unauthorized"
+
+**Solution**:
+
+```bash
+# Verify API key is set
+echo $ANTHROPIC_API_KEY  # For Claude
+echo $GOOGLE_AI_API_KEY  # For Gemini
+echo $OPENAI_API_KEY     # For OpenAI
+
+# Test API key directly
+curl -H "x-api-key: $ANTHROPIC_API_KEY" \
+  https://api.anthropic.com/v1/messages
+
+# Set if missing
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Or add to .env
+echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+### Executor Timeout
+
+**Problem**: Tasks fail with timeout errors
+
+**Solution**:
+
+```json
+// Edit .forge/config.json
+{
+  "executors": {
+    "claude-code": {
+      // Increase timeout (milliseconds)
+      "timeout": 600000  // 10 minutes instead of 5
+    }
+  }
+}
+```
+
+---
+
+### Cursor CLI Not Found
+
+**Problem**: Cursor CLI executor fails with "command not found"
+
+**Solution**:
+
+```bash
+# Find Cursor CLI path
+which cursor
+
+# Update config with correct path
+{
+  "executors": {
+    "cursor-cli": {
+      "cli_path": "/usr/local/bin/cursor",  // or wherever it's installed
+      "args": ["--headless"]
+    }
+  }
+}
+```
+
+---
+
+## Performance Issues
+
+### Slow Task Execution
+
+**Problem**: Tasks take very long to complete
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check System Resources">
+    ```bash
+    # Check CPU and memory usage
+    top
+
+    # Check disk space
+    df -h
+
+    # Free up space if needed
+    # Clean up old worktrees
+    ```
+  </Accordion>
+
+  <Accordion title="Reduce Concurrent Tasks">
+    ```json
+    // Edit .forge/config.json
+    {
+      "worktrees": {
+        "max_concurrent": 3  // Reduce from 5
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use Faster Executors">
+    ```bash
+    # Gemini is typically faster than Claude for simple tasks
+    # Try different executors for comparison
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### High Memory Usage
+
+**Problem**: Forge consuming excessive memory
+
+**Solution**:
+
+```bash
+# Check memory usage
+ps aux | grep forge
+
+# Clean up worktrees
+# Via UI: Settings → Cleanup
+
+# Or manually
+rm -rf .forge/worktrees/*
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+## UI/Display Issues
+
+### Blank Screen
+
+**Problem**: Forge UI shows blank white screen
+
+**Solutions**:
+
+```bash
+# Clear browser cache
+# Cmd+Shift+R (macOS) or Ctrl+Shift+R (Windows/Linux)
+
+# Check browser console for errors
+# F12 → Console tab
+
+# Try different browser
+# Chrome, Firefox, Safari, Edge
+
+# Verify frontend is running
+curl http://localhost:3000
+```
+
+---
+
+### Real-time Updates Not Working
+
+**Problem**: Task logs don't stream, UI doesn't update
+
+**Solution**:
+
+```bash
+# Check if Server-Sent Events (SSE) are blocked
+# Some corporate proxies block SSE
+
+# Verify connection
+curl http://localhost:5000/api/events/processes/{id}/logs
+
+# Try different network
+# Disable VPN/proxy temporarily
+```
+
+---
+
+## Data Issues
+
+### Lost Tasks After Restart
+
+**Problem**: Tasks disappeared after closing Forge
+
+**Solution**:
+
+```bash
+# Check database file exists
+ls -la .forge/db.sqlite
+
+# Verify database integrity
+sqlite3 .forge/db.sqlite "PRAGMA integrity_check;"
+
+# Restore from backup if available
+cp .forge/db.backup.sqlite .forge/db.sqlite
+```
+
+---
+
+### Cannot Delete Task
+
+**Problem**: Task won't delete, keeps reappearing
+
+**Solution**:
+
+```bash
+# Force delete via API
+curl -X DELETE http://localhost:5000/api/tasks/{task-id}
+
+# Or delete via database
+sqlite3 .forge/db.sqlite "DELETE FROM tasks WHERE id='task-id';"
+
+# Restart Forge
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Git Worktree Errors" icon="code-branch" href="/forge/troubleshooting/git-worktree-errors">
+    Solutions for git worktree issues
+  </Card>
+  <Card title="API Errors" icon="plug" href="/forge/troubleshooting/api-errors">
+    Troubleshoot API connection problems
+  </Card>
+  <Card title="FAQ" icon="question" href="/forge/troubleshooting/faq">
+    Frequently asked questions
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help from the community
+  </Card>
+</CardGroup>

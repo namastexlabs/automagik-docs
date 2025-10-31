@@ -1,0 +1,462 @@
+---
+title: "Projects API"
+description: "Manage Forge projects via REST API"
+icon: "folder"
+---
+
+## Overview
+
+Projects are the top-level organizational unit in Forge. Each project contains tasks, attempts, and configuration.
+
+**Base URL**: `/api/projects`
+
+---
+
+## List Projects
+
+Get all projects with optional filtering.
+
+```http
+GET /api/projects
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Page number (default: 1) |
+| `limit` | integer | Items per page (default: 20, max: 100) |
+| `sort` | string | Sort field (e.g., `-created_at`) |
+| `search` | string | Search project names |
+
+### Example Request
+
+```bash
+curl http://localhost:8080/api/projects?page=1&limit=10
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "proj_abc123",
+      "name": "My Web App",
+      "description": "E-commerce platform",
+      "repository": {
+        "url": "https://github.com/user/repo",
+        "branch": "main"
+      },
+      "defaultLLM": "claude",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T15:45:00Z",
+      "stats": {
+        "tasks": 42,
+        "completedTasks": 38,
+        "activeAttempts": 2
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
+---
+
+## Get Project
+
+Retrieve a specific project by ID.
+
+```http
+GET /api/projects/:id
+```
+
+### Example Request
+
+```bash
+curl http://localhost:8080/api/projects/proj_abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "name": "My Web App",
+    "description": "E-commerce platform",
+    "repository": {
+      "url": "https://github.com/user/repo",
+      "branch": "main",
+      "lastSync": "2024-01-15T15:45:00Z"
+    },
+    "defaultLLM": "claude",
+    "config": {
+      "worktrees": {
+        "enabled": true,
+        "basePath": "./.forge/worktrees"
+      },
+      "llms": {
+        "claude": {
+          "model": "claude-3-5-sonnet-20241022"
+        }
+      }
+    },
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T15:45:00Z",
+    "stats": {
+      "tasks": 42,
+      "completedTasks": 38,
+      "inProgressTasks": 3,
+      "failedTasks": 1,
+      "activeAttempts": 2,
+      "totalCost": 12.45
+    }
+  }
+}
+```
+
+---
+
+## Create Project
+
+Create a new Forge project.
+
+```http
+POST /api/projects
+```
+
+### Request Body
+
+```json
+{
+  "name": "My New Project",
+  "description": "Project description",
+  "repository": {
+    "url": "https://github.com/user/repo",
+    "branch": "main"
+  },
+  "defaultLLM": "claude"
+}
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My New Project",
+    "repository": {
+      "url": "https://github.com/user/repo"
+    },
+    "defaultLLM": "claude"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_xyz789",
+    "name": "My New Project",
+    "repository": {
+      "url": "https://github.com/user/repo",
+      "branch": "main"
+    },
+    "defaultLLM": "claude",
+    "createdAt": "2024-01-15T16:00:00Z",
+    "updatedAt": "2024-01-15T16:00:00Z"
+  }
+}
+```
+
+---
+
+## Update Project
+
+Update project properties.
+
+```http
+PATCH /api/projects/:id
+```
+
+### Request Body
+
+```json
+{
+  "name": "Updated Project Name",
+  "description": "New description",
+  "defaultLLM": "gemini"
+}
+```
+
+### Example Request
+
+```bash
+curl -X PATCH http://localhost:8080/api/projects/proj_abc123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Project Name",
+    "defaultLLM": "gemini"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "name": "Updated Project Name",
+    "defaultLLM": "gemini",
+    "updatedAt": "2024-01-15T16:05:00Z"
+  }
+}
+```
+
+---
+
+## Delete Project
+
+Delete a project and all associated data.
+
+```http
+DELETE /api/projects/:id
+```
+
+<Warning>
+This permanently deletes the project, all tasks, attempts, and associated data. This action cannot be undone.
+</Warning>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:8080/api/projects/proj_abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "deleted": true,
+    "deletedAt": "2024-01-15T16:10:00Z"
+  }
+}
+```
+
+---
+
+## Get Project Tasks
+
+Get all tasks for a specific project.
+
+```http
+GET /api/projects/:id/tasks
+```
+
+### Query Parameters
+
+Same as [Tasks API](/forge/api/tasks) list parameters.
+
+### Example Request
+
+```bash
+curl http://localhost:8080/api/projects/proj_abc123/tasks?status=in_progress
+```
+
+---
+
+## Get Project Stats
+
+Get detailed statistics for a project.
+
+```http
+GET /api/projects/:id/stats
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "tasks": {
+      "total": 42,
+      "pending": 3,
+      "inProgress": 2,
+      "completed": 36,
+      "failed": 1
+    },
+    "attempts": {
+      "total": 67,
+      "successful": 58,
+      "failed": 9
+    },
+    "costs": {
+      "total": 12.45,
+      "byLLM": {
+        "claude": 8.23,
+        "gemini": 0.00,
+        "gpt-4": 4.22
+      }
+    },
+    "performance": {
+      "averageTaskDuration": 285000,
+      "successRate": 0.86,
+      "averageCostPerTask": 0.30
+    }
+  }
+}
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// List projects
+const projects = await forge.projects.list({
+  page: 1,
+  limit: 10
+});
+
+// Get project
+const project = await forge.projects.get('proj_abc123');
+
+// Create project
+const newProject = await forge.projects.create({
+  name: 'My New Project',
+  repository: {
+    url: 'https://github.com/user/repo'
+  },
+  defaultLLM: 'claude'
+});
+
+// Update project
+await forge.projects.update('proj_abc123', {
+  name: 'Updated Name',
+  defaultLLM: 'gemini'
+});
+
+// Delete project
+await forge.projects.delete('proj_abc123');
+
+// Get project stats
+const stats = await forge.projects.stats('proj_abc123');
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient()
+
+# List projects
+projects = forge.projects.list(page=1, limit=10)
+
+# Get project
+project = forge.projects.get('proj_abc123')
+
+# Create project
+new_project = forge.projects.create(
+    name='My New Project',
+    repository={'url': 'https://github.com/user/repo'},
+    default_llm='claude'
+)
+
+# Update project
+forge.projects.update('proj_abc123', {
+    'name': 'Updated Name',
+    'default_llm': 'gemini'
+})
+
+# Delete project
+forge.projects.delete('proj_abc123')
+
+# Get stats
+stats = forge.projects.stats('proj_abc123')
+```
+
+---
+
+## Error Responses
+
+### Project Not Found
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROJECT_NOT_FOUND",
+    "message": "Project with id 'proj_abc123' not found"
+  }
+}
+```
+
+### Validation Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid project data",
+    "details": {
+      "name": "Project name is required",
+      "repository.url": "Invalid repository URL"
+    }
+  }
+}
+```
+
+### Conflict Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROJECT_EXISTS",
+    "message": "Project with name 'My Project' already exists"
+  }
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tasks API" icon="list-check" href="/forge/api/tasks">
+    Manage tasks within projects
+  </Card>
+
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Execute tasks with AI agents
+  </Card>
+
+  <Card title="REST Overview" icon="book" href="/forge/api/rest-overview">
+    API fundamentals and authentication
+  </Card>
+</CardGroup>

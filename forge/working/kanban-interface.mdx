@@ -1,0 +1,611 @@
+---
+title: "Kanban Interface"
+description: "Master the Forge visual task board"
+icon: "table-columns"
+---
+
+## Overview
+
+Forge's Kanban board is your command center for AI-assisted development. Unlike lost chat histories, your tasks live here permanently - organized, trackable, and always accessible.
+
+---
+
+## Accessing the Interface
+
+```bash
+# Start Forge
+forge start
+
+# Opens automatically at:
+# http://localhost:3000
+```
+
+<Info>
+**First time?** You'll need to sign in with GitHub to access your projects.
+</Info>
+
+---
+
+## Board Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Forge - Project: My App                    [@username] │
+├─────────────────────────────────────────────────────────┤
+│  [+ New Task]  [Filters ▼]  [Sort ▼]  [View ▼]        │
+├──────────┬──────────┬──────────┬──────────┬────────────┤
+│ To Do    │ In Prog  │ Review   │ Done     │ Archived   │
+│  (5)     │  (3)     │  (2)     │  (12)    │  (45)      │
+├──────────┼──────────┼──────────┼──────────┼────────────┤
+│ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │ ┌──────┐  │
+│ │Task 1│ │ │Task 4│ │ │Task 7│ │ │Task 9│ │ │Task..│  │
+│ └──────┘ │ └──────┘ │ └──────┘ │ └──────┘ │ └──────┘  │
+│          │          │          │          │            │
+│ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │          │            │
+│ │Task 2│ │ │Task 5│ │ │Task 8│ │          │            │
+│ └──────┘ │ └──────┘ │ └──────┘ │          │            │
+└──────────┴──────────┴──────────┴──────────┴────────────┘
+```
+
+---
+
+## Columns Explained
+
+### To Do
+**New tasks waiting to be started**
+
+- Tasks you just created
+- Tasks planned but not started
+- Backlog items
+
+**Actions**:
+- Start task (moves to In Progress)
+- Edit task details
+- Delete task
+- Move to other columns
+
+### In Progress
+**Tasks currently being executed by AI**
+
+- Active attempts running
+- Tasks being worked on
+- Shows real-time progress
+
+**Visual Indicators**:
+- 🟢 Agent working
+- 📝 Files being edited
+- ⏱️ Time elapsed
+- 💰 Cost so far
+
+### Review
+**Completed attempts awaiting your approval**
+
+- Attempts finished successfully
+- Ready for code review
+- Waiting for merge decision
+
+**Actions**:
+- View changes
+- Compare attempts
+- Approve and merge
+- Request changes
+- Reject
+
+### Done
+**Completed and merged tasks**
+
+- Successfully merged to main
+- Shipped features
+- Fixed bugs
+- Completed work
+
+**Info Shown**:
+- Merge commit SHA
+- Completion date
+- Agent used
+- Final cost
+
+### Archived
+**Old completed tasks**
+
+- Automatically archived after 30 days
+- Can be restored if needed
+- Keeps board clean
+
+---
+
+## Task Cards
+
+Each task card shows:
+
+```
+┌─────────────────────────────────────┐
+│ #42 🔒 Add user authentication      │ ← Title + Lock icon (if blocked)
+│ by @username  2 hours ago           │ ← Creator + Time
+│                                     │
+│ "Implement JWT-based auth with..."  │ ← Description preview
+│                                     │
+│ 🤖 3 attempts                        │ ← Number of attempts
+│ ✅ 2 completed  🔄 1 running         │ ← Status breakdown
+│                                     │
+│ [feature] [backend] [priority:high] │ ← Labels
+│                                     │
+│ 💰 $0.45  ⏱️ 12m 30s                │ ← Cost + Duration
+└─────────────────────────────────────┘
+```
+
+### Card Colors
+
+Cards are color-coded by priority:
+
+- 🔴 **Critical**: Red border
+- 🟠 **High**: Orange border
+- 🟡 **Medium**: Yellow border (default)
+- 🟢 **Low**: Green border
+
+---
+
+## Drag & Drop
+
+### Moving Tasks Between Columns
+
+<Steps>
+  <Step title="Click and Hold">
+    Click on a task card and hold
+  </Step>
+
+  <Step title="Drag to Column">
+    Drag the card to the target column
+  </Step>
+
+  <Step title="Drop">
+    Release to drop the card
+  </Step>
+
+  <Step title="Auto-Update">
+    Task status updates automatically
+  </Step>
+</Steps>
+
+<Info>
+**Keyboard shortcut**: Select task, press `→` to move right, `←` to move left
+</Info>
+
+### Reordering Within Columns
+
+Drag cards up/down within a column to prioritize:
+- Top = highest priority
+- Bottom = lowest priority
+
+---
+
+## Task Details View
+
+Click any task card to open the detail panel:
+
+### Overview Tab
+
+```
+Task #42: Add user authentication
+Created by @username  3 hours ago
+Status: In Progress
+
+Description:
+─────────────────────────────────────
+Implement JWT-based authentication:
+- Login endpoint with email/password
+- Signup endpoint with validation
+- JWT token generation (24h expiry)
+- Password hashing with bcrypt
+...
+
+Labels: [feature] [backend] [priority:high]
+Assignee: claude-sonnet
+```
+
+### Attempts Tab
+
+```
+╭──────┬──────────┬──────────┬──────────╮
+│ #    │ Agent    │ Status   │ Duration │
+├──────┼──────────┼──────────┼──────────┤
+│ 1    │ Claude   │ ✅ Done  │ 5m 22s   │
+│ 2    │ Gemini   │ 🔄 Run   │ 2m 15s   │
+│ 3    │ Cursor   │ ❌ Fail  │ 4m 01s   │
+╰──────┴──────────┴──────────┴──────────╯
+
+[View Logs] [Compare] [Start New Attempt]
+```
+
+### Changes Tab
+
+View file changes for each attempt:
+
+```
+src/auth/login.ts         +132  -13
+src/auth/signup.ts        +165  -13
+src/utils/jwt.ts          +67   (new)
+test/auth.test.ts         +89   (new)
+
+[View Diff] [Download] [Apply to Main]
+```
+
+### Activity Tab
+
+Timeline of all events:
+
+```
+🟢 3 hours ago
+   @username created task
+
+🤖 2 hours ago
+   Started attempt #1 with Claude
+
+✅ 2 hours ago
+   Attempt #1 completed successfully
+
+🤖 1 hour ago
+   Started attempt #2 with Gemini
+
+💬 30 minutes ago
+   @reviewer added comment: "Check error handling"
+
+🔄 15 minutes ago
+   Started attempt #3 with Cursor
+```
+
+---
+
+## Filters & Search
+
+### Quick Filters
+
+```
+[All] [My Tasks] [High Priority] [In Progress]
+```
+
+Click to instantly filter the board.
+
+### Advanced Filters
+
+Click **Filters ▼** to open:
+
+```
+╭───────────────────────────────────╮
+│ Filter Tasks                      │
+├───────────────────────────────────┤
+│ Status:  [All ▼]                  │
+│ Priority: [All ▼]                 │
+│ Assignee: [All ▼]                 │
+│ Labels:   [Select... ▼]          │
+│ Date:     [Last 7 days ▼]        │
+│                                   │
+│ [Clear] [Apply]                   │
+╰───────────────────────────────────╯
+```
+
+### Search
+
+```
+┌─────────────────────────────────┐
+│ 🔍 Search tasks...              │
+└─────────────────────────────────┘
+```
+
+Search by:
+- Task title or description
+- Task ID (#42)
+- Labels (feature, bug, etc.)
+- Agent name (claude, gemini)
+
+---
+
+## Sorting Options
+
+Click **Sort ▼**:
+
+- **Priority** (High → Low)
+- **Created** (Newest → Oldest)
+- **Updated** (Recently modified first)
+- **Alphabetical** (A → Z)
+- **Cost** (Most expensive first)
+- **Duration** (Longest first)
+- **Custom** (Manual drag-drop order)
+
+---
+
+## View Modes
+
+### Kanban View (Default)
+
+Classic column-based board - best for workflow visualization
+
+### List View
+
+```
+╭────┬─────────────────────┬──────────┬──────────┬──────╮
+│ ID │ Title               │ Status   │ Assignee │ Cost │
+├────┼─────────────────────┼──────────┼──────────┼──────┤
+│ 42 │ Add authentication  │ Progress │ Claude   │ $0.45│
+│ 41 │ Fix memory leak     │ Review   │ Gemini   │ $0.12│
+│ 40 │ Refactor API        │ Done     │ Cursor   │ $0.89│
+╰────┴─────────────────────┴──────────┴──────────┴──────╯
+```
+
+Best for: Scanning many tasks quickly
+
+### Timeline View
+
+```
+Jan 15 ●─────────● Jan 20 ●──────────● Jan 25
+       │         │        │          │
+       Task 42   Task 41  Task 40    Today
+       Started   Completed Merged
+```
+
+Best for: Understanding project timeline
+
+### Calendar View
+
+```
+      January 2024
+Su Mo Tu We Th Fr Sa
+    1  2  3  4  5  6
+ 7  8 [9] 10 11 12 13    [9] = 3 tasks
+14 15 16 17 18 19 20
+```
+
+Best for: Planning and scheduling
+
+---
+
+## Bulk Operations
+
+Select multiple tasks:
+
+1. Click checkbox on first card
+2. Shift+Click on last card
+3. All cards between are selected
+
+**Available actions**:
+- Move to column
+- Add label
+- Change priority
+- Archive
+- Delete
+
+```
+✓ 5 tasks selected
+
+[Move to ▼] [Add Label ▼] [Priority ▼] [Archive] [Delete]
+```
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `n` | New task |
+| `f` | Focus search |
+| `j` / `k` | Navigate down/up |
+| `←` / `→` | Move task left/right |
+| `Enter` | Open task details |
+| `Esc` | Close modal |
+| `Cmd/Ctrl + S` | Save changes |
+| `Cmd/Ctrl + K` | Command palette |
+| `?` | Show all shortcuts |
+
+---
+
+## Customization
+
+### Column Configuration
+
+Add/remove/rename columns:
+
+```
+Settings → Columns
+
+Default columns: To Do, In Progress, Review, Done, Archived
+
+Custom columns:
+- Blocked
+- Testing
+- Staging
+- Deployed
+```
+
+### Card Display
+
+Choose what to show on cards:
+
+```
+Settings → Card Display
+
+☑ Show labels
+☑ Show cost
+☑ Show duration
+☑ Show assignee
+☑ Show attempt count
+☐ Show description preview
+```
+
+### Theme
+
+```
+Settings → Appearance
+
+○ Light mode
+● Dark mode
+○ Auto (match system)
+
+Accent color: [Purple ▼]
+```
+
+---
+
+## Notifications
+
+Bell icon (🔔) shows:
+
+- Task completed
+- Attempt failed
+- Review requested
+- Comment added
+- Task assigned to you
+
+Configure in **Settings → Notifications**:
+
+```
+☑ Desktop notifications
+☑ Email notifications
+☐ Slack notifications
+☐ Discord notifications
+```
+
+---
+
+## Mobile View
+
+Forge UI is responsive:
+
+- **Mobile**: Single column, swipe gestures
+- **Tablet**: 2-3 columns, touch optimized
+- **Desktop**: Full Kanban board
+
+<Tip>
+Use the mobile app for quick status checks and approvals while away from desk!
+</Tip>
+
+---
+
+## Collaboration Features
+
+### Comments
+
+Add comments to tasks:
+
+```
+💬 @reviewer  5 minutes ago
+   Have you considered edge case where...
+
+💬 @username  2 minutes ago
+   Good catch! I'll add that to attempt #3.
+```
+
+### Mentions
+
+Use `@username` to notify team members:
+
+```
+@john Can you review the security aspects?
+@sarah FYI, this affects the mobile app
+```
+
+### Assignments
+
+Assign tasks to team members:
+
+```
+Assignee: @john
+Due date: Jan 20, 2024
+Labels: [needs-review]
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep To Do Small" icon="list-check">
+    Don't let backlog grow too large:
+    - Regularly archive old tasks
+    - Move unlikely tasks to "Ideas" project
+    - Aim for under 20 active To Do items
+  </Card>
+
+  <Card title="Use Labels Consistently" icon="tags">
+    Create label standards:
+    - `feature`, `bug`, `docs`, `refactor`
+    - `priority:high`, `priority:low`
+    - `frontend`, `backend`, `database`
+
+    Helps with filtering and reporting
+  </Card>
+
+  <Card title="Review Regularly" icon="eye">
+    Don't let Review column fill up:
+    - Check daily
+    - Approve or request changes quickly
+    - Merge when ready
+
+    Stale reviews = blocked pipeline
+  </Card>
+
+  <Card title="Archive Completed Work" icon="box-archive">
+    After 30 days, archive Done tasks:
+    - Keeps board focused on active work
+    - Historical data still accessible
+    - Improves performance
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Board not loading">
+    **Solutions**:
+    - Refresh page (Cmd/Ctrl + R)
+    - Check network connection
+    - Verify Forge backend is running
+    - Clear browser cache
+  </Accordion>
+
+  <Accordion title="Drag and drop not working">
+    **Solutions**:
+    - Ensure JavaScript enabled
+    - Try different browser
+    - Disable browser extensions
+    - Check for conflicting keyboard shortcuts
+  </Accordion>
+
+  <Accordion title="Tasks not updating in real-time">
+    **Solutions**:
+    - Check WebSocket connection (dev tools)
+    - Refresh page manually
+    - Verify firewall allows WebSocket
+  </Accordion>
+
+  <Accordion title="Can't create new task">
+    **Solutions**:
+    - Verify project is selected
+    - Check you have write permissions
+    - Ensure not at task limit (if any)
+    - Try via CLI as workaround
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Tasks" icon="plus" href="/forge/working/creating-tasks">
+    Master task creation
+  </Card>
+
+  <Card title="Managing Attempts" icon="flask" href="/forge/working/managing-attempts">
+    Work with AI agent attempts
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    End-to-end workflow examples
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/forge/cli/overview">
+    Command-line alternative to UI
+  </Card>
+</CardGroup>

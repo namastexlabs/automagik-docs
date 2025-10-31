@@ -1,0 +1,596 @@
+---
+title: "Cursor CLI"
+description: "Setup and use Cursor's command-line agent with Forge"
+icon: "cursor"
+---
+
+## Overview
+
+Cursor CLI is the command-line interface for Cursor's AI coding assistant. Known for excellent UI/UX intuition and fast iteration cycles, perfect for frontend development.
+
+<Info>
+**Note**: Cursor CLI is separate from the Cursor IDE. You can use the CLI without using the IDE!
+</Info>
+
+---
+
+## Quick Start
+
+<Steps>
+  <Step title="Install Cursor CLI">
+    ```bash
+    npm install -g @cursor/cli
+    ```
+  </Step>
+
+  <Step title="Authenticate">
+    ```bash
+    cursor auth login
+    ```
+
+    Opens browser for authentication with your Cursor account
+  </Step>
+
+  <Step title="Configure Forge">
+    Edit `.forge/config.json`:
+
+    ```json
+    {
+      "llms": {
+        "cursor": {
+          "enabled": true,
+          "workingDirectory": "."
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test Connection">
+    ```bash
+    forge task create \
+      --title "Test Cursor" \
+      --description "Create a React button component" \
+      --llm cursor
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Basic Setup
+
+```json
+{
+  "llms": {
+    "cursor": {
+      "enabled": true,
+      "workingDirectory": "."
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "cursor": {
+      "enabled": true,
+      "workingDirectory": ".",
+      "model": "claude-3.5-sonnet",  // Model via your Cursor subscription
+      "timeout": 60000,
+      "context": {
+        "includeOpenFiles": true,
+        "maxFiles": 10
+      }
+    }
+  }
+}
+```
+
+<ParamField path="model" type="string">
+  Which model to use through Cursor
+
+  Options depend on your Cursor subscription:
+  - `claude-3.5-sonnet` (recommended)
+  - `gpt-4-turbo`
+  - `gpt-3.5-turbo`
+</ParamField>
+
+<ParamField path="workingDirectory" type="string" default=".">
+  Base directory for Cursor operations
+</ParamField>
+
+---
+
+## Cursor's Strengths
+
+### UI/UX Intuition
+
+Cursor excels at frontend work:
+
+```bash
+forge task create \
+  --title "Create user profile card" \
+  --description "
+  Build a user profile card component with:
+  - Avatar image
+  - Name and bio
+  - Social links
+  - Follow button
+
+  Make it responsive and accessible.
+  " \
+  --llm cursor
+```
+
+**Result**: Cursor creates beautiful, accessible UI with proper ARIA labels, responsive design, and smooth animations.
+
+### Rapid Iteration
+
+Fast feedback loops:
+
+```bash
+# Initial version
+forge task create "Add dark mode toggle" --llm cursor
+
+# Quick iteration
+forge task fork 1 --llm cursor \
+  --description "Make it smoother with animation"
+
+# Another iteration
+forge task fork 1 --llm cursor \
+  --description "Add system preference detection"
+```
+
+### Context Awareness
+
+Cursor understands your project structure:
+
+```bash
+forge task create \
+  --title "Add new API endpoint" \
+  --description "Create /api/users endpoint following existing patterns" \
+  --llm cursor
+```
+
+Cursor will:
+- Match your existing code style
+- Follow your project's patterns
+- Use the same libraries and frameworks
+- Maintain consistency
+
+---
+
+## Cursor's Weaknesses
+
+### Less Depth on Algorithms
+
+For complex algorithmic problems, use Claude or GPT-4:
+
+```bash
+# Better with Claude
+forge task create \
+  --title "Implement optimal pathfinding algorithm" \
+  --llm claude  # Not cursor
+```
+
+### Subscription Required
+
+Unlike API-based agents, Cursor requires an active subscription:
+
+| Plan | Cost | Features |
+|------|------|----------|
+| **Free** | $0/mo | Limited requests |
+| **Pro** | $20/mo | 500 fast requests/mo |
+| **Business** | $40/user/mo | Unlimited + priority |
+
+### Tied to Cursor Ecosystem
+
+- Requires Cursor account
+- Uses Cursor's model selection
+- Can't switch models without subscription change
+
+---
+
+## Pricing
+
+Cursor uses a subscription model, not pay-per-token:
+
+```
+Cursor Pro ($20/month):
+├── 500 fast premium requests
+├── Unlimited slow requests
+├── Claude 3.5 Sonnet access
+├── GPT-4 access
+└── Priority support
+
+Forge integration = No additional cost!
+```
+
+<Tip>
+Unlike Claude/GPT-4 where you pay per token, Cursor's flat rate can be more economical for heavy usage!
+</Tip>
+
+---
+
+## Best Use Cases
+
+### Frontend Development
+
+```bash
+forge task create \
+  --title "Build product listing page" \
+  --description "
+  Grid layout with:
+  - Product cards (image, title, price)
+  - Filters (category, price range)
+  - Sorting options
+  - Pagination
+  - Mobile responsive
+  " \
+  --llm cursor
+```
+
+### Component Creation
+
+```bash
+forge task create \
+  --title "Create reusable modal component" \
+  --description "
+  Modal with:
+  - Backdrop click to close
+  - ESC key to close
+  - Focus trap
+  - Accessible (ARIA)
+  - Smooth animations
+  " \
+  --llm cursor
+```
+
+### Styling & Polish
+
+```bash
+forge task create \
+  --title "Improve button hover states" \
+  --description "
+  Add smooth transitions and better visual feedback
+  to all buttons in src/components/
+  " \
+  --llm cursor
+```
+
+---
+
+## Integration with Forge
+
+### Using in Tasks
+
+```bash
+# Basic usage
+forge task create "Add navigation bar" --llm cursor
+
+# With specific instructions
+forge task create \
+  --title "Refactor forms to use React Hook Form" \
+  --llm cursor \
+  --files "src/forms/**/*.tsx"
+
+# With design reference
+forge task create \
+  --title "Implement this design" \
+  --attach mockup.png \
+  --llm cursor
+```
+
+### Combining with Other Agents
+
+Use Cursor for UI, Claude for logic:
+
+```bash
+# Step 1: Claude designs the API
+forge task create \
+  --title "Design GraphQL schema" \
+  --llm claude
+
+# Step 2: Cursor builds the UI
+forge task create \
+  --title "Build GraphQL query components" \
+  --llm cursor
+```
+
+---
+
+## Authentication
+
+### Initial Setup
+
+```bash
+# Login via browser
+cursor auth login
+
+# Verify authentication
+cursor auth status
+
+# Output:
+# ✓ Logged in as user@example.com
+# ✓ Pro subscription active
+# ✓ 450/500 fast requests remaining
+```
+
+### Checking Quota
+
+```bash
+# Check remaining requests
+cursor quota
+
+# Output:
+# Fast requests: 450/500
+# Resets: Jan 20, 2024
+```
+
+### Re-authentication
+
+If authentication expires:
+
+```bash
+# Logout
+cursor auth logout
+
+# Login again
+cursor auth login
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Not authenticated">
+    **Error**: "Please log in with `cursor auth login`"
+
+    **Solution**:
+    ```bash
+    cursor auth logout
+    cursor auth login
+    ```
+
+    Follow browser prompt to authenticate
+  </Accordion>
+
+  <Accordion title="Quota exceeded">
+    **Error**: "Fast request quota exceeded"
+
+    **Options**:
+    1. Wait for monthly reset
+    2. Use slow requests (automatic fallback)
+    3. Upgrade to Business plan
+    4. Use different agent:
+       ```bash
+       forge task fork 1 --llm claude
+       ```
+  </Accordion>
+
+  <Accordion title="Cursor CLI not found">
+    **Error**: "cursor: command not found"
+
+    **Solution**:
+    ```bash
+    # Reinstall
+    npm install -g @cursor/cli
+
+    # Verify installation
+    which cursor
+
+    # Check version
+    cursor --version
+    ```
+  </Accordion>
+
+  <Accordion title="Slow responses">
+    **Issue**: Cursor taking too long
+
+    **Causes**:
+    - Using slow requests (quota exceeded)
+    - Large context window
+    - Network latency
+
+    **Solutions**:
+    - Check quota: `cursor quota`
+    - Reduce context: use `--files` to limit scope
+    - Wait for quota reset
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use for Frontend" icon="palette">
+    Cursor shines on UI/UX work:
+    - Component creation
+    - Styling and polish
+    - Responsive design
+    - Accessibility
+
+    Not ideal for: Algorithms, backend logic
+  </Card>
+
+  <Card title="Provide Visual References" icon="image">
+    Cursor works well with mockups:
+
+    ```bash
+    forge task create \
+      --title "Build login page" \
+      --attach design.png \
+      --llm cursor
+    ```
+
+    Visual context improves results
+  </Card>
+
+  <Card title="Monitor Quota" icon="gauge">
+    Check usage regularly:
+
+    ```bash
+    cursor quota
+    ```
+
+    Plan accordingly for quota limits
+  </Card>
+
+  <Card title="Iterate Quickly" icon="rotate">
+    Use Cursor's speed advantage:
+
+    ```bash
+    # Try, iterate, refine
+    forge task create "Add button" --llm cursor
+    forge task fork 1 --llm cursor \
+      --description "Add loading state"
+    forge task fork 1 --llm cursor \
+      --description "Add error state"
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Cursor vs Other Agents
+
+| Feature | Cursor | Claude | Gemini | GPT-4 |
+|---------|--------|--------|--------|-------|
+| **UI/UX** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| **Backend** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Speed** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Cost** | Subscription | Per-token | Free/Paid | Per-token |
+| **Context** | Project-aware | 200K tokens | 2M tokens | 128K tokens |
+
+**Choose Cursor for**: Frontend, UI components, rapid iteration
+**Choose Claude for**: Architecture, complex logic, security
+**Choose Gemini for**: Speed, experimentation, cost
+**Choose GPT-4 for**: General purpose, documentation
+
+---
+
+## Real-World Examples
+
+### Example 1: Dashboard Component
+
+```bash
+forge task create \
+  --title "Build analytics dashboard" \
+  --description "
+  Create dashboard with:
+  - 4 stat cards (users, revenue, sessions, conversion)
+  - Line chart for trends
+  - Table with recent activity
+  - Responsive grid layout
+  - Dark mode support
+
+  Use Tailwind CSS and Recharts
+  " \
+  --llm cursor
+```
+
+**Time**: ~3 minutes
+**Quality**: Professional, responsive, accessible
+**Cost**: 1 fast request
+
+### Example 2: Form Component
+
+```bash
+forge task create \
+  --title "Create user profile edit form" \
+  --description "
+  Form with:
+  - Input fields: name, email, bio, avatar upload
+  - Validation (email format, required fields)
+  - Loading state during submission
+  - Success/error messages
+  - Accessible form controls
+  " \
+  --llm cursor
+```
+
+**Time**: ~2 minutes
+**Quality**: Comprehensive validation, great UX
+**Cost**: 1 fast request
+
+---
+
+## Tips for Better Results
+
+### Be Specific About Design
+
+```bash
+# Good ✅
+forge task create \
+  --title "Add pricing cards" \
+  --description "
+  3 pricing tiers (Basic, Pro, Enterprise)
+  - Vertical cards on mobile
+  - Horizontal comparison on desktop
+  - Highlight 'Pro' tier
+  - Include feature lists
+  - Use brand colors: #FF00FF, #00FFFF
+  " \
+  --llm cursor
+
+# Bad ❌
+forge task create \
+  --title "pricing page" \
+  --llm cursor
+```
+
+### Reference Existing Patterns
+
+```bash
+forge task create \
+  --title "Add product modal" \
+  --description "
+  Similar to existing CartModal in src/components/CartModal.tsx
+  but for product details instead of cart
+  " \
+  --llm cursor
+```
+
+### Specify Frameworks
+
+```bash
+forge task create \
+  --title "Add animation to hero section" \
+  --description "
+  Use Framer Motion for:
+  - Fade in on mount
+  - Stagger child elements
+  - Smooth scroll parallax
+  " \
+  --llm cursor
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/forge/quickstart">
+    Create your first Cursor task
+  </Card>
+
+  <Card title="Other Agents" icon="robot" href="/forge/agents/overview">
+    Compare with other AI agents
+  </Card>
+
+  <Card title="UI Workflows" icon="palette" href="/forge/workflows/feature-development">
+    Frontend development workflows
+  </Card>
+
+  <Card title="Cursor Pricing" icon="dollar-sign" href="https://cursor.sh/pricing">
+    View Cursor subscription plans
+  </Card>
+</CardGroup>

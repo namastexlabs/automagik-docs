@@ -1,0 +1,596 @@
+---
+title: "Configuration Commands"
+description: "Configuring Automagik Forge"
+icon: "gear"
+---
+
+## Overview
+
+Forge configuration is managed through a combination of:
+- **Configuration file**: `.forge/config.json`
+- **Environment variables**: Runtime settings
+- **Web UI settings**: Visual configuration interface
+
+---
+
+## Configuration File
+
+Location: `.forge/config.json`
+
+```json
+{
+  "project_id": "uuid",
+  "name": "Project Name",
+  "repository": {
+    "type": "git",
+    "remote": "https://github.com/owner/repo.git",
+    "default_branch": "main"
+  },
+  "github": {
+    "enabled": false,
+    "owner": "",
+    "repo": "",
+    "client_id": "",
+    "token_encrypted": ""
+  },
+  "worktrees": {
+    "enabled": true,
+    "base_path": "./.forge/worktrees",
+    "cleanup_on_exit": true,
+    "max_concurrent": 5,
+    "branch_prefix": "forge/task-",
+    "auto_delete_merged": true
+  },
+  "executors": {
+    "default": "claude-code",
+    "enabled": ["claude-code", "cursor-cli", "gemini", "codex"]
+  },
+  "preferences": {
+    "auto_cleanup_worktrees": true,
+    "stream_logs": true,
+    "theme": "dark"
+  }
+}
+```
+
+---
+
+## Environment Variables
+
+Configure Forge behavior via environment variables:
+
+### Server Configuration
+
+```bash
+# Backend server port (auto-assigned if not set)
+export BACKEND_PORT=5000
+
+# Frontend server port
+export FRONTEND_PORT=3000
+
+# Server host address
+export HOST=127.0.0.1
+
+# Or bind to all interfaces
+export HOST=0.0.0.0
+```
+
+### GitHub OAuth
+
+```bash
+# GitHub OAuth App Client ID
+export GITHUB_CLIENT_ID=your_github_oauth_app_id
+
+# Optionally set in .env file
+echo "GITHUB_CLIENT_ID=your_id" >> .env
+```
+
+### AI Agent API Keys
+
+```bash
+# Claude Code (Anthropic)
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Gemini (Google AI)
+export GOOGLE_AI_API_KEY=AIza...
+
+# OpenAI Codex
+export OPENAI_API_KEY=sk-...
+
+# These are used by executors when running tasks
+```
+
+### Analytics (Optional)
+
+```bash
+# PostHog analytics key
+export POSTHOG_API_KEY=phc_...
+```
+
+### Debug Options
+
+```bash
+# Enable debug logging
+export RUST_LOG=debug
+
+# Disable worktree cleanup (for debugging)
+export DISABLE_WORKTREE_ORPHAN_CLEANUP=1
+
+# Verbose execution logs
+export FORGE_DEBUG=1
+```
+
+---
+
+## Configuration via Web UI
+
+Access settings at `http://localhost:3000/settings`
+
+### General Settings
+
+<Tabs>
+  <Tab title="Project Info">
+    - Project Name
+    - Project ID (read-only)
+    - Repository URL
+    - Default Branch
+  </Tab>
+
+  <Tab title="Executors">
+    Configure AI agents:
+
+    **Claude Code:**
+    - Enable/Disable
+    - API Key (from env)
+    - Model selection
+    - Max tokens
+
+    **Cursor CLI:**
+    - Enable/Disable
+    - CLI path
+    - Arguments
+
+    **Gemini:**
+    - Enable/Disable
+    - API Key (from env)
+    - Model selection
+
+    **OpenAI Codex:**
+    - Enable/Disable
+    - API Key (from env)
+    - Model selection
+  </Tab>
+
+  <Tab title="Worktrees">
+    - Enable/Disable worktrees
+    - Base path
+    - Auto-cleanup settings
+    - Max concurrent worktrees
+    - Branch naming prefix
+  </Tab>
+
+  <Tab title="GitHub">
+    - OAuth authentication
+    - Repository selection
+    - Issue sync settings
+    - PR integration
+  </Tab>
+</Tabs>
+
+---
+
+## Executor Configuration
+
+Configure each AI agent in `.forge/config.json`:
+
+### Claude Code
+
+```json
+{
+  "executors": {
+    "claude-code": {
+      "enabled": true,
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "model": "claude-3-5-sonnet-20241022",
+      "max_tokens": 8192,
+      "temperature": 0.7,
+      "timeout": 300000
+    }
+  }
+}
+```
+
+### Cursor CLI
+
+```json
+{
+  "executors": {
+    "cursor-cli": {
+      "enabled": true,
+      "cli_path": "/usr/local/bin/cursor",
+      "args": ["--headless"],
+      "timeout": 300000
+    }
+  }
+}
+```
+
+### Gemini
+
+```json
+{
+  "executors": {
+    "gemini": {
+      "enabled": true,
+      "api_key_env": "GOOGLE_AI_API_KEY",
+      "model": "gemini-2.0-flash-exp",
+      "temperature": 0.7,
+      "timeout": 300000
+    }
+  }
+}
+```
+
+### OpenAI Codex
+
+```json
+{
+  "executors": {
+    "codex": {
+      "enabled": true,
+      "api_key_env": "OPENAI_API_KEY",
+      "model": "gpt-4",
+      "max_tokens": 8192,
+      "temperature": 0.7,
+      "timeout": 300000
+    }
+  }
+}
+```
+
+### Open Source Agents
+
+```json
+{
+  "executors": {
+    "opencode": {
+      "enabled": true,
+      "endpoint": "http://localhost:11434",
+      "model": "codellama:latest"
+    },
+    "qwen-code": {
+      "enabled": true,
+      "endpoint": "http://localhost:11434",
+      "model": "qwen-coder:latest"
+    }
+  }
+}
+```
+
+---
+
+## Worktree Configuration
+
+Fine-tune git worktree behavior:
+
+```json
+{
+  "worktrees": {
+    // Enable git worktree isolation
+    "enabled": true,
+
+    // Where to create worktrees
+    "base_path": "./.forge/worktrees",
+
+    // Clean up when Forge exits
+    "cleanup_on_exit": true,
+
+    // Maximum simultaneous worktrees
+    "max_concurrent": 5,
+
+    // Branch name format: forge/task-{task-id}
+    "branch_prefix": "forge/task-",
+
+    // Auto-delete worktrees after merge
+    "auto_delete_merged": true,
+
+    // Keep worktrees for failed tasks
+    "keep_on_failure": false,
+
+    // Orphan cleanup interval (seconds)
+    "cleanup_interval": 3600
+  }
+}
+```
+
+---
+
+## GitHub OAuth Configuration
+
+### Create GitHub OAuth App
+
+<Steps>
+  <Step title="Go to GitHub Settings">
+    Navigate to: https://github.com/settings/developers
+  </Step>
+
+  <Step title="New OAuth App">
+    Click "New OAuth App"
+
+    **Settings:**
+    - Application name: "Automagik Forge"
+    - Homepage URL: `http://localhost:3000`
+    - Authorization callback URL: `http://localhost:3000/auth/callback`
+  </Step>
+
+  <Step title="Get Client ID">
+    Copy the Client ID from the OAuth app page
+  </Step>
+
+  <Step title="Set Environment Variable">
+    ```bash
+    export GITHUB_CLIENT_ID=your_client_id_here
+
+    # Or add to .env file
+    echo "GITHUB_CLIENT_ID=your_client_id_here" >> .env
+    ```
+  </Step>
+
+  <Step title="Restart Forge">
+    ```bash
+    automagik-forge
+    ```
+
+    GitHub authentication will now be available in Settings → GitHub
+  </Step>
+</Steps>
+
+---
+
+## Configuration Validation
+
+Validate your configuration:
+
+```bash
+# Start Forge and check logs
+automagik-forge
+
+# Look for configuration warnings:
+# ✅ Configuration loaded successfully
+# ⚠️  Missing GitHub OAuth configuration
+# ⚠️  No API keys found for executors
+# ❌ Invalid worktree path
+
+# Check configuration file syntax
+cat .forge/config.json | jq .
+
+# Verify environment variables
+env | grep -E 'FORGE|BACKEND|FRONTEND|ANTHROPIC|GOOGLE|OPENAI'
+```
+
+---
+
+## Configuration Backup
+
+### Manual Backup
+
+```bash
+# Backup configuration
+cp .forge/config.json .forge/config.backup.json
+
+# Backup entire .forge directory
+tar -czf forge-backup.tar.gz .forge/
+
+# Restore from backup
+tar -xzf forge-backup.tar.gz
+```
+
+### Export via API
+
+```bash
+# Export project configuration
+curl http://localhost:5000/api/projects/{project-id}/export > config-backup.json
+
+# Import configuration
+curl -X POST http://localhost:5000/api/projects/import \
+  -H "Content-Type: application/json" \
+  -d @config-backup.json
+```
+
+---
+
+## Configuration Migration
+
+### From v0.3.x to v0.4.x
+
+```bash
+# Backup old config
+cp .forge/config.json .forge/config.v3.backup.json
+
+# Update structure (handled automatically on startup)
+automagik-forge
+
+# Verify migration
+cat .forge/config.json | jq .
+```
+
+Key changes:
+- Added `preferences` section
+- New executor configuration format
+- Enhanced worktree settings
+
+---
+
+## Advanced Configuration
+
+### Custom Executor
+
+Add a custom AI agent executor:
+
+```json
+{
+  "executors": {
+    "custom-agent": {
+      "enabled": true,
+      "type": "http",
+      "endpoint": "http://localhost:8080/api/execute",
+      "headers": {
+        "Authorization": "Bearer ${CUSTOM_AGENT_TOKEN}"
+      },
+      "timeout": 600000
+    }
+  }
+}
+```
+
+### Proxy Configuration
+
+Route executor requests through a proxy:
+
+```bash
+# HTTP proxy
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+
+# No proxy for localhost
+export NO_PROXY=localhost,127.0.0.1
+```
+
+### Rate Limiting
+
+Configure executor rate limits:
+
+```json
+{
+  "executors": {
+    "claude-code": {
+      "rate_limit": {
+        "requests_per_minute": 50,
+        "tokens_per_minute": 100000
+      }
+    }
+  }
+}
+```
+
+---
+
+## Security Best Practices
+
+<Warning>
+**Never commit these files:**
+- `.forge/config.json` (may contain tokens)
+- `.env` (contains API keys)
+- `.forge/db.sqlite` (project data)
+
+Add to `.gitignore`:
+```
+.forge/
+.env
+```
+</Warning>
+
+### Secure API Keys
+
+```bash
+# Use environment variables, not config file
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Or use a secrets manager
+# AWS Secrets Manager
+export ANTHROPIC_API_KEY=$(aws secretsmanager get-secret-value \
+  --secret-id forge/anthropic-key \
+  --query SecretString \
+  --output text)
+
+# 1Password CLI
+export ANTHROPIC_API_KEY=$(op read "op://Personal/Anthropic API Key/credential")
+```
+
+### File Permissions
+
+```bash
+# Restrict config file permissions
+chmod 600 .forge/config.json
+
+# Restrict .forge directory
+chmod 700 .forge/
+```
+
+---
+
+## Troubleshooting Configuration
+
+<AccordionGroup>
+  <Accordion title="Configuration not loading">
+    ```bash
+    # Check file exists
+    ls -la .forge/config.json
+
+    # Validate JSON syntax
+    cat .forge/config.json | jq .
+
+    # Check permissions
+    ls -l .forge/config.json
+
+    # View Forge logs
+    automagik-forge 2>&1 | grep -i config
+    ```
+  </Accordion>
+
+  <Accordion title="Executor not working">
+    ```bash
+    # Verify API key is set
+    echo $ANTHROPIC_API_KEY
+
+    # Check executor enabled in config
+    cat .forge/config.json | jq '.executors'
+
+    # Test API key manually
+    curl -H "x-api-key: $ANTHROPIC_API_KEY" \
+      https://api.anthropic.com/v1/messages
+    ```
+  </Accordion>
+
+  <Accordion title="GitHub OAuth failing">
+    ```bash
+    # Verify client ID
+    echo $GITHUB_CLIENT_ID
+
+    # Check OAuth app settings on GitHub
+    # Callback URL must match: http://localhost:3000/auth/callback
+
+    # Clear cached tokens
+    rm .forge/github-token.enc
+    ```
+  </Accordion>
+
+  <Accordion title="Port conflicts">
+    ```bash
+    # Find what's using the port
+    lsof -i :3000
+
+    # Use different ports
+    automagik-forge --port 3001 --backend-port 5001
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="code" href="/forge/config/environment-variables">
+    Complete environment variable reference
+  </Card>
+  <Card title="GitHub OAuth" icon="github" href="/forge/config/github-oauth">
+    Detailed GitHub integration setup
+  </Card>
+  <Card title="LLM Configuration" icon="brain" href="/forge/config/llm-configuration">
+    Configure AI agents and models
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/forge/troubleshooting/common-issues">
+    Common configuration issues
+  </Card>
+</CardGroup>

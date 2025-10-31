@@ -1,0 +1,564 @@
+---
+title: "REST API Overview"
+description: "Complete reference for Forge's REST API"
+icon: "code"
+---
+
+## Overview
+
+Forge provides a comprehensive REST API for programmatic access to all features. Build integrations, automate workflows, or create custom tooling.
+
+<Info>
+**Base URL**: `http://localhost:8080/api` (default)
+</Info>
+
+---
+
+## Authentication
+
+### API Keys (Coming Soon)
+
+Currently, Forge runs locally without authentication. API key authentication will be added for remote deployments.
+
+```bash
+# Future API key usage
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/api/projects
+```
+
+### GitHub OAuth
+
+For web UI access, GitHub OAuth is used. API access uses session cookies.
+
+---
+
+## Base URL
+
+```bash
+# Local development (default)
+BASE_URL=http://localhost:8080
+
+# Custom port
+BASE_URL=http://localhost:3001
+
+# Remote deployment
+BASE_URL=https://forge.yourdomain.com
+```
+
+---
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "version": "0.4.4"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TASK_NOT_FOUND",
+    "message": "Task with id 'abc123' not found",
+    "details": {}
+  },
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `VALIDATION_ERROR` | 400 | Invalid request parameters |
+| `UNAUTHORIZED` | 401 | Authentication required |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `NOT_FOUND` | 404 | Resource not found |
+| `CONFLICT` | 409 | Resource conflict |
+| `RATE_LIMIT` | 429 | Too many requests |
+| `INTERNAL_ERROR` | 500 | Server error |
+
+---
+
+## Pagination
+
+List endpoints support pagination:
+
+```bash
+GET /api/tasks?page=1&limit=20
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 156,
+    "pages": 8,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+**Parameters**:
+- `page`: Page number (1-indexed)
+- `limit`: Items per page (max: 100)
+
+---
+
+## Filtering & Sorting
+
+### Filtering
+
+```bash
+# Filter by status
+GET /api/tasks?status=in_progress
+
+# Multiple filters
+GET /api/tasks?status=pending&priority=high
+
+# Filter by label
+GET /api/tasks?labels=feature,backend
+```
+
+### Sorting
+
+```bash
+# Sort by created date (descending)
+GET /api/tasks?sort=-created_at
+
+# Sort by priority (ascending)
+GET /api/tasks?sort=priority
+
+# Multiple sort fields
+GET /api/tasks?sort=-priority,created_at
+```
+
+**Sort prefix**:
+- `-` = Descending
+- No prefix = Ascending
+
+---
+
+## API Endpoints
+
+### Core Resources
+
+<CardGroup cols={2}>
+  <Card title="Projects" icon="folder" href="/forge/api/projects">
+    Manage Forge projects
+
+    - `GET /api/projects`
+    - `POST /api/projects`
+    - `GET /api/projects/:id`
+    - `PATCH /api/projects/:id`
+    - `DELETE /api/projects/:id`
+  </Card>
+
+  <Card title="Tasks" icon="list-check" href="/forge/api/tasks">
+    Manage tasks and workflows
+
+    - `GET /api/tasks`
+    - `POST /api/tasks`
+    - `GET /api/tasks/:id`
+    - `PATCH /api/tasks/:id`
+    - `DELETE /api/tasks/:id`
+  </Card>
+
+  <Card title="Attempts" icon="flask" href="/forge/api/attempts">
+    Manage task attempts
+
+    - `GET /api/attempts`
+    - `POST /api/attempts`
+    - `GET /api/attempts/:id`
+    - `DELETE /api/attempts/:id`
+  </Card>
+
+  <Card title="Processes" icon="gear" href="/forge/api/processes">
+    Monitor running processes
+
+    - `GET /api/processes`
+    - `GET /api/processes/:id`
+    - `POST /api/processes/:id/cancel`
+  </Card>
+</CardGroup>
+
+---
+
+## Quick Examples
+
+### Get All Tasks
+
+```bash
+curl http://localhost:8080/api/tasks
+```
+
+### Create New Task
+
+```bash
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add user authentication",
+    "description": "Implement JWT-based auth",
+    "projectId": "project-123",
+    "llm": "claude",
+    "priority": "high",
+    "labels": ["feature", "backend"]
+  }'
+```
+
+### Update Task Status
+
+```bash
+curl -X PATCH http://localhost:8080/api/tasks/task-123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "in_progress"
+  }'
+```
+
+### Start Task Attempt
+
+```bash
+curl -X POST http://localhost:8080/api/attempts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "taskId": "task-123",
+    "llm": "claude",
+    "options": {}
+  }'
+```
+
+---
+
+## Rate Limiting
+
+Current limits (local deployment):
+
+```
+No rate limits for local usage
+```
+
+Future limits (remote deployment):
+
+```
+- 60 requests per minute per IP
+- 1000 requests per hour per user
+```
+
+**Rate limit headers**:
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1642248000
+```
+
+---
+
+## Webhooks
+
+Subscribe to Forge events:
+
+```bash
+POST /api/webhooks
+{
+  "url": "https://your-server.com/webhook",
+  "events": ["task.created", "task.completed", "attempt.failed"],
+  "secret": "your-webhook-secret"
+}
+```
+
+**Webhook payload**:
+```json
+{
+  "event": "task.completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "taskId": "task-123",
+    "status": "completed",
+    "duration": 322000
+  },
+  "signature": "sha256=abc123..."
+}
+```
+
+---
+
+## WebSocket API
+
+Real-time updates via WebSocket:
+
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws');
+
+ws.onopen = () => {
+  // Subscribe to task updates
+  ws.send(JSON.stringify({
+    type: 'subscribe',
+    channel: 'tasks',
+    taskId: 'task-123'
+  }));
+};
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+  console.log('Task update:', update);
+};
+```
+
+**Update messages**:
+```json
+{
+  "type": "task.status_changed",
+  "taskId": "task-123",
+  "status": "in_progress",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+## SDK Libraries
+
+### JavaScript/TypeScript
+
+```bash
+npm install @automagik/forge-sdk
+```
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient({
+  baseUrl: 'http://localhost:8080'
+});
+
+// Create task
+const task = await forge.tasks.create({
+  title: 'Add authentication',
+  projectId: 'project-123',
+  llm: 'claude'
+});
+
+// Start attempt
+const attempt = await forge.attempts.create({
+  taskId: task.id,
+  llm: 'claude'
+});
+```
+
+### Python
+
+```bash
+pip install automagik-forge
+```
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient(base_url='http://localhost:8080')
+
+# Create task
+task = forge.tasks.create(
+    title='Add authentication',
+    project_id='project-123',
+    llm='claude'
+)
+
+# Start attempt
+attempt = forge.attempts.create(
+    task_id=task.id,
+    llm='claude'
+)
+```
+
+---
+
+## API Versioning
+
+Current version: **v1** (implicit)
+
+Future versioning:
+
+```bash
+# Explicit version in URL
+GET /api/v1/tasks
+
+# Or via header
+GET /api/tasks
+Accept: application/vnd.forge.v1+json
+```
+
+---
+
+## OpenAPI Specification
+
+Download the full OpenAPI spec:
+
+```bash
+# JSON format
+curl http://localhost:8080/api/openapi.json > forge-api.json
+
+# YAML format
+curl http://localhost:8080/api/openapi.yaml > forge-api.yaml
+```
+
+Import into tools like:
+- Postman
+- Insomnia
+- Swagger UI
+- API clients
+
+---
+
+## Testing the API
+
+### Using cURL
+
+```bash
+# Set base URL
+BASE=http://localhost:8080/api
+
+# Get all tasks
+curl $BASE/tasks
+
+# Create task
+curl -X POST $BASE/tasks \
+  -H "Content-Type: application/json" \
+  -d @task.json
+
+# Pretty print JSON
+curl $BASE/tasks | jq
+```
+
+### Using HTTPie
+
+```bash
+# Install HTTPie
+brew install httpie
+
+# Get tasks (cleaner syntax)
+http localhost:8080/api/tasks
+
+# Create task
+http POST localhost:8080/api/tasks \
+  title="Add feature" \
+  projectId="project-123" \
+  llm="claude"
+```
+
+### Using Postman
+
+1. Import OpenAPI spec: `http://localhost:8080/api/openapi.json`
+2. Set environment variable: `baseUrl = http://localhost:8080`
+3. Start making requests
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use SDK Libraries" icon="code">
+    Use official SDKs instead of raw HTTP:
+
+    ```typescript
+    // Good ✅
+    forge.tasks.create({...})
+
+    // Avoid ❌
+    fetch('/api/tasks', {...})
+    ```
+
+    SDKs handle auth, retries, typing
+  </Card>
+
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    ```typescript
+    try {
+      const task = await forge.tasks.create({...});
+    } catch (error) {
+      if (error.code === 'VALIDATION_ERROR') {
+        // Handle validation
+      } else if (error.code === 'NOT_FOUND') {
+        // Handle not found
+      }
+    }
+    ```
+  </Card>
+
+  <Card title="Use Pagination" icon="list">
+    Don't fetch all at once:
+
+    ```typescript
+    // Good ✅
+    const tasks = await forge.tasks.list({
+      page: 1,
+      limit: 20
+    });
+
+    // Bad ❌
+    const allTasks = await forge.tasks.list({
+      limit: 10000
+    });
+    ```
+  </Card>
+
+  <Card title="Cache Responses" icon="database">
+    ```typescript
+    const cache = new Map();
+
+    async function getTask(id) {
+      if (cache.has(id)) {
+        return cache.get(id);
+      }
+
+      const task = await forge.tasks.get(id);
+      cache.set(id, task);
+      return task;
+    }
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Projects API" icon="folder" href="/forge/api/projects">
+    Manage Forge projects
+  </Card>
+
+  <Card title="Tasks API" icon="list-check" href="/forge/api/tasks">
+    Create and manage tasks
+  </Card>
+
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Execute tasks with AI agents
+  </Card>
+
+  <Card title="MCP Tools" icon="plug" href="/forge/api/mcp-tools">
+    Use Forge from AI coding agents
+  </Card>
+</CardGroup>

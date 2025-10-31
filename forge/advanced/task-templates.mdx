@@ -1,0 +1,567 @@
+---
+title: "Task Templates"
+description: "Reusable task patterns and templates"
+icon: "file-lines"
+---
+
+## Overview
+
+Task templates are pre-configured patterns for common workflows. Save time by reusing proven approaches instead of starting from scratch every time.
+
+<Info>
+Templates capture task structure, description patterns, labels, and agent preferences.
+</Info>
+
+---
+
+## Built-in Templates
+
+### Authentication Template
+
+```bash
+forge task create --template auth
+
+# Creates task with:
+# - Title: "Implement authentication system"
+# - Description: JWT, login/signup endpoints, middleware
+# - Labels: feature, backend, security
+# - Recommended agent: security-expert
+# - Subtasks: JWT generation, endpoints, middleware, tests
+```
+
+### CRUD Template
+
+```bash
+forge task create --template crud --resource User
+
+# Creates tasks for:
+# - Create endpoint (POST /users)
+# - Read endpoints (GET /users, GET /users/:id)
+# - Update endpoint (PUT /users/:id)
+# - Delete endpoint (DELETE /users/:id)
+# - Validation and tests
+```
+
+### Component Template
+
+```bash
+forge task create --template component --name "UserProfile"
+
+# Creates React component task with:
+# - TypeScript types
+# - Props interface
+# - Accessibility requirements
+# - Tests with React Testing Library
+# - Storybook story
+```
+
+### API Integration Template
+
+```bash
+forge task create --template api-integration --service "Stripe"
+
+# Creates integration tasks:
+# - Client wrapper
+# - Error handling
+# - Webhook handler
+# - Tests with mocks
+# - Documentation
+```
+
+---
+
+## Creating Custom Templates
+
+### Template File Structure
+
+Create `.forge/templates/my-template.yaml`:
+
+```yaml
+name: "My Custom Template"
+description: "Template for our team's standard feature"
+version: "1.0.0"
+
+metadata:
+  author: "Your Team"
+  tags: ["backend", "api"]
+
+# Default values
+defaults:
+  priority: "medium"
+  llm: "claude"
+  agent: "team-standard"
+  labels:
+    - "feature"
+
+# Template variables
+variables:
+  - name: "resourceName"
+    description: "Name of the resource (e.g., User, Product)"
+    required: true
+    type: "string"
+
+  - name: "includeAuth"
+    description: "Include authentication"
+    required: false
+    type: "boolean"
+    default: true
+
+# Task structure
+task:
+  title: "Implement {{resourceName}} management"
+  description: |
+    Create complete {{resourceName}} management system:
+
+    ## Endpoints
+    - POST /api/{{resourceName | lowercase}}s
+    - GET /api/{{resourceName | lowercase}}s
+    - GET /api/{{resourceName | lowercase}}s/:id
+    - PUT /api/{{resourceName | lowercase}}s/:id
+    - DELETE /api/{{resourceName | lowercase}}s/:id
+
+    ## Requirements
+    {{#if includeAuth}}
+    - Authentication required
+    - Role-based access control
+    {{/if}}
+    - Input validation
+    - Error handling
+    - Tests (90%+ coverage)
+    - API documentation
+
+  labels:
+    - "feature"
+    - "api"
+    - "{{resourceName | lowercase}}"
+
+  priority: "{{priority}}"
+
+  # Subtasks
+  subtasks:
+    - title: "Design {{resourceName}} data model"
+      description: "Create database schema and types"
+      labels: ["database", "model"]
+
+    - title: "Implement CRUD operations"
+      description: "Create repository layer"
+      labels: ["backend", "repository"]
+
+    - title: "Create API endpoints"
+      description: "Implement REST endpoints"
+      labels: ["api", "endpoints"]
+      depends_on: ["database"]
+
+    - title: "Add validation"
+      description: "Input validation for all endpoints"
+      labels: ["validation"]
+
+    - title: "Write tests"
+      description: "Integration and unit tests"
+      labels: ["testing"]
+      agent: "test-writer"
+      depends_on: ["endpoints"]
+
+    - title: "Generate documentation"
+      description: "API docs with OpenAPI"
+      labels: ["documentation"]
+      agent: "docs-writer"
+```
+
+---
+
+## Using Templates
+
+### CLI
+
+```bash
+# Use built-in template
+forge task create --template auth
+
+# Use custom template
+forge task create --template .forge/templates/my-template.yaml \
+  --var resourceName=Product \
+  --var includeAuth=true
+
+# List available templates
+forge template list
+
+# View template details
+forge template show auth
+```
+
+### Via API
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Create from template
+const task = await forge.tasks.createFromTemplate({
+  template: 'crud',
+  variables: {
+    resourceName: 'Product',
+    includeAuth: true
+  },
+  projectId: 'proj_abc123'
+});
+```
+
+---
+
+## Template Variables
+
+### Variable Types
+
+```yaml
+variables:
+  # String
+  - name: "componentName"
+    type: "string"
+    required: true
+
+  # Boolean
+  - name: "includeTests"
+    type: "boolean"
+    default: true
+
+  # Choice
+  - name: "framework"
+    type: "choice"
+    options: ["react", "vue", "angular"]
+    default: "react"
+
+  # Number
+  - name: "timeout"
+    type: "number"
+    default: 5000
+    min: 1000
+    max: 60000
+
+  # Array
+  - name: "features"
+    type: "array"
+    items: "string"
+    default: ["auth", "profile"]
+```
+
+### Template Filters
+
+```yaml
+task:
+  title: "{{name | capitalize}}"
+  description: "{{name | lowercase | pluralize}}"
+
+  # Available filters:
+  # - capitalize: "user" → "User"
+  # - lowercase: "User" → "user"
+  # - uppercase: "user" → "USER"
+  # - pluralize: "user" → "users"
+  # - singularize: "users" → "user"
+  # - kebabcase: "UserProfile" → "user-profile"
+  # - snakecase: "UserProfile" → "user_profile"
+  # - camelcase: "user-profile" → "userProfile"
+```
+
+---
+
+## Real-World Templates
+
+### Full-Stack Feature Template
+
+```yaml
+name: "Full-Stack Feature"
+description: "Complete feature with frontend and backend"
+
+variables:
+  - name: "featureName"
+    type: "string"
+    required: true
+
+task:
+  title: "Implement {{featureName}} feature"
+
+  subtasks:
+    # Backend
+    - title: "Design {{featureName}} API"
+      description: "Design RESTful API endpoints"
+      labels: ["backend", "api", "design"]
+      llm: "claude"
+
+    - title: "Implement {{featureName}} backend"
+      description: "Create API endpoints and business logic"
+      labels: ["backend", "implementation"]
+      depends_on: ["api-design"]
+
+    - title: "Add backend tests"
+      description: "Unit and integration tests"
+      labels: ["backend", "testing"]
+      agent: "test-writer"
+      depends_on: ["backend"]
+
+    # Frontend
+    - title: "Design {{featureName}} UI"
+      description: "Create UI mockups and component structure"
+      labels: ["frontend", "ui", "design"]
+      llm: "cursor"
+
+    - title: "Implement {{featureName}} UI"
+      description: "Build React components"
+      labels: ["frontend", "implementation"]
+      llm: "cursor"
+      depends_on: ["ui-design", "backend"]
+
+    - title: "Add frontend tests"
+      description: "Component and E2E tests"
+      labels: ["frontend", "testing"]
+      agent: "test-writer"
+      depends_on: ["ui"]
+
+    # Integration
+    - title: "Integration testing"
+      description: "End-to-end integration tests"
+      labels: ["integration", "testing"]
+      depends_on: ["backend-tests", "frontend-tests"]
+
+    - title: "Documentation"
+      description: "User and developer docs"
+      labels: ["documentation"]
+      agent: "docs-writer"
+      depends_on: ["integration"]
+```
+
+### Microservice Template
+
+```yaml
+name: "Microservice"
+description: "New microservice with full setup"
+
+variables:
+  - name: "serviceName"
+    type: "string"
+    required: true
+
+  - name: "language"
+    type: "choice"
+    options: ["typescript", "python", "go"]
+    default: "typescript"
+
+task:
+  title: "Create {{serviceName}} microservice"
+
+  subtasks:
+    - title: "Project setup"
+      description: |
+        Initialize {{language}} project with:
+        - Package manager setup
+        - TypeScript/linting config
+        - Docker setup
+        - CI/CD pipeline
+
+    - title: "Service implementation"
+      description: "Core service logic and API"
+
+    - title: "Database integration"
+      description: "Database schema and migrations"
+      agent: "database-expert"
+
+    - title: "Authentication"
+      description: "JWT validation and authorization"
+      agent: "security-expert"
+
+    - title: "Observability"
+      description: |
+        Add monitoring and logging:
+        - Structured logging
+        - Metrics (Prometheus)
+        - Tracing (Jaeger)
+        - Health checks
+
+    - title: "Testing"
+      description: "Unit, integration, and contract tests"
+      agent: "test-writer"
+
+    - title: "Documentation"
+      description: |
+        Complete documentation:
+        - API documentation
+        - Deployment guide
+        - Runbook
+      agent: "docs-writer"
+```
+
+---
+
+## Template Marketplace
+
+### Sharing Templates
+
+```bash
+# Publish template
+forge template publish .forge/templates/my-template.yaml
+
+# Install from marketplace
+forge template install auth-advanced
+
+# Search templates
+forge template search "authentication"
+```
+
+### Community Templates
+
+Browse templates at: https://templates.forge.automag.ik
+
+Categories:
+- **Authentication**: OAuth, JWT, SAML
+- **CRUD Operations**: REST, GraphQL
+- **Frontend Components**: React, Vue, Angular
+- **Microservices**: API Gateway, Service Mesh
+- **Infrastructure**: Terraform, Kubernetes
+- **Testing**: Unit, E2E, Performance
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Templates Focused" icon="bullseye">
+    One template = one purpose
+
+    **Good**: "JWT Authentication"
+    **Bad**: "Complete application"
+  </Card>
+
+  <Card title="Use Variables Wisely" icon="sliders">
+    ```yaml
+    # Essential variables only
+    variables:
+      - name: "resourceName"  # Yes
+      - name: "indentSize"    # No (too specific)
+    ```
+  </Card>
+
+  <Card title="Include Documentation" icon="book">
+    ```yaml
+    description: |
+      This template creates a REST API with:
+      - CRUD endpoints
+      - Validation
+      - Tests
+
+      Best for: Resource management
+    ```
+  </Card>
+
+  <Card title="Version Your Templates" icon="code-branch">
+    ```yaml
+    version: "2.1.0"
+    changelog:
+      - "2.1.0: Added pagination support"
+      - "2.0.0: Breaking: Changed to TypeScript"
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Advanced Features
+
+### Conditional Subtasks
+
+```yaml
+subtasks:
+  - title: "Add authentication"
+    condition: "{{includeAuth}}"
+
+  - title: "Setup Redis cache"
+    condition: "{{caching === 'redis'}}"
+```
+
+### Dynamic Dependencies
+
+```yaml
+subtasks:
+  - id: "frontend"
+    title: "Build frontend"
+
+  - id: "backend"
+    title: "Build backend"
+
+  - id: "integration"
+    title: "Integration tests"
+    depends_on:
+      - "{{frontend}}"
+      - "{{backend}}"
+```
+
+### Template Inheritance
+
+```yaml
+extends: "base-api-template"
+
+# Override specific parts
+task:
+  description: "Custom description"
+
+  # Add extra subtasks
+  subtasks:
+    - title: "Custom step"
+      description: "Team-specific requirement"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Template not found">
+    **Error**: "Template 'my-template' not found"
+
+    **Solutions**:
+    - Check template path is correct
+    - List available: `forge template list`
+    - Verify template file exists
+    - Check template syntax: `forge template validate my-template.yaml`
+  </Accordion>
+
+  <Accordion title="Variable substitution failed">
+    **Error**: "Required variable 'resourceName' not provided"
+
+    **Solutions**:
+    - Provide variable: `--var resourceName=User`
+    - Check variable names match template
+    - Use quotes for multi-word values: `--var name="User Profile"`
+  </Accordion>
+
+  <Accordion title="Invalid template syntax">
+    **Error**: "Template parse error"
+
+    **Solutions**:
+    - Validate YAML: `forge template validate`
+    - Check indentation (use spaces, not tabs)
+    - Verify variable syntax: `{{varName}}`
+    - Check filter syntax: `{{var | filter}}`
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Specialized Agents" icon="user-gear" href="/forge/advanced/specialized-agents">
+    Combine templates with agents
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Complete development workflows
+  </Card>
+
+  <Card title="Creating Tasks" icon="plus" href="/forge/working/creating-tasks">
+    Learn task creation basics
+  </Card>
+
+  <Card title="Template Marketplace" icon="store" href="https://templates.forge.automag.ik">
+    Browse community templates
+  </Card>
+</CardGroup>

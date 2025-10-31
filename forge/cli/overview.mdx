@@ -1,0 +1,310 @@
+---
+title: "CLI Overview"
+description: "Command-line interface for Automagik Forge"
+icon: "terminal"
+---
+
+## Overview
+
+Automagik Forge provides a command-line interface for starting the web UI, managing the MCP server, and running the backend programmatically.
+
+---
+
+## Quick Start
+
+```bash
+# Install globally
+npm install -g automagik-forge
+
+# Or run directly with npx
+npx automagik-forge
+```
+
+---
+
+## Main Command
+
+The primary command launches the Forge web interface:
+
+```bash
+automagik-forge [options]
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--mcp` | Start in MCP server mode (basic, 6 tools) | Web UI mode |
+| `--mcp-advanced` | Start in MCP server mode (advanced, 56+ tools) | Web UI mode |
+| `--port <port>` | Specify frontend port | 3000 |
+| `--backend-port <port>` | Specify backend API port | Auto-assigned |
+| `--host <host>` | Specify host address | 127.0.0.1 |
+
+---
+
+## Usage Modes
+
+<Tabs>
+  <Tab title="Web UI Mode (Default)">
+    **Launch the full Kanban interface:**
+
+    ```bash
+    # Start on default port (3000)
+    automagik-forge
+
+    # Custom port
+    automagik-forge --port 8080
+
+    # Custom backend port
+    automagik-forge --port 3000 --backend-port 5000
+    ```
+
+    Opens browser at `http://localhost:3000` with:
+    - Visual Kanban board
+    - Task management interface
+    - Real-time execution logs
+    - Project settings
+    - GitHub integration
+  </Tab>
+
+  <Tab title="MCP Server Mode">
+    **Run as Model Context Protocol server:**
+
+    ```bash
+    # Basic MCP mode (6 core task management tools)
+    automagik-forge --mcp
+
+    # Advanced MCP mode (56+ tools including projects, attempts, processes)
+    automagik-forge --mcp-advanced
+    ```
+
+    **Basic Mode Tools (6):**
+    - `list_projects` - List all projects
+    - `list_tasks` - View tasks with filters
+    - `create_task` - Create new tasks
+    - `get_task` - Get task details
+    - `update_task` - Modify task properties
+    - `delete_task` - Remove tasks
+
+    **Advanced Mode Tools (56+):**
+    - All basic tools
+    - Project management (create, update, archive)
+    - Task attempts (multiple AI agent tries)
+    - Process execution (start, stop, monitor)
+    - Draft management
+    - Container operations
+    - Filesystem operations
+    - Omni integration (messaging)
+
+    See [MCP Tools Reference](/forge/api/mcp-tools) for complete list.
+  </Tab>
+</Tabs>
+
+---
+
+## Environment Variables
+
+Configure Forge behavior via environment variables:
+
+```bash
+# Backend configuration
+export BACKEND_PORT=5000
+export HOST=0.0.0.0
+
+# GitHub OAuth (optional)
+export GITHUB_CLIENT_ID=your_client_id
+
+# Analytics (optional)
+export POSTHOG_API_KEY=your_posthog_key
+
+# Debug options
+export RUST_LOG=debug
+export DISABLE_WORKTREE_ORPHAN_CLEANUP=1
+```
+
+---
+
+## Configuration File
+
+Forge stores configuration in your project:
+
+```bash
+# Initialize configuration
+cd your-project
+automagik-forge
+
+# Creates .forge/ directory:
+.forge/
+├── config.json          # Main configuration
+├── db.sqlite            # Task database
+├── worktrees/           # Git worktrees for isolated execution
+└── logs/                # Execution logs
+```
+
+### config.json Structure
+
+```json
+{
+  "project_id": "uuid-here",
+  "github": {
+    "repository": "owner/repo",
+    "token": "encrypted"
+  },
+  "worktrees": {
+    "enabled": true,
+    "base_path": "./.forge/worktrees",
+    "cleanup_on_exit": true
+  },
+  "executors": {
+    "default": "claude-code",
+    "available": ["claude-code", "cursor-cli", "gemini", "codex"]
+  }
+}
+```
+
+---
+
+## Platform Support
+
+Forge provides native binaries for multiple platforms:
+
+<CardGroup cols={3}>
+  <Card title="Linux" icon="linux">
+    - x64 (Intel/AMD)
+    - ARM64
+  </Card>
+  <Card title="macOS" icon="apple">
+    - x64 (Intel)
+    - ARM64 (Apple Silicon)
+    - Rosetta detection
+  </Card>
+  <Card title="Windows" icon="windows">
+    - x64
+    - ARM64
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: automagik-forge">
+    If you installed globally but can't run the command:
+
+    ```bash
+    # Check NPM global bin path
+    npm config get prefix
+
+    # Add to PATH (add to ~/.bashrc or ~/.zshrc)
+    export PATH="$(npm config get prefix)/bin:$PATH"
+
+    # Reload shell
+    source ~/.bashrc  # or source ~/.zshrc
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    ```bash
+    # Find process using port
+    lsof -i :3000  # macOS/Linux
+    netstat -ano | findstr :3000  # Windows
+
+    # Use different port
+    automagik-forge --port 8080
+    ```
+  </Accordion>
+
+  <Accordion title="Unsupported platform error">
+    ```
+    ❌ Unsupported platform: linux-arm32
+    ```
+
+    Forge supports:
+    - Linux x64, Linux ARM64
+    - macOS x64 (Intel), macOS ARM64 (Apple Silicon)
+    - Windows x64, Windows ARM64
+
+    For unsupported platforms, build from source:
+    ```bash
+    git clone https://github.com/namastexlabs/automagik-forge
+    cd automagik-forge
+    ./local-build.sh
+    ```
+  </Accordion>
+
+  <Accordion title="MCP server not responding">
+    ```bash
+    # Check if MCP server is running
+    ps aux | grep automagik-forge
+
+    # Check MCP server logs
+    cat ~/.forge/mcp-server.log
+
+    # Restart in MCP mode
+    automagik-forge --mcp
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Programmatic Usage
+
+While Forge is primarily a web UI, you can interact with it programmatically:
+
+### Via MCP (Recommended)
+
+Configure in your AI agent (Claude Code, Cursor, etc.):
+
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid"
+      }
+    }
+  }
+}
+```
+
+### Via REST API
+
+When Forge is running, it exposes a REST API:
+
+```bash
+# Start Forge
+automagik-forge --port 3000 --backend-port 5000
+
+# API available at http://localhost:5000/api
+curl http://localhost:5000/api/projects
+curl http://localhost:5000/api/tasks
+```
+
+See [API Reference](/forge/api/rest-overview) for complete endpoints.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Project Commands" icon="folder" href="/forge/cli/project-commands">
+    Manage projects and repositories
+  </Card>
+  <Card title="Task Commands" icon="list-check" href="/forge/cli/task-commands">
+    Create and manage tasks
+  </Card>
+  <Card title="Config Commands" icon="gear" href="/forge/cli/config-commands">
+    Configuration management
+  </Card>
+  <Card title="MCP Tools Reference" icon="plug" href="/forge/api/mcp-tools">
+    Complete MCP tool documentation
+  </Card>
+</CardGroup>
+
+---
+
+**Note**: Forge is designed as a graphical web interface. The CLI primarily serves to launch the UI and provide MCP server functionality for AI agent integration.

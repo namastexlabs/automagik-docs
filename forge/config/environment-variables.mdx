@@ -1,0 +1,327 @@
+---
+title: "Environment Variables"
+description: "Configure Forge with environment variables"
+icon: "gear"
+---
+
+## Overview
+
+Forge uses environment variables for configuration. Set these in your shell, `.env` file, or deployment platform.
+
+<Warning>
+**Never commit secrets!** Add `.env` to your `.gitignore` and use environment-specific configuration for production.
+</Warning>
+
+---
+
+## Core Configuration
+
+### Server Configuration
+
+<ParamField path="HOST" type="string" default="127.0.0.1">
+  The host address for the Forge backend server
+
+  ```bash
+  HOST=0.0.0.0  # Listen on all interfaces
+  ```
+</ParamField>
+
+<ParamField path="BACKEND_PORT" type="number" default="auto-assigned">
+  Port for the backend API server. Auto-assigned by `scripts/setup-dev-environment.js` in development
+
+  ```bash
+  BACKEND_PORT=8080
+  ```
+</ParamField>
+
+<ParamField path="FRONTEND_PORT" type="number" default="3000">
+  Port for the frontend development server
+
+  ```bash
+  FRONTEND_PORT=3000
+  ```
+</ParamField>
+
+---
+
+## GitHub Integration
+
+### OAuth Configuration
+
+<ParamField path="GITHUB_CLIENT_ID" type="string" optional>
+  GitHub OAuth App Client ID for custom authentication
+
+  ```bash
+  GITHUB_CLIENT_ID=Iv1.1234567890abcdef
+  ```
+
+  <Info>
+  Not required for basic usage. Forge includes default OAuth credentials for development. Set this only if you want to use your own GitHub OAuth App.
+  </Info>
+</ParamField>
+
+<ParamField path="GITHUB_CLIENT_SECRET" type="string" optional>
+  GitHub OAuth App Client Secret (production only)
+
+  ```bash
+  GITHUB_CLIENT_SECRET=your_secret_here
+  ```
+
+  <Warning>
+  **Never commit this!** Use secret management services in production (AWS Secrets Manager, HashiCorp Vault, etc.)
+  </Warning>
+</ParamField>
+
+### Creating Your Own GitHub OAuth App
+
+If you want to use your own GitHub OAuth credentials:
+
+<Steps>
+  <Step title="Create OAuth App">
+    Go to [GitHub Developer Settings](https://github.com/settings/developers) → OAuth Apps → New OAuth App
+  </Step>
+
+  <Step title="Configure App">
+    - **Application name**: "My Forge Instance"
+    - **Homepage URL**: `http://localhost:3000`
+    - **Authorization callback URL**: `http://localhost:3000/auth/github/callback`
+  </Step>
+
+  <Step title="Get Credentials">
+    After creating, copy the **Client ID** and generate a **Client Secret**
+  </Step>
+
+  <Step title="Set Environment Variables">
+    ```bash
+    export GITHUB_CLIENT_ID=your_client_id
+    export GITHUB_CLIENT_SECRET=your_client_secret
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Analytics & Monitoring
+
+<ParamField path="POSTHOG_API_KEY" type="string" optional>
+  PostHog API key for analytics (optional)
+
+  ```bash
+  POSTHOG_API_KEY=phc_1234567890abcdef
+  ```
+
+  <Info>
+  Forge includes optional PostHog integration for usage analytics. This is completely optional and disabled by default.
+  </Info>
+</ParamField>
+
+---
+
+## Development & Debugging
+
+<ParamField path="DISABLE_WORKTREE_ORPHAN_CLEANUP" type="boolean" default="false">
+  Disable automatic cleanup of orphaned git worktrees (debug mode)
+
+  ```bash
+  DISABLE_WORKTREE_ORPHAN_CLEANUP=1
+  ```
+
+  <Warning>
+  Only use this for debugging worktree issues. Leaving it enabled will accumulate orphaned worktrees over time.
+  </Warning>
+</ParamField>
+
+<ParamField path="RUST_LOG" type="string" default="info">
+  Rust logging level for backend debugging
+
+  ```bash
+  RUST_LOG=debug      # Detailed logs
+  RUST_LOG=info       # Normal logs (default)
+  RUST_LOG=warn       # Warnings only
+  RUST_LOG=error      # Errors only
+  ```
+</ParamField>
+
+<ParamField path="RUST_BACKTRACE" type="string" optional>
+  Enable Rust backtraces for debugging
+
+  ```bash
+  RUST_BACKTRACE=1       # Basic backtraces
+  RUST_BACKTRACE=full    # Full backtraces with all details
+  ```
+</ParamField>
+
+---
+
+## Database Configuration
+
+<Info>
+Forge uses SQLite by default. The database is automatically created and seeded from `dev_assets_seed/` on first run.
+</Info>
+
+<ParamField path="DATABASE_URL" type="string" optional>
+  SQLite database path (advanced use only)
+
+  ```bash
+  DATABASE_URL=sqlite:./my-custom-forge.db
+  ```
+
+  <Warning>
+  Changing this requires manual database setup. Use the default unless you know what you're doing.
+  </Warning>
+</ParamField>
+
+---
+
+## Using .env Files
+
+Create a `.env` file in your project root:
+
+```bash .env
+# Server Configuration
+HOST=127.0.0.1
+BACKEND_PORT=8080
+FRONTEND_PORT=3000
+
+# GitHub OAuth (optional)
+GITHUB_CLIENT_ID=your_client_id_here
+
+# Analytics (optional)
+# POSTHOG_API_KEY=your_key_here
+
+# Development
+RUST_LOG=info
+```
+
+<Tip>
+**Multiple environments?** Use `.env.development`, `.env.production`, etc., and load them with tools like [dotenv](https://github.com/motdotla/dotenv) or deployment platform features.
+</Tip>
+
+---
+
+## Environment-Specific Configuration
+
+### Development
+
+```bash .env.development
+HOST=127.0.0.1
+FRONTEND_PORT=3000
+RUST_LOG=debug
+DISABLE_WORKTREE_ORPHAN_CLEANUP=1
+```
+
+### Production
+
+```bash .env.production
+HOST=0.0.0.0
+BACKEND_PORT=8080
+FRONTEND_PORT=80
+RUST_LOG=warn
+
+# Use secret management for these
+GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+```
+
+### CI/CD
+
+```bash .env.ci
+RUST_LOG=error
+RUST_BACKTRACE=1
+# Minimal config for testing
+```
+
+---
+
+## Verification
+
+Check your configuration is working:
+
+```bash
+# Start Forge
+automagik-forge
+
+# Should see output like:
+# ✓ Backend running on http://127.0.0.1:8080
+# ✓ Frontend running on http://localhost:3000
+# ✓ GitHub OAuth: Using default credentials
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port already in use">
+    Change `BACKEND_PORT` or `FRONTEND_PORT`:
+
+    ```bash
+    FRONTEND_PORT=3001 automagik-forge
+    ```
+  </Accordion>
+
+  <Accordion title="GitHub authentication fails">
+    1. Check `GITHUB_CLIENT_ID` is set correctly
+    2. Verify OAuth callback URL matches your GitHub App settings
+    3. Try using default credentials (remove `GITHUB_CLIENT_ID`)
+  </Accordion>
+
+  <Accordion title="Database errors on startup">
+    Remove the database and let Forge recreate it:
+
+    ```bash
+    rm -rf dev_assets/
+    automagik-forge
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Never Commit Secrets" icon="lock">
+    Add `.env` to `.gitignore` immediately
+
+    ```bash .gitignore
+    .env
+    .env.*
+    !.env.example
+    ```
+  </Card>
+
+  <Card title="Use Secret Management" icon="shield">
+    In production, use services like:
+    - AWS Secrets Manager
+    - HashiCorp Vault
+    - Kubernetes Secrets
+    - Platform-specific solutions
+  </Card>
+
+  <Card title="Rotate Credentials" icon="rotate">
+    Regularly rotate OAuth secrets and API keys
+  </Card>
+
+  <Card title="Principle of Least Privilege" icon="user-shield">
+    Grant minimal permissions to GitHub OAuth apps
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="LLM Configuration" icon="brain" href="/forge/config/llm-configuration">
+    Configure AI coding agents
+  </Card>
+
+  <Card title="GitHub OAuth Setup" icon="github" href="/forge/config/github-oauth">
+    Deep dive into GitHub integration
+  </Card>
+
+  <Card title="Project Structure" icon="folder-tree" href="/forge/config/project-structure">
+    Understand Forge's file organization
+  </Card>
+</CardGroup>

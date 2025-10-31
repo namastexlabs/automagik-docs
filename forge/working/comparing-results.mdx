@@ -1,0 +1,530 @@
+---
+title: "Comparing Results"
+description: "Compare outputs from different AI agents"
+icon: "code-compare"
+---
+
+## Overview
+
+One of Forge's most powerful features: **compare results from multiple AI agents** side-by-side. See which approach works best, cherry-pick the best parts, or combine solutions.
+
+---
+
+## Why Compare?
+
+Different AI agents have different strengths:
+
+| Agent | Strength | Weakness |
+|-------|----------|----------|
+| **Claude Sonnet** | Complex logic, architecture | Can be verbose |
+| **Gemini Flash** | Fast, concise | May miss edge cases |
+| **Cursor** | UI/UX intuition | Less depth on algorithms |
+| **GPT-4** | Comprehensive | Expensive |
+
+**Solution**: Try multiple, compare results, choose the best!
+
+---
+
+## Quick Comparison
+
+### Via CLI
+
+```bash
+# Compare all attempts for a task
+forge task compare 1
+
+# Compare specific attempts
+forge diff task-1-claude task-1-gemini
+
+# Show only statistics
+forge task compare 1 --stats
+```
+
+### Via Web UI
+
+<Steps>
+  <Step title="Open Task">
+    Click on task card in Kanban board
+  </Step>
+
+  <Step title="View Attempts Tab">
+    Click **Attempts** tab to see all attempts
+  </Step>
+
+  <Step title="Select Attempts to Compare">
+    Check boxes next to 2+ attempts
+  </Step>
+
+  <Step title="Click 'Compare'">
+    Opens split-view comparison interface
+  </Step>
+</Steps>
+
+---
+
+## Comparison Views
+
+### File-by-File Diff
+
+```bash
+forge diff task-1-claude task-1-gemini --files
+```
+
+**Output**:
+```
+src/auth/login.ts
+  Claude:  145 lines (+132, -13)
+  Gemini:   98 lines (+89, -9)
+
+src/auth/signup.ts
+  Claude:  178 lines (+165, -13)
+  Gemini:  142 lines (+135, -7)
+
+src/utils/jwt.ts
+  Claude:   67 lines (+67, new file)
+  Gemini:   45 lines (+45, new file)
+```
+
+### Side-by-Side Code Comparison
+
+```bash
+forge diff task-1-claude task-1-gemini \
+  --file src/auth/login.ts \
+  --side-by-side
+```
+
+**Output**:
+```diff
+Claude                                  │ Gemini
+────────────────────────────────────────┼───────────────────────────────────────
+import bcrypt from 'bcryptjs';         │ import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';        │ import jwt from 'jsonwebtoken';
+import { validateEmail } from './util';│
+                                       │
+export async function login(req, res) {│ export const login = async (req, res) => {
+  const { email, password } = req.body;│   const { email, password } = req.body;
+                                       │
+  if (!validateEmail(email)) {         │   // Find user
+    return res.status(400).json({      │   const user = await User.findOne({ email });
+      error: 'Invalid email format'    │
+    });                                │
+  }                                    │
+                                       │
+  const user = await User.findOne(...  │   if (!user || !await bcrypt.compare(...
+```
+
+### Statistics Comparison
+
+```bash
+forge task compare 1 --stats
+```
+
+**Output**:
+```
+╭───────────┬─────────┬─────────┬─────────╮
+│ Metric    │ Claude  │ Gemini  │ Cursor  │
+├───────────┼─────────┼─────────┼─────────┤
+│ Duration  │ 5m 22s  │ 2m 15s  │ 4m 01s  │
+│ Files     │ 8       │ 6       │ 7       │
+│ Lines +   │ 364     │ 269     │ 312     │
+│ Lines -   │ 33      │ 16      │ 28      │
+│ Tests     │ ✅ 24   │ ⚠️  18  │ ✅ 22   │
+│ Cost      │ $0.234  │ $0.089  │ $0.187  │
+╰───────────┴─────────┴─────────┴─────────╯
+```
+
+---
+
+## Detailed Comparison
+
+### Test Results
+
+```bash
+forge task compare 1 --tests
+```
+
+**Output**:
+```
+Test Coverage Comparison:
+
+Claude (95% coverage):
+  ✅ Login with valid credentials
+  ✅ Login with invalid email
+  ✅ Login with wrong password
+  ✅ Login with missing fields
+  ✅ JWT token generation
+  ✅ Token expiry handling
+  ⚠️  Missing: Rate limiting tests
+
+Gemini (78% coverage):
+  ✅ Login with valid credentials
+  ✅ Login with wrong password
+  ⚠️  Missing: Email validation tests
+  ⚠️  Missing: Edge case handling
+  ⚠️  Missing: Token expiry tests
+
+Winner: Claude (more comprehensive)
+```
+
+### Code Quality Metrics
+
+```bash
+forge task compare 1 --quality
+```
+
+**Output**:
+```
+Code Quality Analysis:
+
+Claude:
+  Complexity: Medium (Cyclomatic: 8)
+  Maintainability: A
+  TypeScript coverage: 100%
+  Comments: Comprehensive
+  Error handling: Excellent
+
+Gemini:
+  Complexity: Low (Cyclomatic: 4)
+  Maintainability: A+
+  TypeScript coverage: 100%
+  Comments: Minimal
+  Error handling: Basic
+
+Winner: Tie (trade-off: Claude more robust, Gemini cleaner)
+```
+
+### Performance Analysis
+
+```bash
+forge task compare 1 --benchmark
+```
+
+**Output**:
+```
+Performance Benchmarks:
+
+Login Endpoint (1000 requests):
+  Claude:  avg 45ms, p95 78ms, p99 125ms
+  Gemini:  avg 38ms, p95 65ms, p99 98ms
+  Cursor:  avg 42ms, p95 72ms, p99 110ms
+
+Winner: Gemini (fastest)
+
+Memory Usage:
+  Claude:  ~120MB
+  Gemini:  ~95MB
+  Cursor:  ~108MB
+
+Winner: Gemini (most efficient)
+```
+
+---
+
+## Visual Comparison (Web UI)
+
+The Forge UI provides rich visual comparisons:
+
+### Split-Screen Editor
+
+- Left pane: Attempt 1 code
+- Right pane: Attempt 2 code
+- Synchronized scrolling
+- Inline diff highlighting
+
+### Architecture Diagram
+
+Auto-generated comparison:
+```
+Claude's Approach:          Gemini's Approach:
+┌────────────────┐         ┌────────────────┐
+│  Controller    │         │  Handler       │
+└───────┬────────┘         └───────┬────────┘
+        │                          │
+        ▼                          ▼
+┌────────────────┐         ┌────────────────┐
+│  Validator     │         │  User Service  │
+└───────┬────────┘         └───────┬────────┘
+        │                          │
+        ▼                          ▼
+┌────────────────┐         ┌────────────────┐
+│  Service       │         │  Database      │
+└───────┬────────┘         └────────────────┘
+        │
+        ▼
+┌────────────────┐
+│  Repository    │
+└────────────────┘
+
+Claude: More layers, separation   Gemini: Simpler, direct
+```
+
+---
+
+## Decision Matrix
+
+Build a decision matrix to choose systematically:
+
+```bash
+forge task compare 1 --matrix
+```
+
+**Output**:
+```
+╭────────────────┬─────────┬─────────┬─────────╮
+│ Criteria       │ Claude  │ Gemini  │ Cursor  │
+├────────────────┼─────────┼─────────┼─────────┤
+│ Correctness    │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐  │
+│ Performance    │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐  │
+│ Maintainability│ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐  │
+│ Test Coverage  │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐    │ ⭐⭐⭐⭐  │
+│ Documentation  │ ⭐⭐⭐⭐⭐ │ ⭐⭐     │ ⭐⭐⭐   │
+│ Cost           │ ⭐⭐⭐    │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐  │
+├────────────────┼─────────┼─────────┼─────────┤
+│ Total Score    │ 24/30   │ 23/30   │ 22/30   │
+╰────────────────┴─────────┴─────────┴─────────╯
+
+Recommendation: Claude (best overall balance)
+```
+
+---
+
+## Cherry-Picking Best Parts
+
+Sometimes you want to combine approaches:
+
+### Manual Cherry-Pick
+
+```bash
+# Start with Claude's attempt
+git checkout task-1-claude
+
+# Cherry-pick specific file from Gemini
+git checkout task-1-gemini -- src/utils/jwt.ts
+
+# Cherry-pick specific changes
+git show task-1-gemini:src/auth/login.ts | patch -p1
+```
+
+### Via Web UI
+
+1. Open comparison view
+2. Select blocks of code from different attempts
+3. Click **"Create Combined Attempt"**
+4. Forge creates new attempt merging selected parts
+
+---
+
+## Common Comparison Scenarios
+
+### Feature Implementation
+
+**Question**: Which agent implemented the feature most completely?
+
+```bash
+# Check if all requirements met
+forge task compare 1 --requirements-checklist
+
+# Output:
+# Claude:  ✅ All 8 requirements met
+# Gemini:  ⚠️  6/8 requirements met (missing: rate limiting, password reset)
+# Cursor:  ⚠️  7/8 requirements met (missing: email verification)
+```
+
+### Bug Fix
+
+**Question**: Which fix actually solves the bug without breaking anything?
+
+```bash
+# Run tests for each attempt
+forge task compare 1 --run-tests
+
+# Output:
+# Claude:  ✅ All tests pass (24/24)
+# Gemini:  ⚠️  2 tests fail (22/24)
+# Cursor:  ✅ All tests pass (24/24)
+
+# Check if bug is fixed
+forge task compare 1 --validate-fix
+
+# Output:
+# Claude:  ✅ Bug fixed, no regressions
+# Cursor:  ✅ Bug fixed, no regressions
+# Gemini:  ❌ Bug still present in edge case
+```
+
+### Refactoring
+
+**Question**: Which refactor improves code without changing behavior?
+
+```bash
+# Verify behavior unchanged
+forge task compare 1 --behavior-test
+
+# Output:
+# Claude:  ✅ All E2E tests pass
+# Gemini:  ✅ All E2E tests pass
+# Cursor:  ⚠️  1 E2E test fails (regression)
+
+# Check code quality improvement
+forge task compare 1 --complexity
+
+# Output:
+# Original: Cyclomatic complexity 15
+# Claude:   Cyclomatic complexity 8  (-47%)
+# Gemini:   Cyclomatic complexity 6  (-60%) ← Winner!
+# Cursor:   Cyclomatic complexity 9  (-40%)
+```
+
+---
+
+## Export Comparison Reports
+
+### Generate Report
+
+```bash
+# Full comparison report
+forge task compare 1 --report --output comparison-report.md
+
+# HTML report with charts
+forge task compare 1 --report --format html --output report.html
+
+# JSON for programmatic use
+forge task compare 1 --report --format json --output report.json
+```
+
+### Share with Team
+
+```bash
+# Upload to GitHub Gist
+forge task compare 1 --share --gist
+
+# Output:
+# https://gist.github.com/user/abc123
+
+# Or create PR description
+forge task compare 1 --pr-description > pr-description.md
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Test All Attempts" icon="flask">
+    Don't just read code - run tests:
+
+    ```bash
+    forge task test-all 1
+    ```
+
+    Code that looks good but fails tests is useless
+  </Card>
+
+  <Card title="Check Edge Cases" icon="bug">
+    Specifically test edge cases:
+
+    ```bash
+    # Test with invalid inputs
+    # Test with empty data
+    # Test error handling
+    ```
+
+    Simple cases are easy; edges matter
+  </Card>
+
+  <Card title="Consider Maintainability" icon="screwdriver-wrench">
+    **Today**: All work
+    **Six months from now**: Which will you understand?
+
+    Prefer clear code over clever code
+  </Card>
+
+  <Card title="Document Your Choice" icon="file-lines">
+    ```bash
+    forge task annotate 1 \
+      --chosen claude \
+      --reason "Better test coverage and clearer error handling"
+    ```
+
+    Future you will thank you
+  </Card>
+</CardGroup>
+
+---
+
+## Advanced: A/B Testing in Production
+
+For critical features, deploy multiple attempts for A/B testing:
+
+```typescript
+// Feature flag routing
+const implementation = featureFlags.get('auth-impl');
+
+if (implementation === 'claude') {
+  return claudeAuth(req, res);
+} else if (implementation === 'gemini') {
+  return geminiAuth(req, res);
+}
+```
+
+Monitor metrics:
+- Response times
+- Error rates
+- User feedback
+
+Choose winner based on real-world data!
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Comparison takes forever">
+    **Issue**: Comparing large attempts is slow
+
+    **Solutions**:
+    - Use `--files-only` to skip detailed diffs
+    - Compare specific files: `--file src/auth/login.ts`
+    - Increase timeout: `--timeout 300`
+  </Accordion>
+
+  <Accordion title="Can't see differences">
+    **Issue**: Attempts look identical
+
+    **Solutions**:
+    - Check if comparing same attempt twice
+    - Use `--ignore-whitespace` to see real changes
+    - Try `--context 10` for more surrounding lines
+  </Accordion>
+
+  <Accordion title="Test comparison fails">
+    **Issue**: Can't run tests in worktrees
+
+    **Solutions**:
+    - Ensure dependencies installed in each worktree
+    - Check test paths are correct
+    - Use `--setup-cmd "npm install"` first
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Merging & Cleanup" icon="code-merge" href="/forge/working/merging-cleanup">
+    Merge your chosen attempt to main
+  </Card>
+
+  <Card title="Managing Attempts" icon="flask" href="/forge/working/managing-attempts">
+    Learn more about working with attempts
+  </Card>
+
+  <Card title="Specialized Agents" icon="user-gear" href="/forge/advanced/specialized-agents">
+    Create agents optimized for different tasks
+  </Card>
+
+  <Card title="Parallel Execution" icon="rocket" href="/forge/advanced/parallel-execution">
+    Run multiple attempts simultaneously
+  </Card>
+</CardGroup>

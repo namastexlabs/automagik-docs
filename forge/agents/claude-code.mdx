@@ -1,0 +1,649 @@
+---
+title: "Claude Code"
+description: "Setup and use Anthropic's Claude with Forge"
+icon: "anthropic"
+---
+
+## Overview
+
+Claude Code by Anthropic is one of the most powerful AI coding assistants available. Known for exceptional reasoning, clear explanations, and robust code generation.
+
+<Info>
+**Claude 3.5 Sonnet** (released Oct 2024) is currently the best all-around model for coding tasks.
+</Info>
+
+---
+
+## Quick Start
+
+<Steps>
+  <Step title="Get API Key">
+    1. Go to [console.anthropic.com](https://console.anthropic.com)
+    2. Sign up or log in
+    3. Navigate to **API Keys**
+    4. Click **Create Key**
+    5. Copy your API key (starts with `sk-ant-`)
+  </Step>
+
+  <Step title="Configure Forge">
+    Edit `.forge/config.json`:
+
+    ```json
+    {
+      "llms": {
+        "claude": {
+          "apiKey": "sk-ant-api03-...",
+          "model": "claude-3-5-sonnet-20241022"
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test Connection">
+    ```bash
+    forge task create \
+      --title "Test Claude" \
+      --description "Print 'Hello from Claude!'" \
+      --llm claude
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Available Models
+
+### Claude 3.5 Family (Recommended)
+
+<ParamField path="claude-3-5-sonnet-20241022" type="model">
+  **Best all-around model for coding**
+
+  - Context: 200K tokens
+  - Speed: Fast
+  - Cost: $3/MTok input, $15/MTok output
+  - Best for: Most coding tasks
+
+  ```json
+  {
+    "llms": {
+      "claude": {
+        "model": "claude-3-5-sonnet-20241022"
+      }
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="claude-3-5-haiku-20241022" type="model">
+  **Fastest and most cost-effective**
+
+  - Context: 200K tokens
+  - Speed: Very fast (3x faster than Sonnet)
+  - Cost: $0.25/MTok input, $1.25/MTok output
+  - Best for: Simple tasks, quick fixes
+
+  ```json
+  {
+    "llms": {
+      "claude-haiku": {
+        "apiKey": "sk-ant-...",
+        "model": "claude-3-5-haiku-20241022"
+      }
+    }
+  }
+  ```
+</ParamField>
+
+### Claude 3 Family (Legacy)
+
+<ParamField path="claude-3-opus-20240229" type="model">
+  **Most powerful, most expensive**
+
+  - Context: 200K tokens
+  - Speed: Slower
+  - Cost: $15/MTok input, $75/MTok output
+  - Best for: Critical architecture decisions
+
+  <Warning>
+  Opus is 5x more expensive than Sonnet. Use sparingly!
+  </Warning>
+</ParamField>
+
+---
+
+## Model Comparison
+
+| Model | Speed | Quality | Cost | Best For |
+|-------|-------|---------|------|----------|
+| **3.5 Sonnet** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | $$$ | Most tasks (recommended) |
+| **3.5 Haiku** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | $ | Quick iterations |
+| **3 Opus** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | $$$$$ | Critical work only |
+
+---
+
+## Configuration Options
+
+### Basic Configuration
+
+```json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-api03-...",
+      "model": "claude-3-5-sonnet-20241022"
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "claude": {
+      "apiKey": "sk-ant-api03-...",
+      "model": "claude-3-5-sonnet-20241022",
+      "maxTokens": 8192,
+      "temperature": 0.7,
+      "timeout": 60000,
+      "retries": 3,
+      "baseUrl": "https://api.anthropic.com"
+    }
+  }
+}
+```
+
+<ParamField path="maxTokens" type="number" default="4096">
+  Maximum tokens in response
+
+  - Min: 1
+  - Max: 8192
+  - Higher = longer responses, more cost
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Randomness of responses (0-1)
+
+  - 0 = Deterministic, consistent
+  - 1 = Creative, varied
+  - 0.7 = Good balance
+</ParamField>
+
+<ParamField path="timeout" type="number" default="60000">
+  Request timeout in milliseconds
+</ParamField>
+
+<ParamField path="retries" type="number" default="3">
+  Number of retry attempts on failure
+</ParamField>
+
+---
+
+## Claude's Strengths
+
+### Complex Reasoning
+
+Claude excels at multi-step logic:
+
+```bash
+forge task create \
+  --title "Design authentication system" \
+  --description "
+  Design a complete auth system with:
+  - JWT token management
+  - Refresh token rotation
+  - Role-based access control
+  - Session management
+  - Password reset flow
+
+  Consider security, scalability, and maintainability.
+  " \
+  --llm claude
+```
+
+Claude will:
+- Break down the problem systematically
+- Consider edge cases
+- Suggest architectural patterns
+- Explain trade-offs
+
+### Code Refactoring
+
+Claude maintains code coherence during refactoring:
+
+```bash
+forge task create \
+  --title "Refactor user service to clean architecture" \
+  --description "
+  Current: Monolithic UserService with 800 lines
+  Goal: Clean architecture with:
+  - Separate domain, application, infrastructure layers
+  - Dependency injection
+  - Unit testable components
+
+  Preserve all existing functionality.
+  " \
+  --llm claude
+```
+
+### Security-Aware
+
+Claude considers security implications:
+
+```bash
+forge task create \
+  --title "Add file upload endpoint" \
+  --description "
+  Allow users to upload profile pictures
+  " \
+  --llm claude
+```
+
+Claude will add:
+- File type validation
+- Size limits
+- Malware scanning considerations
+- Secure file storage
+- Path traversal protection
+
+---
+
+## Claude's Weaknesses
+
+### Can Be Verbose
+
+Claude sometimes over-explains:
+
+**Solution**: Use concise prompts:
+```bash
+forge task create \
+  --title "Add validation" \
+  --description "Add email validation. Keep it simple." \
+  --llm claude
+```
+
+### May Over-Engineer
+
+For simple tasks, Claude might create complex solutions:
+
+**Solution**: Use Haiku for simple tasks:
+```bash
+forge task create \
+  --title "Add console.log for debugging" \
+  --llm claude-haiku
+```
+
+---
+
+## Pricing & Cost Management
+
+### Current Pricing (as of Oct 2024)
+
+| Model | Input | Output | Example Cost |
+|-------|-------|--------|--------------|
+| 3.5 Sonnet | $3/MTok | $15/MTok | 10K context + 2K response = $0.06 |
+| 3.5 Haiku | $0.25/MTok | $1.25/MTok | 10K context + 2K response = $0.005 |
+| 3 Opus | $15/MTok | $75/MTok | 10K context + 2K response = $0.30 |
+
+### Cost Optimization
+
+<Tabs>
+  <Tab title="Use Haiku First">
+    ```bash
+    # Start with Haiku
+    forge task create "Add button" --llm claude-haiku
+
+    # If not good enough, try Sonnet
+    forge task fork 1 --llm claude
+    ```
+
+    Saves money on simple tasks
+  </Tab>
+
+  <Tab title="Reduce Context">
+    ```bash
+    # Don't send entire codebase
+    forge task create "Fix login bug" \
+      --files "src/auth/login.ts" \
+      --llm claude
+    ```
+
+    Less context = lower input costs
+  </Tab>
+
+  <Tab title="Lower Max Tokens">
+    ```json
+    {
+      "llms": {
+        "claude": {
+          "maxTokens": 2048  // Instead of 8192
+        }
+      }
+    }
+    ```
+
+    Shorter responses = lower output costs
+  </Tab>
+
+  <Tab title="Monitor Spending">
+    ```bash
+    # Check costs per task
+    forge task cost 1
+
+    # Monthly summary
+    forge cost summary --month january
+    ```
+
+    Track and optimize spending
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+### Task Descriptions
+
+Claude responds well to structured descriptions:
+
+**Good** ✅:
+```bash
+forge task create \
+  --title "Add caching" \
+  --description "
+  # Goal
+  Add Redis caching to product API
+
+  # Requirements
+  - Cache GET /api/products for 5 minutes
+  - Invalidate on POST/PUT/DELETE
+  - Handle Redis connection errors gracefully
+
+  # Constraints
+  - Don't cache user-specific data
+  - Keep existing API contract unchanged
+  " \
+  --llm claude
+```
+
+**Bad** ❌:
+```bash
+forge task create \
+  --title "make it faster" \
+  --description "add cache or something" \
+  --llm claude
+```
+
+### Using Multiple Claude Models
+
+```bash
+# Quick exploration with Haiku
+forge task create "Add dark mode" --llm claude-haiku
+
+# Refined implementation with Sonnet
+forge task fork 1 --llm claude
+
+# Critical review with Opus
+forge task fork 1 --llm claude-opus
+```
+
+---
+
+## Integration with Forge
+
+### MCP Support
+
+Claude Code works seamlessly with Forge's MCP server:
+
+```json
+// In Claude Code settings
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": {
+        "PROJECT_ID": "your-project-id"
+      }
+    }
+  }
+}
+```
+
+Now you can:
+```
+You: "Create a task to add user authentication"
+Claude Code: [Uses MCP to create task in Forge]
+```
+
+### Specialized Profiles
+
+Create Claude variants for specific tasks:
+
+```json
+{
+  "llms": {
+    "claude": {
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    "claude-security": {
+      "model": "claude-3-5-sonnet-20241022",
+      "systemPrompt": "You are a security expert. Always consider security implications..."
+    },
+    "claude-tester": {
+      "model": "claude-3-5-sonnet-20241022",
+      "systemPrompt": "You are a testing expert. Write comprehensive tests..."
+    }
+  }
+}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="401 Authentication Error">
+    **Error**: "Invalid API key"
+
+    **Solutions**:
+    - Verify API key is correct (starts with `sk-ant-api03-`)
+    - Check for extra spaces or quotes
+    - Ensure key hasn't been rotated
+    - Generate new key from console.anthropic.com
+  </Accordion>
+
+  <Accordion title="429 Rate Limit">
+    **Error**: "Rate limit exceeded"
+
+    **Solutions**:
+    - Wait a few minutes
+    - Reduce concurrent tasks
+    - Upgrade Anthropic plan for higher limits
+    - Use exponential backoff:
+
+    ```json
+    {
+      "llms": {
+        "claude": {
+          "retries": 5,
+          "retryDelay": 1000
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Slow Response Times">
+    **Issue**: Claude taking too long
+
+    **Solutions**:
+    - Use Haiku instead of Sonnet
+    - Reduce maxTokens
+    - Simplify task description
+    - Check network latency
+  </Accordion>
+
+  <Accordion title="Context Length Error">
+    **Error**: "Prompt is too long"
+
+    **Solutions**:
+    - Reduce context sent to Claude
+    - Don't include entire codebase
+    - Use `--files` to limit scope
+    - Split into smaller tasks
+  </Accordion>
+
+  <Accordion title="Inconsistent Output">
+    **Issue**: Different results each time
+
+    **Normal behavior!** AI is non-deterministic.
+
+    **For consistency**:
+    ```json
+    {
+      "llms": {
+        "claude": {
+          "temperature": 0
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Rate Limits
+
+### Anthropic API Limits
+
+| Tier | RPM | TPM | TPD |
+|------|-----|-----|-----|
+| **Free** | 5 | 10K | 100K |
+| **Build (Tier 1)** | 50 | 40K | 1M |
+| **Scale (Tier 2)** | 1000 | 80K | 2.5M |
+| **Enterprise** | Custom | Custom | Custom |
+
+RPM = Requests per minute
+TPM = Tokens per minute
+TPD = Tokens per day
+
+Check your tier: [console.anthropic.com/settings/limits](https://console.anthropic.com/settings/limits)
+
+---
+
+## Advanced Features
+
+### Streaming Responses
+
+Watch Claude's output in real-time:
+
+```bash
+forge task start 1 --llm claude --stream
+```
+
+### Vision Support
+
+Claude can analyze images:
+
+```bash
+forge task create \
+  --title "Implement this design" \
+  --attach mockup.png \
+  --llm claude
+```
+
+### Extended Thinking
+
+For complex problems, enable extended thinking:
+
+```json
+{
+  "llms": {
+    "claude": {
+      "thinkingTokens": 10000
+    }
+  }
+}
+```
+
+---
+
+## Comparison with Other Agents
+
+| Feature | Claude 3.5 | GPT-4 | Gemini Pro |
+|---------|------------|-------|------------|
+| Context | 200K | 128K | 2M |
+| Reasoning | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Speed | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Cost | $$$ | $$$$ | $$ |
+| Code Quality | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+**Claude wins**: Complex reasoning, architecture, security
+**GPT-4 wins**: Consistency, documentation
+**Gemini wins**: Speed, cost, context window
+
+---
+
+## Real-World Examples
+
+### Example 1: API Refactoring
+
+```bash
+forge task create \
+  --title "Refactor REST API to GraphQL" \
+  --description "
+  Current: 15 REST endpoints in src/api/
+  Goal: Single GraphQL endpoint with:
+  - Schema matching REST capabilities
+  - Resolvers for all queries/mutations
+  - DataLoader for N+1 prevention
+  - Maintain backward compatibility via REST wrapper
+  " \
+  --llm claude
+```
+
+**Result**: Claude created comprehensive GraphQL schema, resolvers, and maintained REST compatibility.
+
+### Example 2: Security Audit
+
+```bash
+forge task create \
+  --title "Security audit of payment processing" \
+  --description "
+  Review src/payment/ for security issues:
+  - Input validation
+  - SQL injection
+  - XSS vulnerabilities
+  - Sensitive data exposure
+  - Rate limiting
+  " \
+  --llm claude
+```
+
+**Result**: Claude identified 7 security issues with detailed explanations and fixes.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/forge/quickstart">
+    Create your first task with Claude
+  </Card>
+
+  <Card title="Other Agents" icon="robot" href="/forge/agents/overview">
+    Compare with other AI agents
+  </Card>
+
+  <Card title="Specialized Agents" icon="user-gear" href="/forge/advanced/specialized-agents">
+    Create Claude variants for specific tasks
+  </Card>
+
+  <Card title="Cost Optimization" icon="coins" href="/forge/workflows/feature-development#cost-optimization">
+    Optimize your Claude spending
+  </Card>
+</CardGroup>

@@ -1,0 +1,607 @@
+---
+title: "Parallel Execution"
+description: "Run multiple AI agents simultaneously"
+icon: "rocket"
+---
+
+## Overview
+
+Parallel execution allows running multiple task attempts simultaneously, dramatically reducing total execution time. Perfect for comparing approaches or working on independent tasks.
+
+<Info>
+**Speed boost**: Run 3 attempts in parallel = 3x faster than sequential execution!
+</Info>
+
+---
+
+## Why Parallel Execution?
+
+### Sequential (Slow)
+
+```
+Task 1 (Claude):  [====] 5 min
+Task 2 (Gemini):        [===] 3 min
+Task 3 (GPT-4):              [====] 4 min
+Total time: 12 minutes
+```
+
+### Parallel (Fast)
+
+```
+Task 1 (Claude):  [====] 5 min
+Task 2 (Gemini):  [===]  3 min
+Task 3 (GPT-4):   [====] 4 min
+Total time: 5 minutes (limited by slowest)
+```
+
+**Result**: 2.4x faster!
+
+---
+
+## Basic Parallel Execution
+
+### Via CLI
+
+```bash
+# Run multiple attempts in parallel
+forge task create "Add authentication" --llm claude &
+forge task fork 1 --llm gemini &
+forge task fork 1 --llm gpt-4 &
+
+wait
+
+# All three run simultaneously!
+```
+
+### Via SDK
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Create task
+const task = await forge.tasks.create({
+  title: 'Add authentication',
+  projectId: 'proj_123'
+});
+
+// Start 3 attempts in parallel
+const attempts = await Promise.all([
+  forge.attempts.create({ taskId: task.id, llm: 'claude' }),
+  forge.attempts.create({ taskId: task.id, llm: 'gemini' }),
+  forge.attempts.create({ taskId: task.id, llm: 'gpt-4' })
+]);
+
+console.log('All attempts started!');
+```
+
+---
+
+## Advanced Parallel Patterns
+
+### Parallel Task Creation
+
+Create and start multiple tasks at once:
+
+```typescript
+const tasks = await Promise.all([
+  forge.tasks.create({
+    title: 'Add authentication',
+    llm: 'claude'
+  }),
+  forge.tasks.create({
+    title: 'Add dark mode',
+    llm: 'gemini'
+  }),
+  forge.tasks.create({
+    title: 'Add search',
+    llm: 'cursor'
+  })
+]);
+
+// Start all tasks
+await Promise.all(
+  tasks.map(task => forge.tasks.start(task.id))
+);
+```
+
+### Parallel Comparison
+
+Compare multiple agents on the same task:
+
+```typescript
+async function compareAgents(taskId: string) {
+  const agents = ['claude', 'gemini', 'gpt-4', 'cursor'];
+
+  // Create attempts in parallel
+  const attempts = await Promise.all(
+    agents.map(agent =>
+      forge.attempts.create({ taskId, llm: agent })
+    )
+  );
+
+  // Wait for all to complete
+  await Promise.all(
+    attempts.map(attempt =>
+      forge.attempts.waitForCompletion(attempt.id)
+    )
+  );
+
+  // Compare results
+  return forge.attempts.compare(
+    attempts.map(a => a.id)
+  );
+}
+```
+
+---
+
+## Resource Management
+
+### Concurrency Limits
+
+Don't run too many at once:
+
+```typescript
+import pLimit from 'p-limit';
+
+// Limit to 3 concurrent executions
+const limit = pLimit(3);
+
+const tasks = [/* 10 tasks */];
+
+await Promise.all(
+  tasks.map(task =>
+    limit(() => forge.tasks.start(task.id))
+  )
+);
+
+// Only 3 run at a time
+```
+
+### Rate Limiting
+
+Respect API rate limits:
+
+```typescript
+import pThrottle from 'p-throttle';
+
+// Max 5 requests per second
+const throttle = pThrottle({
+  limit: 5,
+  interval: 1000
+});
+
+const throttled = throttle(async (task) => {
+  return forge.tasks.create(task);
+});
+
+await Promise.all(
+  taskData.map(data => throttled(data))
+);
+```
+
+---
+
+## Git Worktree Isolation
+
+Each parallel attempt gets its own worktree:
+
+```
+.forge/worktrees/
+├── task-1-claude/     ← Isolated workspace
+├── task-1-gemini/     ← Isolated workspace
+├── task-1-gpt-4/      ← Isolated workspace
+└── task-2-cursor/     ← Different task
+```
+
+**Benefits**:
+- No conflicts between attempts
+- Safe parallel modifications
+- Easy to compare results
+
+**Automatic cleanup**:
+```bash
+# Forge automatically cleans up after merge
+forge task merge 1 --attempt 2
+
+# Or manually
+forge worktree cleanup
+```
+
+---
+
+## Monitoring Parallel Execution
+
+### Real-Time Dashboard
+
+```typescript
+async function monitorParallelTasks(taskIds: string[]) {
+  const interval = setInterval(async () => {
+    const statuses = await Promise.all(
+      taskIds.map(async id => {
+        const task = await forge.tasks.get(id);
+        return {
+          id,
+          title: task.title,
+          status: task.status,
+          progress: task.attempts[0]?.progress || 0
+        };
+      })
+    );
+
+    console.clear();
+    console.table(statuses);
+
+    if (statuses.every(s => s.status === 'completed')) {
+      clearInterval(interval);
+    }
+  }, 1000);
+}
+```
+
+### Progress Aggregation
+
+```typescript
+async function getOverallProgress(taskIds: string[]) {
+  const tasks = await Promise.all(
+    taskIds.map(id => forge.tasks.get(id))
+  );
+
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status === 'completed').length;
+  const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+
+  return {
+    total,
+    completed,
+    inProgress,
+    percentage: (completed / total) * 100
+  };
+}
+```
+
+---
+
+## Error Handling
+
+### Graceful Degradation
+
+```typescript
+async function parallelWithFallback(taskId: string) {
+  const agents = ['claude', 'gemini', 'gpt-4'];
+
+  const results = await Promise.allSettled(
+    agents.map(agent =>
+      forge.attempts.create({ taskId, llm: agent })
+        .then(attempt => forge.attempts.start(attempt.id))
+    )
+  );
+
+  // Check which succeeded
+  const succeeded = results.filter(r => r.status === 'fulfilled');
+  const failed = results.filter(r => r.status === 'rejected');
+
+  console.log(`${succeeded.length} succeeded, ${failed.length} failed`);
+
+  // Use whichever succeeded
+  return succeeded.map(r => r.value);
+}
+```
+
+### Timeout Handling
+
+```typescript
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number
+): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+  );
+
+  return Promise.race([promise, timeout]);
+}
+
+// Use it
+const attempts = await Promise.all([
+  withTimeout(
+    forge.attempts.create({ taskId, llm: 'claude' }),
+    60000  // 1 minute timeout
+  ),
+  withTimeout(
+    forge.attempts.create({ taskId, llm: 'gemini' }),
+    60000
+  )
+]);
+```
+
+---
+
+## Cost Optimization
+
+### Smart Parallel Strategy
+
+```typescript
+async function costOptimizedParallel(taskId: string) {
+  // Step 1: Quick exploration with cheap models
+  const cheapAttempts = await Promise.all([
+    forge.attempts.create({ taskId, llm: 'gemini' }),  // Free!
+    forge.attempts.create({ taskId, llm: 'claude-haiku' })  // Cheap
+  ]);
+
+  await Promise.all(
+    cheapAttempts.map(a => forge.attempts.waitForCompletion(a.id))
+  );
+
+  // Step 2: Review cheap results
+  const cheapResults = await forge.attempts.compare(
+    cheapAttempts.map(a => a.id)
+  );
+
+  // Step 3: Only use expensive model if needed
+  if (cheapResults.quality < 0.8) {
+    const expensiveAttempt = await forge.attempts.create({
+      taskId,
+      llm: 'claude-sonnet'
+    });
+
+    await forge.attempts.waitForCompletion(expensiveAttempt.id);
+  }
+
+  // Saved money by not always using expensive model!
+}
+```
+
+---
+
+## Batch Operations
+
+### Bulk Task Processing
+
+```typescript
+async function processBulkTasks(tasks: TaskInput[]) {
+  // Create all tasks in parallel
+  const created = await Promise.all(
+    tasks.map(task => forge.tasks.create(task))
+  );
+
+  // Start all tasks in parallel (with concurrency limit)
+  const limit = pLimit(5);
+  await Promise.all(
+    created.map(task =>
+      limit(() => forge.tasks.start(task.id))
+    )
+  );
+
+  // Wait for all to complete
+  await Promise.all(
+    created.map(task =>
+      forge.tasks.waitForCompletion(task.id)
+    )
+  );
+
+  return created;
+}
+```
+
+### Parallel Template Execution
+
+```typescript
+async function parallelTemplateRun(
+  templateName: string,
+  configs: TemplateConfig[]
+) {
+  // Use template with different configs in parallel
+  const results = await Promise.all(
+    configs.map(config =>
+      forge.templates.use(templateName, config)
+    )
+  );
+
+  return results;
+}
+
+// Example: Test API with different configurations
+await parallelTemplateRun('api-endpoint', [
+  { resourceName: 'user', methods: ['GET', 'POST'] },
+  { resourceName: 'product', methods: ['GET', 'POST', 'PUT'] },
+  { resourceName: 'order', methods: ['GET', 'POST', 'DELETE'] }
+]);
+```
+
+---
+
+## Real-World Examples
+
+### Example 1: A/B/C Testing
+
+```typescript
+async function abcTest(featureName: string) {
+  // Try 3 different implementations simultaneously
+  const approaches = [
+    { llm: 'claude', agent: 'performance-optimizer' },
+    { llm: 'gemini', agent: 'simple-clean' },
+    { llm: 'gpt-4', agent: 'comprehensive' }
+  ];
+
+  const task = await forge.tasks.create({
+    title: `Implement ${featureName}`,
+    description: 'Try different approaches'
+  });
+
+  // Run all approaches in parallel
+  const attempts = await Promise.all(
+    approaches.map(({ llm, agent }) =>
+      forge.attempts.create({
+        taskId: task.id,
+        llm,
+        agent
+      })
+    )
+  );
+
+  // Wait for completion
+  await Promise.all(
+    attempts.map(a => forge.attempts.waitForCompletion(a.id))
+  );
+
+  // Compare results
+  const comparison = await forge.attempts.compare(
+    attempts.map(a => a.id)
+  );
+
+  // Pick winner
+  return comparison.winner;
+}
+```
+
+### Example 2: Multi-Platform Development
+
+```typescript
+async function multiPlatformDevelopment(feature: string) {
+  // Develop for multiple platforms simultaneously
+  const platforms = [
+    { platform: 'web', llm: 'cursor' },
+    { platform: 'mobile', llm: 'claude' },
+    { platform: 'desktop', llm: 'gemini' }
+  ];
+
+  const tasks = await Promise.all(
+    platforms.map(({ platform, llm }) =>
+      forge.tasks.create({
+        title: `${feature} for ${platform}`,
+        llm
+      })
+    )
+  );
+
+  // All platforms developed in parallel!
+  await Promise.all(
+    tasks.map(task => forge.tasks.start(task.id))
+  );
+
+  return tasks;
+}
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Limit Concurrency" icon="gauge">
+    ```typescript
+    // Good ✅
+    const limit = pLimit(3);
+    await Promise.all(
+      tasks.map(t => limit(() => runTask(t)))
+    );
+
+    // Bad ❌
+    await Promise.all(
+      tasks.map(t => runTask(t))
+    );
+    // Could spawn 100+ parallel tasks!
+    ```
+  </Card>
+
+  <Card title="Handle Failures" icon="shield">
+    ```typescript
+    // Use Promise.allSettled
+    const results = await Promise.allSettled([
+      attempt1,
+      attempt2,
+      attempt3
+    ]);
+
+    // Check which succeeded
+    const successful = results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value);
+    ```
+  </Card>
+
+  <Card title="Monitor Resources" icon="chart-line">
+    ```bash
+    # Check system resources
+    htop
+
+    # Watch Forge processes
+    forge processes list --watch
+
+    # Check disk usage
+    du -sh .forge/worktrees
+    ```
+  </Card>
+
+  <Card title="Clean Up" icon="broom">
+    ```typescript
+    // After parallel execution
+    await forge.worktrees.cleanup();
+
+    // Remove failed attempts
+    await forge.attempts.deleteWhere({
+      status: 'failed'
+    });
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Performance Metrics
+
+Track parallel execution performance:
+
+```typescript
+async function measureParallelPerformance() {
+  const sequential = await measureSequential();
+  const parallel = await measureParallel();
+
+  return {
+    sequential: {
+      time: sequential.time,
+      cost: sequential.cost
+    },
+    parallel: {
+      time: parallel.time,
+      cost: parallel.cost
+    },
+    speedup: sequential.time / parallel.time,
+    costRatio: parallel.cost / sequential.cost
+  };
+}
+
+// Example output:
+// {
+//   sequential: { time: 720000, cost: 0.45 },
+//   parallel: { time: 300000, cost: 0.45 },
+//   speedup: 2.4,
+//   costRatio: 1.0
+// }
+// Result: 2.4x faster, same cost!
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Specialized Agents" icon="user-gear" href="/forge/advanced/specialized-agents">
+    Run different agents in parallel
+  </Card>
+
+  <Card title="Task Templates" icon="file-lines" href="/forge/advanced/task-templates">
+    Templates with parallel tasks
+  </Card>
+
+  <Card title="Processes API" icon="gear" href="/forge/api/processes">
+    Monitor parallel executions
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Complete workflows with parallelism
+  </Card>
+</CardGroup>

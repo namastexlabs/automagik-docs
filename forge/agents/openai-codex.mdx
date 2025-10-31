@@ -1,0 +1,611 @@
+---
+title: "OpenAI Codex"
+description: "Setup and use OpenAI's GPT models with Forge"
+icon: "openai"
+---
+
+## Overview
+
+OpenAI's GPT-4 and GPT-3.5 models are reliable, well-documented AI coding assistants. Known for consistency, strong general-purpose capabilities, and excellent documentation generation.
+
+<Info>
+**GPT-4 Turbo** offers the best balance of performance and cost for most coding tasks.
+</Info>
+
+---
+
+## Quick Start
+
+<Steps>
+  <Step title="Get API Key">
+    1. Go to [platform.openai.com](https://platform.openai.com)
+    2. Sign up or log in
+    3. Navigate to **API Keys**
+    4. Click **Create new secret key**
+    5. Copy your API key (starts with `sk-`)
+  </Step>
+
+  <Step title="Add Credits">
+    OpenAI requires prepaid credits:
+    1. Go to **Billing** → **Add payment method**
+    2. Add credit card
+    3. Purchase credits ($5+ recommended)
+  </Step>
+
+  <Step title="Configure Forge">
+    Edit `.forge/config.json`:
+
+    ```json
+    {
+      "llms": {
+        "openai": {
+          "apiKey": "sk-...",
+          "model": "gpt-4-turbo"
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test Connection">
+    ```bash
+    forge task create \
+      --title "Test GPT-4" \
+      --description "Print 'Hello from OpenAI!'" \
+      --llm openai
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Available Models
+
+### GPT-4 Family
+
+<ParamField path="gpt-4-turbo" type="model">
+  **Best overall GPT-4 model**
+
+  - Context: 128K tokens
+  - Speed: Fast
+  - Cost: $10/MTok input, $30/MTok output
+  - Best for: Complex coding tasks
+
+  ```json
+  {
+    "llms": {
+      "openai": {
+        "model": "gpt-4-turbo"
+      }
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="gpt-4" type="model">
+  **Original GPT-4 (legacy)**
+
+  - Context: 8K tokens
+  - Speed: Slower
+  - Cost: $30/MTok input, $60/MTok output
+  - Best for: Nothing (use Turbo instead)
+
+  <Warning>
+  Use `gpt-4-turbo` instead - faster and cheaper!
+  </Warning>
+</ParamField>
+
+### GPT-3.5 Family
+
+<ParamField path="gpt-3.5-turbo" type="model">
+  **Fast and affordable**
+
+  - Context: 16K tokens
+  - Speed: Very fast
+  - Cost: $0.50/MTok input, $1.50/MTok output
+  - Best for: Simple tasks, quick fixes
+
+  ```json
+  {
+    "llms": {
+      "openai-cheap": {
+        "apiKey": "sk-...",
+        "model": "gpt-3.5-turbo"
+      }
+    }
+  }
+  ```
+</ParamField>
+
+---
+
+## Model Comparison
+
+| Model | Context | Speed | Cost | Quality |
+|-------|---------|-------|------|---------|
+| **GPT-4 Turbo** | 128K | ⭐⭐⭐⭐ | $$$ | ⭐⭐⭐⭐ |
+| **GPT-4** | 8K | ⭐⭐ | $$$$ | ⭐⭐⭐⭐ |
+| **GPT-3.5 Turbo** | 16K | ⭐⭐⭐⭐⭐ | $ | ⭐⭐⭐ |
+
+<Tip>
+**Recommendation**: Use GPT-4 Turbo for most tasks, GPT-3.5 Turbo for simple fixes.
+</Tip>
+
+---
+
+## Configuration
+
+### Basic Setup
+
+```json
+{
+  "llms": {
+    "openai": {
+      "apiKey": "sk-...",
+      "model": "gpt-4-turbo"
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+```json
+{
+  "llms": {
+    "openai": {
+      "apiKey": "sk-...",
+      "model": "gpt-4-turbo",
+      "organization": "org-...",  // Optional
+      "maxTokens": 4096,
+      "temperature": 0.7,
+      "topP": 1,
+      "frequencyPenalty": 0,
+      "presencePenalty": 0,
+      "timeout": 60000,
+      "retries": 3
+    }
+  }
+}
+```
+
+<ParamField path="organization" type="string" optional>
+  Your OpenAI organization ID (for enterprise accounts)
+</ParamField>
+
+<ParamField path="maxTokens" type="number" default="4096">
+  Maximum tokens in response (1-4096)
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Randomness (0-2)
+  - 0 = Deterministic
+  - 1 = Balanced
+  - 2 = Creative
+</ParamField>
+
+---
+
+## OpenAI's Strengths
+
+### Consistency
+
+GPT-4 produces reliable, consistent results:
+
+```bash
+# Same task multiple times = similar results
+forge task create "Add validation" --llm openai
+
+# More predictable than Claude/Gemini
+```
+
+### General Purpose
+
+Good at everything, great at nothing:
+
+```bash
+# Works well for:
+- Backend APIs
+- Frontend components
+- Data processing
+- Testing
+- Documentation
+```
+
+### Documentation
+
+Excellent at writing clear documentation:
+
+```bash
+forge task create \
+  --title "Document authentication flow" \
+  --description "
+  Create comprehensive documentation for:
+  - How JWT tokens work
+  - Login/signup flow
+  - Password reset process
+  - Include code examples
+  " \
+  --llm openai
+```
+
+**Result**: Clear, well-structured docs with examples.
+
+### Large Ecosystem
+
+Most tools integrate with OpenAI:
+- Extensive docs
+- Large community
+- Many examples
+- Well-tested
+
+---
+
+## OpenAI's Weaknesses
+
+### Expensive
+
+GPT-4 is one of the most expensive options:
+
+```
+Cost comparison (10K input + 2K output):
+- GPT-4 Turbo:  $0.16
+- Claude Sonnet: $0.06  (2.6x cheaper)
+- Gemini Flash:  $0.00  (free!)
+```
+
+### Not Exceptional
+
+Jack of all trades, master of none:
+- Claude better at reasoning
+- Gemini faster and cheaper
+- Cursor better at UI
+
+### Requires Prepaid Credits
+
+Can't pay-as-you-go:
+- Must purchase credits upfront
+- Minimum $5
+- Credits expire (usually 1 year)
+
+---
+
+## Pricing
+
+### Per-Token Costs
+
+| Model | Input | Output | Example |
+|-------|-------|--------|---------|
+| **GPT-4 Turbo** | $10/MTok | $30/MTok | 10K in + 2K out = $0.16 |
+| **GPT-4** | $30/MTok | $60/MTok | 10K in + 2K out = $0.48 |
+| **GPT-3.5 Turbo** | $0.50/MTok | $1.50/MTok | 10K in + 2K out = $0.008 |
+
+### Prepaid Credits
+
+```
+Minimum purchase: $5
+Recommended: $20-50 for hobby projects
+Credits expire after 1 year
+```
+
+---
+
+## Best Use Cases
+
+### Documentation
+
+```bash
+forge task create \
+  --title "Write API documentation" \
+  --description "
+  Document all endpoints in src/api/
+  Include:
+  - Request/response examples
+  - Error codes
+  - Authentication requirements
+  " \
+  --llm openai
+```
+
+### General Coding
+
+```bash
+forge task create \
+  --title "Implement user CRUD endpoints" \
+  --llm openai
+```
+
+### Testing
+
+```bash
+forge task create \
+  --title "Add unit tests for auth service" \
+  --description "Aim for 90%+ coverage" \
+  --llm openai
+```
+
+### Consistency-Critical Tasks
+
+When you need predictable results:
+
+```bash
+forge task create \
+  --title "Generate migration scripts" \
+  --llm openai  # Consistent output important
+```
+
+---
+
+## Integration with Forge
+
+### Using in Tasks
+
+```bash
+# Basic usage
+forge task create "Add feature" --llm openai
+
+# Specify model
+forge task create "Quick fix" --llm openai-cheap  # GPT-3.5
+
+# With organization
+forge task create "Enterprise task" --llm openai \
+  --org org-your-org-id
+```
+
+### Multiple OpenAI Configs
+
+Configure both GPT-4 and GPT-3.5:
+
+```json
+{
+  "llms": {
+    "openai": {
+      "apiKey": "sk-...",
+      "model": "gpt-4-turbo"
+    },
+    "openai-cheap": {
+      "apiKey": "sk-...",
+      "model": "gpt-3.5-turbo"
+    }
+  }
+}
+```
+
+Use appropriately:
+
+```bash
+# Complex task → GPT-4
+forge task create "Design system architecture" --llm openai
+
+# Simple task → GPT-3.5
+forge task create "Add console.log" --llm openai-cheap
+```
+
+---
+
+## Cost Optimization
+
+### Use GPT-3.5 for Simple Tasks
+
+```bash
+# Simple tasks (20x cheaper)
+forge task create "Fix typo" --llm openai-cheap
+forge task create "Add comment" --llm openai-cheap
+
+# Complex tasks
+forge task create "Refactor architecture" --llm openai
+```
+
+### Reduce Context
+
+```bash
+# Send less context
+forge task create "Fix bug in login.ts" \
+  --files "src/auth/login.ts" \  # Only this file
+  --llm openai
+```
+
+### Lower Max Tokens
+
+```json
+{
+  "llms": {
+    "openai": {
+      "maxTokens": 2048  // Instead of 4096
+    }
+  }
+}
+```
+
+### Monitor Spending
+
+```bash
+# Check costs
+forge cost summary --month january
+
+# Set budget alerts
+forge config set budget.monthly 50  # $50/month
+forge config set budget.alert true
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="401 Invalid API Key">
+    **Error**: "Incorrect API key provided"
+
+    **Solutions**:
+    - Verify API key from platform.openai.com
+    - Check for extra spaces
+    - Ensure key hasn't been deleted
+    - Generate new key
+  </Accordion>
+
+  <Accordion title="429 Rate Limit">
+    **Error**: "Rate limit reached"
+
+    **Solutions**:
+    - Wait a few seconds
+    - Reduce concurrent requests
+    - Upgrade tier (Tier 1 → Tier 2)
+    - Use exponential backoff
+  </Accordion>
+
+  <Accordion title="Insufficient Credits">
+    **Error**: "You exceeded your current quota"
+
+    **Solutions**:
+    - Add more credits: platform.openai.com/billing
+    - Check billing dashboard
+    - Verify payment method
+  </Accordion>
+
+  <Accordion title="Slow responses">
+    **Issue**: GPT-4 taking too long
+
+    **Solutions**:
+    - Use GPT-4 Turbo (not regular GPT-4)
+    - Use GPT-3.5 for simple tasks
+    - Reduce maxTokens
+    - Check OpenAI status page
+  </Accordion>
+
+  <Accordion title="Context length error">
+    **Error**: "This model's maximum context length is..."
+
+    **Solutions**:
+    - Use GPT-4 Turbo (128K context)
+    - Reduce input context
+    - Split task into smaller pieces
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Rate Limits
+
+### By Tier
+
+| Tier | RPM | TPM | How to Reach |
+|------|-----|-----|--------------|
+| **Free** | 3 | 40K | New account |
+| **Tier 1** | 500 | 30K | $5+ paid |
+| **Tier 2** | 5000 | 450K | $50+ paid + 7 days |
+| **Tier 3** | 10000 | 1M | $1000+ paid + 7 days |
+
+RPM = Requests per minute
+TPM = Tokens per minute
+
+Check your tier: [platform.openai.com/account/limits](https://platform.openai.com/account/limits)
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use GPT-3.5 for Simple Tasks" icon="coins">
+    ```bash
+    # 20x cheaper!
+    forge task create "Quick fix" --llm openai-cheap
+    ```
+
+    Reserve GPT-4 for complex work
+  </Card>
+
+  <Card title="Monitor Usage" icon="chart-line">
+    ```bash
+    # Check OpenAI dashboard
+    open https://platform.openai.com/usage
+
+    # Track in Forge
+    forge cost summary
+    ```
+  </Card>
+
+  <Card title="Set Budget Alerts" icon="bell">
+    On OpenAI dashboard:
+    - Set hard limit ($50/month)
+    - Email alerts at 75%, 90%
+  </Card>
+
+  <Card title="Use for Documentation" icon="book">
+    GPT-4 excels at docs:
+    ```bash
+    forge task create "Document code" --llm openai
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## OpenAI vs Other Agents
+
+| Feature | OpenAI | Claude | Gemini | Cursor |
+|---------|--------|--------|--------|--------|
+| **Quality** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Cost** | $$$$ | $$$ | $ | Subscription |
+| **Speed** | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Context** | 128K | 200K | 2M | Variable |
+| **Consistency** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+**Choose OpenAI for**: Documentation, consistency, general purpose
+**Choose Claude for**: Complex reasoning, architecture
+**Choose Gemini for**: Speed, cost, large context
+**Choose Cursor for**: UI/UX, frontend
+
+---
+
+## Real-World Examples
+
+### Example 1: API Documentation
+
+```bash
+forge task create \
+  --title "Document REST API" \
+  --description "
+  Create OpenAPI spec for all endpoints in src/api/
+  Include examples and error codes
+  " \
+  --llm openai
+
+# Time: ~5 minutes
+# Cost: ~$0.25
+# Quality: Excellent, comprehensive
+```
+
+### Example 2: Test Generation
+
+```bash
+forge task create \
+  --title "Add tests for user service" \
+  --description "Unit tests with 90%+ coverage" \
+  --llm openai
+
+# Time: ~4 minutes
+# Cost: ~$0.18
+# Result: 95% coverage achieved
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/forge/quickstart">
+    Create your first GPT-4 task
+  </Card>
+
+  <Card title="Other Agents" icon="robot" href="/forge/agents/overview">
+    Compare with other AI agents
+  </Card>
+
+  <Card title="Cost Optimization" icon="coins" href="/forge/workflows/feature-development#cost-optimization">
+    Reduce OpenAI spending
+  </Card>
+
+  <Card title="OpenAI Platform" icon="openai" href="https://platform.openai.com">
+    Manage your API keys and billing
+  </Card>
+</CardGroup>

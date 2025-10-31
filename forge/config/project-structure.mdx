@@ -1,0 +1,491 @@
+---
+title: "Project Structure"
+description: "Understanding Forge's file organization"
+icon: "folder-tree"
+---
+
+## Overview
+
+Forge creates a specific directory structure to organize tasks, worktrees, configuration, and data. Understanding this structure helps you work effectively with Forge.
+
+---
+
+## Directory Structure
+
+```
+your-project/
+├── .forge/                    # Forge configuration and data
+│   ├── config.json           # LLM and Forge settings
+│   ├── forge.db              # SQLite database
+│   ├── worktrees/            # Git worktrees for tasks
+│   │   ├── task-1-auth/      # Isolated workspace for task 1
+│   │   ├── task-2-api/       # Isolated workspace for task 2
+│   │   └── ...
+│   └── logs/                 # Execution logs
+│       ├── task-1.log
+│       └── ...
+├── .git/                      # Your Git repository
+├── .gitignore                # Don't commit .forge/!
+├── src/                      # Your source code
+├── package.json
+└── ...
+```
+
+<Warning>
+**Always add `.forge/` to `.gitignore`!** This directory contains:
+- API keys and secrets
+- Local database
+- Temporary worktrees
+- Execution logs
+
+```bash
+echo ".forge/" >> .gitignore
+```
+</Warning>
+
+---
+
+## The `.forge/` Directory
+
+### Configuration Files
+
+<ParamField path=".forge/config.json" type="file">
+  Main configuration file containing LLM settings, OAuth tokens, and preferences
+
+  ```json
+  {
+    "llms": {
+      "claude": { "apiKey": "...", "model": "..." },
+      "gemini": { "apiKey": "...", "model": "..." }
+    },
+    "worktrees": {
+      "enabled": true,
+      "basePath": "./.forge/worktrees"
+    },
+    "preferences": {
+      "defaultLLM": "claude",
+      "autoCleanup": true
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path=".forge/forge.db" type="file">
+  SQLite database storing:
+  - Projects and tasks
+  - Task attempts and results
+  - Execution history
+  - User preferences
+
+  <Info>
+  This file is created automatically on first run. Backup regularly if you want to preserve history!
+  </Info>
+</ParamField>
+
+### Worktrees Directory
+
+<ParamField path=".forge/worktrees/" type="directory">
+  Contains Git worktrees for each task attempt
+
+  ```
+  .forge/worktrees/
+  ├── task-1-add-auth/           # Task 1, attempt 1
+  │   ├── src/
+  │   ├── package.json
+  │   └── ... (full repository copy)
+  ├── task-1-add-auth-gemini/    # Task 1, attempt 2
+  └── task-2-refactor-api/       # Task 2, attempt 1
+  ```
+
+  Each worktree is a **complete copy** of your repository at a specific commit, isolated from your main branch.
+</ParamField>
+
+<ParamField path=".forge/logs/" type="directory">
+  Execution logs for debugging and audit trail
+
+  ```
+  .forge/logs/
+  ├── task-1-claude-2024-01-15.log
+  ├── task-1-gemini-2024-01-15.log
+  └── task-2-cursor-2024-01-16.log
+  ```
+</ParamField>
+
+---
+
+## Git Worktrees Explained
+
+### What Are Worktrees?
+
+Git worktrees allow multiple working directories from the same repository. Forge uses this for **task isolation**.
+
+```
+Main Branch:
+your-project/           ← Your main working directory
+└── src/
+
+Task Worktrees:
+.forge/worktrees/
+├── task-1/             ← Isolated copy for task 1
+│   └── src/
+└── task-2/             ← Isolated copy for task 2
+    └── src/
+```
+
+### Why Worktrees?
+
+<CardGroup cols={2}>
+  <Card title="Complete Isolation" icon="shield">
+    Each task works in its own environment - no conflicts!
+  </Card>
+
+  <Card title="Parallel Execution" icon="rocket">
+    Run multiple AI agents simultaneously on different tasks
+  </Card>
+
+  <Card title="Safe Experimentation" icon="flask">
+    Try risky changes without affecting your main codebase
+  </Card>
+
+  <Card title="Easy Comparison" icon="code-compare">
+    Compare different approaches side-by-side
+  </Card>
+</CardGroup>
+
+### How It Works
+
+<Steps>
+  <Step title="Create Task">
+    You create a task in Forge: "Add user authentication"
+  </Step>
+
+  <Step title="Forge Creates Worktree">
+    ```bash
+    git worktree add .forge/worktrees/task-1-auth
+    ```
+
+    Creates a complete copy of your repo at current commit
+  </Step>
+
+  <Step title="AI Works in Isolation">
+    Claude modifies files in `.forge/worktrees/task-1-auth/`
+
+    Your main directory is **untouched**
+  </Step>
+
+  <Step title="Review Changes">
+    Compare worktree with main branch:
+    ```bash
+    git diff main task-1-auth
+    ```
+  </Step>
+
+  <Step title="Merge When Ready">
+    If you approve:
+    ```bash
+    git merge task-1-auth
+    git worktree remove .forge/worktrees/task-1-auth
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Database Schema
+
+The `.forge/forge.db` SQLite database contains:
+
+### Projects Table
+
+```sql
+CREATE TABLE projects (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  repository_url TEXT,
+  default_llm TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+### Tasks Table
+
+```sql
+CREATE TABLE tasks (
+  id TEXT PRIMARY KEY,
+  project_id TEXT REFERENCES projects(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT, -- 'pending', 'in_progress', 'completed', 'failed'
+  priority TEXT, -- 'low', 'medium', 'high'
+  labels TEXT, -- JSON array
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+### Attempts Table
+
+```sql
+CREATE TABLE attempts (
+  id TEXT PRIMARY KEY,
+  task_id TEXT REFERENCES tasks(id),
+  llm TEXT NOT NULL, -- 'claude', 'gemini', etc.
+  worktree_path TEXT,
+  status TEXT, -- 'running', 'completed', 'failed'
+  output_log TEXT,
+  created_at TIMESTAMP,
+  completed_at TIMESTAMP
+);
+```
+
+---
+
+## Backup & Restore
+
+### Backing Up Forge Data
+
+```bash
+# Backup configuration and database
+tar -czf forge-backup-$(date +%Y%m%d).tar.gz .forge/
+
+# Or just the essentials
+cp .forge/config.json config-backup.json
+cp .forge/forge.db forge-backup.db
+```
+
+### Restoring From Backup
+
+```bash
+# Restore full backup
+tar -xzf forge-backup-20240115.tar.gz
+
+# Or restore specific files
+cp config-backup.json .forge/config.json
+cp forge-backup.db .forge/forge.db
+```
+
+<Warning>
+Restoring worktrees requires active Git branches. Usually better to just restore config and database.
+</Warning>
+
+---
+
+## Cleanup & Maintenance
+
+### Clean Old Worktrees
+
+```bash
+# List all worktrees
+git worktree list
+
+# Remove specific worktree
+git worktree remove .forge/worktrees/task-1-old
+
+# Remove all stale worktrees (Forge does this automatically)
+git worktree prune
+```
+
+### Clean Old Logs
+
+```bash
+# Remove logs older than 30 days
+find .forge/logs -name "*.log" -mtime +30 -delete
+```
+
+### Compact Database
+
+```bash
+# Reduce database size
+sqlite3 .forge/forge.db "VACUUM;"
+```
+
+### Complete Clean
+
+```bash
+# Nuclear option: Remove everything Forge-related
+rm -rf .forge/
+
+# Restart Forge to recreate
+forge start
+```
+
+<Warning>
+This deletes all task history, configurations, and worktrees. **Backup first!**
+</Warning>
+
+---
+
+## Multi-User Scenarios
+
+### Personal Projects
+
+```
+your-project/
+└── .forge/              # Your personal Forge data
+    └── config.json      # Your API keys
+```
+
+<Info>
+Standard setup - one developer, one Forge instance
+</Info>
+
+### Team Projects
+
+Each team member has their own `.forge/` directory:
+
+```
+Alice's machine:
+your-project/
+└── .forge/              # Alice's Forge data
+
+Bob's machine:
+your-project/
+└── .forge/              # Bob's Forge data (different)
+```
+
+<Tip>
+Add `.forge/` to `.gitignore` so team members don't conflict
+</Tip>
+
+### Shared Forge Instance (Advanced)
+
+For teams sharing one Forge deployment:
+
+```
+Server:
+/opt/forge/
+├── projects/
+│   ├── project-a/
+│   │   └── .forge/
+│   └── project-b/
+│       └── .forge/
+└── shared-config/
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Version Control .gitignore" icon="git">
+    ```bash .gitignore
+    # Forge
+    .forge/
+    .forge.*
+
+    # But keep examples
+    !.forge.example.json
+    ```
+  </Card>
+
+  <Card title="Document Structure" icon="book">
+    Add a README explaining Forge setup:
+
+    ```markdown
+    ## Forge Setup
+
+    1. Install: `npm i -g automagik-forge`
+    2. Configure: `cp .forge.example.json .forge/config.json`
+    3. Add API keys to `.forge/config.json`
+    ```
+  </Card>
+
+  <Card title="Regular Backups" icon="database">
+    ```bash
+    # Add to cron
+    0 0 * * * cd ~/my-project && \
+      cp .forge/forge.db ~/.backups/forge-$(date +%F).db
+    ```
+  </Card>
+
+  <Card title="Clean Worktrees" icon="broom">
+    Let Forge auto-cleanup, or manually:
+
+    ```bash
+    forge worktree cleanup
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Worktree conflicts">
+    **Error**: "fatal: 'task-1' is already checked out at '.forge/worktrees/task-1'"
+
+    **Solution**:
+    ```bash
+    # Remove the worktree
+    git worktree remove --force .forge/worktrees/task-1
+
+    # Or let Forge handle it
+    forge worktree cleanup
+    ```
+  </Accordion>
+
+  <Accordion title="Database locked">
+    **Error**: "database is locked"
+
+    **Solution**:
+    - Close all Forge instances
+    - Check for zombie processes: `ps aux | grep forge`
+    - Kill if needed: `pkill -f forge`
+    - Restart Forge
+  </Accordion>
+
+  <Accordion title="Missing config.json">
+    **Error**: "Configuration file not found"
+
+    **Solution**:
+    ```bash
+    # Re-initialize
+    forge init
+
+    # Or restore from backup
+    cp config-backup.json .forge/config.json
+    ```
+  </Accordion>
+
+  <Accordion title="Disk space issues">
+    **Error**: "No space left on device"
+
+    **Solution**:
+    Worktrees accumulate. Clean them:
+    ```bash
+    # Check size
+    du -sh .forge/worktrees
+
+    # Remove old worktrees
+    forge worktree cleanup
+
+    # Or manually
+    git worktree prune
+    rm -rf .forge/worktrees/*
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Tasks" icon="plus" href="/forge/working/creating-tasks">
+    Learn how to create and manage tasks
+  </Card>
+
+  <Card title="Git Worktrees" icon="code-branch" href="/forge/concepts/git-worktrees">
+    Deep dive into worktree concepts
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/forge/config/environment-variables">
+    Advanced configuration options
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/forge/cli/overview">
+    Command-line interface guide
+  </Card>
+</CardGroup>

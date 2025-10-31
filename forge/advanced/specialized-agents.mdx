@@ -1,0 +1,598 @@
+---
+title: "Specialized Agents"
+description: "Create custom agent personas for specific tasks"
+icon: "user-gear"
+---
+
+## Overview
+
+Specialized agents are custom configurations that modify how any base AI agent behaves. Apply "personas" like "security expert" or "test writer" to any LLM for task-specific optimization.
+
+<Info>
+**Key Concept**: Specialized agents are prompts + configurations, not separate models. They work with ANY base LLM!
+</Info>
+
+---
+
+## How They Work
+
+```
+Base Agent (Claude) + Specialized Profile (Security Expert) = Secure Code Focus
+Base Agent (Gemini) + Specialized Profile (Test Writer) = Comprehensive Tests
+Base Agent (GPT-4) + Specialized Profile (Performance) = Optimized Code
+```
+
+---
+
+## Built-in Specialized Agents
+
+### Security Expert
+
+Focus on security best practices and vulnerability prevention.
+
+```bash
+forge task create \
+  --title "Add file upload" \
+  --llm claude \
+  --agent security-expert
+```
+
+**Behaviors**:
+- Always validates input
+- Considers injection attacks
+- Implements proper sanitization
+- Adds rate limiting
+- Includes security headers
+- Documents security decisions
+
+**Best for**: Auth systems, API endpoints, data handling
+
+---
+
+### Test Writer
+
+Comprehensive test coverage with edge cases.
+
+```bash
+forge task create \
+  --title "Add authentication" \
+  --llm gemini \
+  --agent test-writer
+```
+
+**Behaviors**:
+- Writes tests first (TDD)
+- Covers edge cases
+- Tests error handling
+- Adds integration tests
+- Achieves 90%+ coverage
+- Documents test scenarios
+
+**Best for**: New features, refactoring, bug fixes
+
+---
+
+### Performance Optimizer
+
+Optimize for speed and efficiency.
+
+```bash
+forge task create \
+  --title "Speed up API" \
+  --llm claude \
+  --agent performance-optimizer
+```
+
+**Behaviors**:
+- Profiles bottlenecks
+- Adds caching
+- Optimizes queries
+- Reduces allocations
+- Implements lazy loading
+- Measures improvements
+
+**Best for**: Slow endpoints, database queries, large datasets
+
+---
+
+### Documentation Writer
+
+Clear, comprehensive documentation.
+
+```bash
+forge task create \
+  --title "Document API" \
+  --llm openai \
+  --agent docs-writer
+```
+
+**Behaviors**:
+- Writes clear JSDoc/docstrings
+- Includes usage examples
+- Explains edge cases
+- Creates README sections
+- Adds inline comments
+- Documents assumptions
+
+**Best for**: Public APIs, complex logic, team projects
+
+---
+
+### Code Reviewer
+
+Thorough code review with suggestions.
+
+```bash
+forge task create \
+  --title "Review authentication PR" \
+  --llm claude \
+  --agent code-reviewer
+```
+
+**Behaviors**:
+- Checks code style
+- Identifies bugs
+- Suggests improvements
+- Reviews tests
+- Validates architecture
+- Provides constructive feedback
+
+**Best for**: PR reviews, code audits, refactoring validation
+
+---
+
+### Accessibility Expert
+
+WCAG-compliant accessible interfaces.
+
+```bash
+forge task create \
+  --title "Build form component" \
+  --llm cursor \
+  --agent accessibility-expert
+```
+
+**Behaviors**:
+- Adds ARIA labels
+- Ensures keyboard navigation
+- Proper focus management
+- Screen reader support
+- Color contrast compliance
+- Semantic HTML
+
+**Best for**: UI components, forms, interactive features
+
+---
+
+## Creating Custom Agents
+
+### Configuration File
+
+Create `.forge/agents.yaml`:
+
+```yaml
+agents:
+  # Custom agent for your team's style
+  team-style:
+    name: "Team Style Enforcer"
+    description: "Enforces our coding standards"
+    systemPrompt: |
+      You are a code generator following our team's style guide:
+      - Use TypeScript with strict mode
+      - Prefer functional programming
+      - Use async/await, never callbacks
+      - Write tests with Jest
+      - Follow our naming conventions: PascalCase for components, camelCase for functions
+      - Always add JSDoc comments
+
+    temperature: 0.3  # Less creative, more consistent
+    examples:
+      - input: "Create user component"
+        output: |
+          /**
+           * User profile component
+           * @param {UserProps} props - Component props
+           */
+          export const UserProfile: React.FC<UserProps> = ({ user }) => {
+            // Implementation following team style
+          }
+
+  # Database expert
+  database-expert:
+    name: "Database Optimization Expert"
+    systemPrompt: |
+      You are a database optimization expert. For every query:
+      - Consider indexing strategies
+      - Avoid N+1 problems
+      - Use prepared statements
+      - Optimize JOIN operations
+      - Add query performance comments
+      - Include EXPLAIN plans in comments
+
+    focusAreas:
+      - "Query optimization"
+      - "Index design"
+      - "Transaction management"
+
+  # API designer
+  api-designer:
+    name: "RESTful API Designer"
+    systemPrompt: |
+      You design clean, RESTful APIs following best practices:
+      - Use proper HTTP methods (GET, POST, PUT, PATCH, DELETE)
+      - Design resource-oriented URLs
+      - Version APIs (v1, v2)
+      - Include pagination for lists
+      - Implement proper error responses
+      - Add request/response examples
+      - Follow OpenAPI spec
+
+    guidelines:
+      - "REST principles"
+      - "HTTP status codes"
+      - "API versioning"
+```
+
+---
+
+## Using Custom Agents
+
+```bash
+# Use your custom agent
+forge task create \
+  --title "Add user endpoint" \
+  --llm claude \
+  --agent team-style
+
+# Load from file
+forge task create \
+  --title "Optimize queries" \
+  --llm gemini \
+  --agent database-expert \
+  --agent-config .forge/agents.yaml
+```
+
+---
+
+## Agent Combinations
+
+Apply multiple agents to same task:
+
+```bash
+# Security + Testing
+forge task create \
+  --title "Add payment processing" \
+  --llm claude \
+  --agents security-expert,test-writer
+
+# Performance + Documentation
+forge task create \
+  --title "Optimize search" \
+  --llm gemini \
+  --agents performance-optimizer,docs-writer
+```
+
+**Result**: Code that's secure, well-tested, AND fast!
+
+---
+
+## Agent Templates
+
+### Frontend Component Agent
+
+```yaml
+frontend-component:
+  name: "React Component Expert"
+  systemPrompt: |
+    Create React components following best practices:
+    - Use TypeScript with proper types
+    - Implement proper prop validation
+    - Add accessibility (ARIA)
+    - Make components responsive
+    - Add loading and error states
+    - Include Storybook stories
+    - Write comprehensive tests
+
+  preferredPatterns:
+    - "Functional components with hooks"
+    - "Composition over inheritance"
+    - "Single responsibility"
+```
+
+### Backend API Agent
+
+```yaml
+backend-api:
+  name: "Backend API Expert"
+  systemPrompt: |
+    Create backend APIs with:
+    - Proper error handling
+    - Input validation
+    - Request logging
+    - Authentication middleware
+    - Rate limiting
+    - API documentation (OpenAPI)
+    - Integration tests
+
+  frameworks:
+    - "Express.js"
+    - "Fastify"
+
+  patterns:
+    - "Controller-Service-Repository"
+    - "Dependency injection"
+```
+
+### Infrastructure Agent
+
+```yaml
+infrastructure:
+  name: "Infrastructure as Code Expert"
+  systemPrompt: |
+    Create infrastructure code following best practices:
+    - Modular and reusable
+    - Environment-specific configs
+    - Secrets management
+    - Resource tagging
+    - Cost optimization
+    - Disaster recovery
+
+  tools:
+    - "Terraform"
+    - "Docker"
+    - "Kubernetes"
+```
+
+---
+
+## SDK Usage
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Use built-in agent
+await forge.tasks.create({
+  title: 'Add authentication',
+  llm: 'claude',
+  agent: 'security-expert'
+});
+
+// Use custom agent
+await forge.tasks.create({
+  title: 'Add component',
+  llm: 'cursor',
+  agent: 'frontend-component',
+  agentConfig: './forge/agents.yaml'
+});
+
+// Multiple agents
+await forge.tasks.create({
+  title: 'Critical feature',
+  llm: 'claude',
+  agents: ['security-expert', 'test-writer', 'docs-writer']
+});
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Match Agent to Task" icon="bullseye">
+    ```bash
+    # Security-critical → security-expert
+    forge task create "Add auth" \
+      --agent security-expert
+
+    # Public API → docs-writer
+    forge task create "Document API" \
+      --agent docs-writer
+    ```
+  </Card>
+
+  <Card title="Combine Strategically" icon="layer-group">
+    Don't use all agents at once:
+
+    **Good**: security-expert + test-writer
+    **Bad**: All 8 agents (conflicting priorities)
+  </Card>
+
+  <Card title="Create Team Agents" icon="users">
+    Codify your team's style:
+
+    ```yaml
+    team-standard:
+      systemPrompt: |
+        Follow our team's standards:
+        - [Your specific rules]
+    ```
+  </Card>
+
+  <Card title="Iterate and Refine" icon="arrows-rotate">
+    Test agent configs:
+
+    ```bash
+    # Try different temperatures
+    # Adjust system prompts
+    # Add examples
+    # Measure results
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Agent Configuration Options
+
+### Temperature
+
+Controls creativity vs consistency:
+
+```yaml
+agents:
+  consistent-coder:
+    temperature: 0.3  # Very consistent
+
+  creative-designer:
+    temperature: 0.9  # More creative
+```
+
+### Max Tokens
+
+Control response length:
+
+```yaml
+agents:
+  concise:
+    maxTokens: 1024  # Short responses
+
+  comprehensive:
+    maxTokens: 8192  # Detailed responses
+```
+
+### Examples
+
+Provide examples for better results:
+
+```yaml
+agents:
+  our-style:
+    examples:
+      - input: "Create function to add numbers"
+        output: |
+          /**
+           * Adds two numbers together
+           * @param a First number
+           * @param b Second number
+           * @returns Sum of a and b
+           */
+          export const add = (a: number, b: number): number => {
+            return a + b;
+          };
+```
+
+---
+
+## Measuring Agent Effectiveness
+
+Track which agents work best:
+
+```bash
+# Generate report
+forge agent-stats --month january
+
+# Output:
+# Agent              Tasks  Success  Avg Cost
+# security-expert    12     100%     $0.28
+# test-writer        18     94%      $0.19
+# performance        8      88%      $0.31
+# docs-writer        15     100%     $0.15
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Agent not applying">
+    **Issue**: Agent behavior not visible
+
+    **Solutions**:
+    - Check agent config is loaded
+    - Verify agent name matches
+    - Inspect system prompt in logs
+    - Try more explicit instructions
+  </Accordion>
+
+  <Accordion title="Conflicting agents">
+    **Issue**: Multiple agents conflict
+
+    **Solution**: Limit to 2-3 compatible agents:
+
+    **Good**: security + testing
+    **Bad**: performance + comprehensive-docs (conflicting goals)
+  </Accordion>
+
+  <Accordion title="Agent too strict">
+    **Issue**: Agent over-optimizes for one aspect
+
+    **Solution**: Adjust temperature or prompt:
+
+    ```yaml
+    agents:
+      balanced-security:
+        temperature: 0.7  # More flexible
+        systemPrompt: "Consider security but balance with readability"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Real-World Examples
+
+### Example 1: Secure Payment Processing
+
+```bash
+forge task create \
+  --title "Implement Stripe payment" \
+  --description "
+  Add Stripe payment processing:
+  - Webhook handler
+  - Payment intent creation
+  - Subscription management
+  " \
+  --llm claude \
+  --agents security-expert,test-writer
+```
+
+**Result**:
+- Input validation on all endpoints
+- Webhook signature verification
+- Idempotency keys
+- Error handling
+- Comprehensive tests (95% coverage)
+- Security documentation
+
+### Example 2: Public API
+
+```bash
+forge task create \
+  --title "Create REST API" \
+  --llm openai \
+  --agents api-designer,docs-writer
+```
+
+**Result**:
+- RESTful URL design
+- Proper HTTP methods
+- OpenAPI specification
+- Request/response examples
+- Error documentation
+- Rate limiting docs
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Task Templates" icon="file-lines" href="/forge/advanced/task-templates">
+    Reusable task patterns
+  </Card>
+
+  <Card title="Parallel Execution" icon="rocket" href="/forge/advanced/parallel-execution">
+    Run multiple agents simultaneously
+  </Card>
+
+  <Card title="AI Agents Overview" icon="robot" href="/forge/agents/overview">
+    Learn about base AI agents
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Complete development workflows
+  </Card>
+</CardGroup>

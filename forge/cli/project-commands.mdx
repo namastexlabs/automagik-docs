@@ -1,0 +1,580 @@
+---
+title: "Project Commands"
+description: "Managing projects and repositories in Forge"
+icon: "folder"
+---
+
+## Overview
+
+Forge projects are managed through the **Web UI**. Each project represents a codebase with its own task board, git repository, and configuration. Projects are automatically created when you first launch Forge in a directory.
+
+---
+
+## Project Initialization
+
+When you run Forge for the first time in a directory:
+
+```bash
+cd your-project
+automagik-forge
+```
+
+Forge automatically:
+1. Detects if it's a git repository
+2. Creates `.forge/` directory with configuration
+3. Initializes SQLite database
+4. Generates unique project ID
+5. Opens web UI at `http://localhost:3000`
+
+---
+
+## Project Structure
+
+```
+your-project/
+├── .forge/
+│   ├── config.json          # Project configuration
+│   ├── db.sqlite            # Task database
+│   ├── worktrees/           # Git worktrees for tasks
+│   └── logs/                # Execution logs
+├── .git/                    # Git repository
+└── your-code/               # Your project files
+```
+
+---
+
+## Project Configuration
+
+The `.forge/config.json` file stores project settings:
+
+```json
+{
+  "project_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "My Awesome Project",
+  "repository": {
+    "type": "git",
+    "remote": "https://github.com/owner/repo.git",
+    "default_branch": "main"
+  },
+  "github": {
+    "enabled": true,
+    "owner": "owner",
+    "repo": "repo",
+    "token_encrypted": "..."
+  },
+  "worktrees": {
+    "enabled": true,
+    "base_path": "./.forge/worktrees",
+    "cleanup_on_exit": true,
+    "max_concurrent": 5
+  },
+  "executors": {
+    "default": "claude-code",
+    "enabled": [
+      "claude-code",
+      "cursor-cli",
+      "gemini",
+      "codex"
+    ]
+  },
+  "preferences": {
+    "auto_cleanup_worktrees": true,
+    "stream_logs": true,
+    "theme": "dark"
+  }
+}
+```
+
+---
+
+## GitHub Integration
+
+Connect your project to GitHub for OAuth and issue sync:
+
+### Setup via Web UI
+
+<Steps>
+  <Step title="Open Settings">
+    ```bash
+    # Start Forge
+    automagik-forge
+
+    # Navigate to: Settings → GitHub Integration
+    ```
+  </Step>
+
+  <Step title="Authenticate">
+    Click "Connect GitHub"
+
+    - Redirects to GitHub OAuth
+    - Authorize Forge app
+    - Returns with token
+  </Step>
+
+  <Step title="Select Repository">
+    - Choose repository from dropdown
+    - Forge syncs repo metadata
+    - Configuration saved
+  </Step>
+
+  <Step title="Verify Connection">
+    - Green checkmark appears
+    - Repository name displayed
+    - Issue sync enabled
+  </Step>
+</Steps>
+
+### Manual Configuration
+
+Edit `.forge/config.json`:
+
+```json
+{
+  "github": {
+    "enabled": true,
+    "owner": "your-username",
+    "repo": "your-repo",
+    "client_id": "your-github-oauth-app-id"
+  }
+}
+```
+
+Then authenticate via device flow:
+
+```bash
+# Forge will prompt for GitHub authentication
+automagik-forge
+```
+
+---
+
+## Project REST API
+
+Interact with projects programmatically:
+
+### List Projects
+
+```bash
+curl http://localhost:5000/api/projects
+```
+
+**Response:**
+```json
+{
+  "projects": [
+    {
+      "id": "uuid-here",
+      "name": "My Project",
+      "path": "/home/user/my-project",
+      "repository": {
+        "remote": "https://github.com/owner/repo",
+        "branch": "main"
+      },
+      "task_count": 42,
+      "created_at": "2024-10-31T10:00:00Z",
+      "updated_at": "2024-10-31T15:30:00Z"
+    }
+  ]
+}
+```
+
+### Get Project Details
+
+```bash
+curl http://localhost:5000/api/projects/{project-id}
+```
+
+### Update Project
+
+```bash
+curl -X PATCH http://localhost:5000/api/projects/{project-id} \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Project Name",
+    "default_executor": "gemini"
+  }'
+```
+
+### Delete Project
+
+```bash
+# Warning: This deletes all tasks and configuration
+curl -X DELETE http://localhost:5000/api/projects/{project-id}
+```
+
+---
+
+## MCP Project Tools
+
+When running in MCP mode, use these tools from AI agents:
+
+<Tabs>
+  <Tab title="list_projects">
+    **List all projects**
+
+    ```json
+    {
+      "tool": "list_projects",
+      "arguments": {}
+    }
+    ```
+
+    Returns array of all Forge projects.
+  </Tab>
+
+  <Tab title="get_project (Advanced Mode)">
+    **Get project details**
+
+    Available in `--mcp-advanced` mode only.
+
+    ```json
+    {
+      "tool": "get_project",
+      "arguments": {
+        "project_id": "uuid-here"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="create_project (Advanced Mode)">
+    **Create new project**
+
+    Available in `--mcp-advanced` mode only.
+
+    ```json
+    {
+      "tool": "create_project",
+      "arguments": {
+        "name": "New Project",
+        "path": "/path/to/project",
+        "repository_url": "https://github.com/owner/repo"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="update_project (Advanced Mode)">
+    **Update project settings**
+
+    Available in `--mcp-advanced` mode only.
+
+    ```json
+    {
+      "tool": "update_project",
+      "arguments": {
+        "project_id": "uuid-here",
+        "name": "Updated Name",
+        "default_executor": "claude-code"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Project Settings
+
+Configure project behavior via Web UI:
+
+### General Settings
+
+- **Project Name**: Display name
+- **Default Branch**: Git branch for new worktrees
+- **Default Executor**: AI agent for new tasks
+- **Auto-cleanup**: Remove worktrees after merge
+
+### GitHub Settings
+
+- **OAuth Token**: GitHub authentication
+- **Issue Sync**: Auto-create tasks from issues
+- **PR Integration**: Link tasks to pull requests
+- **Webhook**: Real-time updates
+
+### Executor Settings
+
+Configure available AI agents:
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```json
+    {
+      "executors": {
+        "claude-code": {
+          "enabled": true,
+          "api_key_env": "ANTHROPIC_API_KEY",
+          "model": "claude-3-5-sonnet-20241022",
+          "max_tokens": 8192
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Cursor CLI">
+    ```json
+    {
+      "executors": {
+        "cursor-cli": {
+          "enabled": true,
+          "cli_path": "/usr/local/bin/cursor",
+          "args": ["--headless"]
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Gemini">
+    ```json
+    {
+      "executors": {
+        "gemini": {
+          "enabled": true,
+          "api_key_env": "GOOGLE_AI_API_KEY",
+          "model": "gemini-2.0-flash-exp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="OpenAI Codex">
+    ```json
+    {
+      "executors": {
+        "codex": {
+          "enabled": true,
+          "api_key_env": "OPENAI_API_KEY",
+          "model": "gpt-4"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Worktree Settings
+
+```json
+{
+  "worktrees": {
+    "enabled": true,
+    "base_path": "./.forge/worktrees",
+    "cleanup_on_exit": true,
+    "max_concurrent": 5,
+    "branch_prefix": "forge/task-",
+    "auto_delete_merged": true
+  }
+}
+```
+
+---
+
+## Multi-Project Workflow
+
+Work with multiple projects:
+
+<Steps>
+  <Step title="Project 1 - Frontend">
+    ```bash
+    cd ~/projects/frontend-app
+    automagik-forge --port 3000 --backend-port 5000
+    ```
+
+    Opens at `http://localhost:3000`
+  </Step>
+
+  <Step title="Project 2 - Backend">
+    ```bash
+    cd ~/projects/backend-api
+    automagik-forge --port 3001 --backend-port 5001
+    ```
+
+    Opens at `http://localhost:3001`
+  </Step>
+
+  <Step title="Project 3 - Mobile">
+    ```bash
+    cd ~/projects/mobile-app
+    automagik-forge --port 3002 --backend-port 5002
+    ```
+
+    Opens at `http://localhost:3002`
+  </Step>
+</Steps>
+
+Each project runs independently with its own:
+- Task board
+- Database
+- Worktrees
+- Configuration
+
+---
+
+## Project Export/Import
+
+### Export Project
+
+```bash
+# Via API
+curl http://localhost:5000/api/projects/{project-id}/export > project-backup.json
+```
+
+**Exports:**
+- Project configuration
+- All tasks and attempts
+- Execution history
+- Labels and metadata
+
+### Import Project
+
+```bash
+# Via API
+curl -X POST http://localhost:5000/api/projects/import \
+  -H "Content-Type: application/json" \
+  -d @project-backup.json
+```
+
+---
+
+## Project Migration
+
+Moving a project to a new location:
+
+<Steps>
+  <Step title="Backup Current Project">
+    ```bash
+    # Export project data
+    curl http://localhost:5000/api/projects/{id}/export > backup.json
+
+    # Copy .forge directory
+    cp -r .forge/ .forge-backup/
+    ```
+  </Step>
+
+  <Step title="Move Repository">
+    ```bash
+    # Move to new location
+    mv ~/old-location ~/new-location
+    cd ~/new-location
+    ```
+  </Step>
+
+  <Step title="Update Configuration">
+    ```bash
+    # Edit .forge/config.json
+    # Update any absolute paths
+    # Verify repository settings
+    ```
+  </Step>
+
+  <Step title="Verify and Launch">
+    ```bash
+    # Start Forge
+    automagik-forge
+
+    # Verify tasks and settings loaded
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Project Analytics
+
+View project statistics via Web UI or API:
+
+```bash
+curl http://localhost:5000/api/projects/{project-id}/analytics
+```
+
+**Metrics:**
+- Total tasks created
+- Tasks by status
+- Tasks by executor
+- Average completion time
+- Success rate per executor
+- Active worktrees
+- Repository activity
+
+---
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Project ID Not Found">
+    **Symptom**: MCP tools return "Project not found"
+
+    **Solution**:
+    ```bash
+    # Get project ID from Web UI
+    # Settings → Project Info → Project ID
+
+    # Or from config
+    cat .forge/config.json | grep project_id
+
+    # Update MCP configuration with correct ID
+    ```
+  </Accordion>
+
+  <Accordion title="GitHub Authentication Failed">
+    **Symptom**: "GitHub OAuth failed" error
+
+    **Solution**:
+    ```bash
+    # 1. Verify GitHub OAuth app settings
+    # 2. Check redirect URL: http://localhost:3000/auth/callback
+    # 3. Re-authenticate via Web UI
+    # 4. Or set GITHUB_CLIENT_ID env var
+    ```
+  </Accordion>
+
+  <Accordion title="Multiple Projects Conflict">
+    **Symptom**: Port already in use
+
+    **Solution**:
+    ```bash
+    # Use different ports for each project
+    automagik-forge --port 3001 --backend-port 5001
+    ```
+  </Accordion>
+
+  <Accordion title="Worktree Directory Too Large">
+    **Symptom**: .forge/worktrees/ consuming disk space
+
+    **Solution**:
+    ```bash
+    # Clean up old worktrees
+    # Via Web UI: Settings → Cleanup → Remove Old Worktrees
+
+    # Or enable auto-cleanup in config.json
+    {
+      "worktrees": {
+        "auto_delete_merged": true,
+        "cleanup_on_exit": true
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Task Commands" icon="list-check" href="/forge/cli/task-commands">
+    Manage tasks within projects
+  </Card>
+  <Card title="Config Commands" icon="gear" href="/forge/cli/config-commands">
+    Configure project settings
+  </Card>
+  <Card title="Projects API" icon="code" href="/forge/api/projects">
+    Complete API reference
+  </Card>
+  <Card title="GitHub Integration" icon="github" href="/forge/config/github-oauth">
+    Set up GitHub OAuth
+  </Card>
+</CardGroup>

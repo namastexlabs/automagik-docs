@@ -1,0 +1,256 @@
+---
+title: "Processes API"
+description: "Monitor and control running processes"
+icon: "gear"
+---
+
+## Overview
+
+Processes represent the actual execution of attempts. Monitor running AI agents, check resource usage, and control execution.
+
+**Base URL**: `/api/processes`
+
+---
+
+## List Processes
+
+Get all active processes.
+
+```http
+GET /api/processes
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | enum | Filter by status (running, completed, failed) |
+| `llm` | string | Filter by AI agent |
+
+### Example Request
+
+```bash
+curl http://localhost:8080/api/processes?status=running
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "proc_abc123",
+      "attemptId": "attempt_xyz789",
+      "taskId": "task_def456",
+      "llm": "claude",
+      "status": "running",
+      "startedAt": "2024-01-15T10:30:00Z",
+      "duration": 45000,
+      "resources": {
+        "cpuUsage": 45.2,
+        "memoryUsage": 512000000,
+        "diskIO": 1024000
+      },
+      "progress": {
+        "current": "Generating authentication logic",
+        "percentage": 65
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Get Process
+
+Get detailed process information.
+
+```http
+GET /api/processes/:id
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proc_abc123",
+    "attemptId": "attempt_xyz789",
+    "taskId": "task_def456",
+    "llm": "claude",
+    "model": "claude-3-5-sonnet-20241022",
+    "status": "running",
+    "startedAt": "2024-01-15T10:30:00Z",
+    "duration": 45000,
+    "resources": {
+      "cpuUsage": 45.2,
+      "memoryUsage": 512000000,
+      "diskIO": 1024000,
+      "networkIO": 204800
+    },
+    "progress": {
+      "stage": "code_generation",
+      "current": "Generating authentication logic",
+      "percentage": 65,
+      "estimatedRemaining": 25000
+    },
+    "tokens": {
+      "inputTokens": 8420,
+      "outputTokens": 1250,
+      "estimatedCost": 0.12
+    }
+  }
+}
+```
+
+---
+
+## Cancel Process
+
+Stop a running process.
+
+```http
+POST /api/processes/:id/cancel
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/processes/proc_abc123/cancel
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proc_abc123",
+    "status": "cancelled",
+    "cancelledAt": "2024-01-15T10:32:00Z"
+  }
+}
+```
+
+---
+
+## Get Process Logs
+
+Stream real-time logs from a process.
+
+```http
+GET /api/processes/:id/logs
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `follow` | boolean | Stream logs in real-time |
+| `tail` | integer | Number of recent lines to show |
+
+### Example Request
+
+```bash
+curl "http://localhost:8080/api/processes/proc_abc123/logs?follow=true"
+```
+
+---
+
+## Get Process Metrics
+
+Get resource usage metrics.
+
+```http
+GET /api/processes/:id/metrics
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "processId": "proc_abc123",
+    "metrics": [
+      {
+        "timestamp": "2024-01-15T10:30:00Z",
+        "cpu": 45.2,
+        "memory": 512000000,
+        "diskIO": 1024000,
+        "networkIO": 204800
+      },
+      {
+        "timestamp": "2024-01-15T10:30:01Z",
+        "cpu": 48.5,
+        "memory": 524000000,
+        "diskIO": 1126400,
+        "networkIO": 225280
+      }
+    ],
+    "averages": {
+      "cpu": 46.8,
+      "memory": 518000000
+    }
+  }
+}
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// List running processes
+const processes = await forge.processes.list({
+  status: 'running'
+});
+
+// Get process details
+const process = await forge.processes.get('proc_abc123');
+
+// Monitor progress
+const interval = setInterval(async () => {
+  const proc = await forge.processes.get('proc_abc123');
+  console.log(`Progress: ${proc.progress.percentage}%`);
+
+  if (proc.status !== 'running') {
+    clearInterval(interval);
+  }
+}, 1000);
+
+// Stream logs
+const logs = await forge.processes.logs('proc_abc123', {
+  follow: true
+});
+
+for await (const log of logs) {
+  console.log(log);
+}
+
+// Cancel if needed
+await forge.processes.cancel('proc_abc123');
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Manage task attempts
+  </Card>
+
+  <Card title="Tasks API" icon="list-check" href="/forge/api/tasks">
+    Create and manage tasks
+  </Card>
+</CardGroup>

@@ -1,0 +1,566 @@
+---
+title: "Webhooks & Events"
+description: "Automate workflows with webhooks and event listeners"
+icon: "webhook"
+---
+
+## Overview
+
+Webhooks allow external systems to react to Forge events in real-time. Trigger CI/CD pipelines, send notifications, update project management tools, or run custom automation.
+
+<Info>
+**Real-time integration**: Get notified instantly when tasks complete, attempts fail, or processes finish.
+</Info>
+
+---
+
+## Available Events
+
+### Task Events
+
+| Event | When Triggered | Payload |
+|-------|----------------|---------|
+| `task.created` | New task created | Task object |
+| `task.updated` | Task properties changed | Task object + changes |
+| `task.status_changed` | Task status changes | Task object + old/new status |
+| `task.completed` | Task successfully completed | Task object + result |
+| `task.failed` | Task execution failed | Task object + error |
+| `task.deleted` | Task removed | Task ID |
+
+### Attempt Events
+
+| Event | When Triggered | Payload |
+|-------|----------------|---------|
+| `attempt.created` | New attempt created | Attempt object |
+| `attempt.started` | Attempt execution begins | Attempt object |
+| `attempt.progress` | Progress update (every 10%) | Attempt object + progress |
+| `attempt.completed` | Attempt finished successfully | Attempt object + result |
+| `attempt.failed` | Attempt execution failed | Attempt object + error |
+| `attempt.cancelled` | Attempt cancelled by user | Attempt object |
+| `attempt.merged` | Attempt merged to main | Attempt object + commit SHA |
+
+### Process Events
+
+| Event | When Triggered | Payload |
+|-------|----------------|---------|
+| `process.started` | Process begins execution | Process object |
+| `process.progress` | Progress update | Process object + metrics |
+| `process.completed` | Process finished | Process object + result |
+| `process.failed` | Process failed | Process object + error |
+| `process.cancelled` | Process terminated | Process object |
+
+---
+
+## Creating Webhooks
+
+### Via API
+
+```bash
+curl -X POST http://localhost:8080/api/webhooks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-server.com/webhook",
+    "events": ["task.completed", "attempt.failed"],
+    "secret": "your-webhook-secret"
+  }'
+```
+
+### Via SDK
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+const webhook = await forge.webhooks.create({
+  url: 'https://your-server.com/webhook',
+  events: ['task.completed', 'attempt.failed'],
+  secret: 'your-webhook-secret',
+  active: true
+});
+```
+
+---
+
+## Webhook Payload
+
+### Structure
+
+```json
+{
+  "id": "evt_abc123",
+  "event": "task.completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "taskId": "task_xyz789",
+    "title": "Add user authentication",
+    "status": "completed",
+    "completedAt": "2024-01-15T10:30:00Z",
+    "duration": 900000,
+    "cost": 0.23,
+    "attempt": {
+      "id": "attempt_abc123",
+      "llm": "claude",
+      "filesChanged": 8
+    }
+  },
+  "signature": "sha256=abc123def456..."
+}
+```
+
+### Signature Verification
+
+Verify webhook authenticity:
+
+```typescript
+import crypto from 'crypto';
+
+function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return `sha256=${expectedSignature}` === signature;
+}
+
+// Usage in Express
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-forge-signature'];
+  const payload = JSON.stringify(req.body);
+
+  if (!verifyWebhookSignature(payload, signature, webhookSecret)) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  // Process webhook
+  handleForgeWebhook(req.body);
+  res.sendStatus(200);
+});
+```
+
+---
+
+## Use Cases
+
+### Deploy on Task Completion
+
+```typescript
+// webhook-handler.ts
+export async function handleForgeWebhook(event: WebhookEvent) {
+  if (event.event === 'task.completed') {
+    // Trigger deployment
+    await deployToProduction({
+      taskId: event.data.taskId,
+      commit: event.data.commitSha
+    });
+
+    // Send notification
+    await sendSlackMessage({
+      channel: '#deployments',
+      message: `✅ Task ${event.data.title} deployed to production!`
+    });
+  }
+}
+```
+
+### CI/CD Integration
+
+```typescript
+export async function handleForgeWebhook(event: WebhookEvent) {
+  if (event.event === 'attempt.merged') {
+    // Trigger GitHub Actions workflow
+    await triggerGitHubAction({
+      workflow: 'test-and-deploy.yml',
+      ref: 'main',
+      inputs: {
+        taskId: event.data.taskId,
+        commitSha: event.data.commitSha
+      }
+    });
+  }
+}
+```
+
+### Notification System
+
+```typescript
+export async function handleForgeWebhook(event: WebhookEvent) {
+  const notifications = {
+    'task.completed': () => notifySuccess(event.data),
+    'task.failed': () => notifyFailure(event.data),
+    'attempt.completed': () => notifyAttemptDone(event.data)
+  };
+
+  const handler = notifications[event.event];
+  if (handler) {
+    await handler();
+  }
+}
+
+async function notifySuccess(data: any) {
+  await sendEmail({
+    to: 'team@company.com',
+    subject: `✅ Task Complete: ${data.title}`,
+    body: `Task ${data.title} completed successfully!`
+  });
+
+  await sendSlack({
+    channel: '#engineering',
+    message: `:white_check_mark: Task ${data.title} completed in ${data.duration}ms`
+  });
+}
+```
+
+### Project Management Integration
+
+```typescript
+export async function handleForgeWebhook(event: WebhookEvent) {
+  if (event.event === 'task.completed') {
+    // Update Jira ticket
+    await updateJiraTicket({
+      ticketId: event.data.metadata?.jiraId,
+      status: 'Done',
+      comment: `Completed via Forge: ${event.data.attempt.id}`
+    });
+
+    // Update Linear issue
+    await updateLinearIssue({
+      issueId: event.data.metadata?.linearId,
+      state: 'Done'
+    });
+  }
+}
+```
+
+---
+
+## Event Listeners
+
+### In-Process Listeners
+
+For running logic in the same process as Forge:
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Listen to events
+forge.on('task.completed', async (task) => {
+  console.log(`Task ${task.title} completed!`);
+
+  // Run custom logic
+  await runCustomLogic(task);
+});
+
+forge.on('attempt.failed', async (attempt) => {
+  console.error(`Attempt ${attempt.id} failed:`, attempt.error);
+
+  // Alert team
+  await alertTeam(attempt);
+});
+```
+
+### Event Filtering
+
+```typescript
+// Only listen to high-priority tasks
+forge.on('task.completed', async (task) => {
+  if (task.priority === 'high' || task.priority === 'critical') {
+    await alertManagement(task);
+  }
+});
+
+// Only specific projects
+forge.on('task.created', async (task) => {
+  if (task.projectId === 'proj_production') {
+    await auditLog(task);
+  }
+});
+```
+
+---
+
+## Retry Logic
+
+### Automatic Retries
+
+Forge automatically retries failed webhook deliveries:
+
+```
+Attempt 1: Immediate
+Attempt 2: 1 second later
+Attempt 3: 5 seconds later
+Attempt 4: 30 seconds later
+Attempt 5: 1 minute later
+```
+
+### Manual Retry
+
+```typescript
+// Via API
+await forge.webhooks.retry('webhook_123', 'evt_abc123');
+
+// Get failed deliveries
+const failed = await forge.webhooks.getFailedDeliveries('webhook_123');
+
+for (const delivery of failed) {
+  await forge.webhooks.retry('webhook_123', delivery.eventId);
+}
+```
+
+---
+
+## Webhook Management
+
+### List Webhooks
+
+```typescript
+const webhooks = await forge.webhooks.list();
+
+for (const webhook of webhooks) {
+  console.log(`${webhook.url}: ${webhook.events.join(', ')}`);
+}
+```
+
+### Update Webhook
+
+```typescript
+await forge.webhooks.update('webhook_123', {
+  events: ['task.completed', 'task.failed', 'attempt.merged'],
+  active: true
+});
+```
+
+### Delete Webhook
+
+```typescript
+await forge.webhooks.delete('webhook_123');
+```
+
+### Test Webhook
+
+```typescript
+// Send test event
+await forge.webhooks.test('webhook_123', {
+  event: 'task.completed',
+  data: {
+    taskId: 'test_task',
+    title: 'Test Task'
+  }
+});
+```
+
+---
+
+## Webhook Endpoints
+
+### Express Example
+
+```typescript
+import express from 'express';
+import { verifyWebhookSignature } from './utils';
+
+const app = express();
+
+app.post('/forge-webhook', express.json(), async (req, res) => {
+  // Verify signature
+  const signature = req.headers['x-forge-signature'] as string;
+  const payload = JSON.stringify(req.body);
+
+  if (!verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  // Process event
+  try {
+    await handleWebhook(req.body);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Webhook processing failed:', error);
+    res.status(500).json({ error: 'Processing failed' });
+  }
+});
+
+async function handleWebhook(event: WebhookEvent) {
+  const handlers = {
+    'task.completed': handleTaskCompleted,
+    'task.failed': handleTaskFailed,
+    'attempt.merged': handleAttemptMerged
+  };
+
+  const handler = handlers[event.event];
+  if (handler) {
+    await handler(event.data);
+  }
+}
+```
+
+### Next.js API Route
+
+```typescript
+// pages/api/forge-webhook.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { verifyWebhookSignature } from '@/lib/utils';
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Verify signature
+  const signature = req.headers['x-forge-signature'] as string;
+  const payload = JSON.stringify(req.body);
+
+  if (!verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  // Process webhook
+  await handleForgeWebhook(req.body);
+
+  res.status(200).json({ received: true });
+}
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Verify Signatures" icon="shield">
+    ```typescript
+    if (!verifySignature(payload, signature, secret)) {
+      return res.status(401).send('Invalid');
+    }
+    ```
+
+    Prevents unauthorized webhooks
+  </Card>
+
+  <Card title="Respond Quickly" icon="bolt">
+    ```typescript
+    // Good ✅
+    res.sendStatus(200);
+    processWebhookAsync(event);
+
+    // Bad ❌
+    await longRunningTask();
+    res.sendStatus(200);
+    ```
+
+    Respond within 5 seconds
+  </Card>
+
+  <Card title="Handle Duplicates" icon="copy">
+    ```typescript
+    const processedEvents = new Set();
+
+    if (processedEvents.has(event.id)) {
+      return; // Already processed
+    }
+
+    await processEvent(event);
+    processedEvents.add(event.id);
+    ```
+
+    Events may be delivered multiple times
+  </Card>
+
+  <Card title="Log Everything" icon="file-lines">
+    ```typescript
+    console.log('Webhook received:', {
+      event: event.event,
+      id: event.id,
+      timestamp: event.timestamp
+    });
+
+    try {
+      await process(event);
+      console.log('Processed successfully');
+    } catch (error) {
+      console.error('Processing failed:', error);
+    }
+    ```
+
+    Essential for debugging
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Webhooks not received">
+    **Checklist**:
+    - Is webhook URL publicly accessible?
+    - Is firewall allowing incoming requests?
+    - Is webhook active? (`active: true`)
+    - Check Forge logs: `forge logs --filter webhooks`
+  </Accordion>
+
+  <Accordion title="Signature verification fails">
+    **Causes**:
+    - Wrong secret
+    - Payload modified (middleware parsing)
+    - Incorrect signature algorithm
+
+    **Solution**:
+    ```typescript
+    // Use raw body
+    app.use(express.json({
+      verify: (req, res, buf) => {
+        req.rawBody = buf.toString();
+      }
+    }));
+
+    // Verify with raw body
+    verifySignature(req.rawBody, signature, secret);
+    ```
+  </Accordion>
+
+  <Accordion title="Delivery failures">
+    **Check**:
+    ```typescript
+    const deliveries = await forge.webhooks.getDeliveries('webhook_123', {
+      status: 'failed'
+    });
+
+    for (const delivery of deliveries) {
+      console.log(delivery.error);
+    }
+    ```
+
+    **Common issues**:
+    - Timeout (endpoint too slow)
+    - 500 errors (server crash)
+    - SSL certificate errors
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Custom Executors" icon="code" href="/forge/advanced/custom-executors">
+    Trigger custom executors via webhooks
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Complete automation workflows
+  </Card>
+
+  <Card title="API Reference" icon="book" href="/forge/api/rest-overview">
+    Webhook API documentation
+  </Card>
+</CardGroup>

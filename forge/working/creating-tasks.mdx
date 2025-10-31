@@ -1,0 +1,555 @@
+---
+title: "Creating Tasks"
+description: "Learn how to create and configure tasks in Forge"
+icon: "plus"
+---
+
+## Overview
+
+Tasks are the core unit of work in Forge. Each task represents a specific piece of work to be executed by AI coding agents in isolated environments.
+
+---
+
+## Creating Your First Task
+
+### Via Web UI
+
+<Steps>
+  <Step title="Open Forge">
+    ```bash
+    forge start
+    # Opens http://localhost:3000
+    ```
+  </Step>
+
+  <Step title="Click 'New Task'">
+    Click the **+ New Task** button in the Kanban board
+  </Step>
+
+  <Step title="Fill in Details">
+    - **Title**: Clear, concise description
+    - **Description**: Detailed requirements and context
+    - **LLM**: Choose your AI agent (Claude, Gemini, etc.)
+    - **Labels**: Add tags for organization
+  </Step>
+
+  <Step title="Create Task">
+    Click **Create** - your task appears in the "To Do" column
+  </Step>
+</Steps>
+
+### Via CLI
+
+```bash
+# Basic task creation
+forge task create \
+  --title "Add user authentication" \
+  --description "Implement JWT-based auth with login and signup" \
+  --llm claude
+
+# With additional options
+forge task create \
+  --title "Refactor API client" \
+  --description "Convert fetch calls to axios" \
+  --llm gemini \
+  --priority high \
+  --labels "refactor,backend" \
+  --assignee "claude"
+```
+
+### Via MCP (from your coding agent)
+
+```
+You: "Create a task to add dark mode toggle with LocalStorage persistence"
+
+Claude Code: I'll create that task for you...
+
+[Uses MCP create_task tool]
+
+Task created: #42 "Add dark mode toggle"
+```
+
+---
+
+## Task Properties
+
+### Required Fields
+
+<ParamField path="title" type="string" required>
+  Clear, action-oriented title
+
+  <Tip>
+  **Good**: "Add JWT authentication endpoints"
+  **Bad**: "Auth stuff"
+  </Tip>
+
+  ```bash
+  forge task create --title "Add JWT authentication endpoints"
+  ```
+</ParamField>
+
+<ParamField path="description" type="string" optional>
+  Detailed requirements, context, and acceptance criteria
+
+  ```bash
+  forge task create \
+    --title "Add authentication" \
+    --description "
+    Implement JWT-based authentication with:
+    - POST /auth/login endpoint
+    - POST /auth/signup endpoint
+    - JWT token generation with 24h expiry
+    - Password hashing with bcrypt
+    - Input validation
+    - Error handling
+    "
+  ```
+</ParamField>
+
+### Optional Fields
+
+<ParamField path="llm" type="string" default="default from config">
+  AI coding agent to use
+
+  Options: `claude`, `gemini`, `cursor`, `openai`, `opencode`, `qwen`
+
+  ```bash
+  forge task create --title "Quick fix" --llm gemini
+  ```
+</ParamField>
+
+<ParamField path="priority" type="enum" default="medium">
+  Task priority: `low`, `medium`, `high`, `critical`
+
+  ```bash
+  forge task create --title "Security patch" --priority critical
+  ```
+</ParamField>
+
+<ParamField path="labels" type="string[]">
+  Tags for organization and filtering
+
+  ```bash
+  forge task create \
+    --title "Add tests" \
+    --labels "testing,backend,priority:high"
+  ```
+</ParamField>
+
+<ParamField path="assignee" type="string">
+  Specific agent profile or team member
+
+  ```bash
+  forge task create --title "Security audit" --assignee "security-expert"
+  ```
+</ParamField>
+
+---
+
+## Task Types & Templates
+
+### Feature Development
+
+```bash
+forge task create \
+  --title "Add export to CSV functionality" \
+  --type feature \
+  --description "
+  Create CSV export feature:
+  - Add download button to UI
+  - Implement CSV generation logic
+  - Handle large datasets (stream)
+  - Add progress indicator
+  - Include proper filename with timestamp
+  " \
+  --labels "feature,ui,backend"
+```
+
+### Bug Fix
+
+```bash
+forge task create \
+  --title "Fix memory leak in WebSocket connection" \
+  --type bugfix \
+  --priority high \
+  --description "
+  Steps to reproduce:
+  1. Connect to WebSocket
+  2. Leave page open for 1 hour
+  3. Memory usage grows continuously
+
+  Expected: Stable memory usage
+  Actual: Memory grows by ~50MB/hour
+
+  Stack trace: [attach if available]
+  " \
+  --labels "bug,websocket,critical"
+```
+
+### Refactoring
+
+```bash
+forge task create \
+  --title "Extract API client to separate module" \
+  --type refactor \
+  --description "
+  Current state: API calls scattered across components
+  Goal: Centralized API client with:
+  - Axios instance with interceptors
+  - Error handling middleware
+  - Retry logic for failed requests
+  - TypeScript types for all endpoints
+  " \
+  --labels "refactor,architecture"
+```
+
+### Documentation
+
+```bash
+forge task create \
+  --title "Document authentication flow" \
+  --type docs \
+  --description "
+  Create comprehensive docs for:
+  - How JWT tokens are generated
+  - Token refresh flow
+  - Password reset process
+  - OAuth integration
+  Include sequence diagrams
+  " \
+  --labels "docs,auth"
+```
+
+### Testing
+
+```bash
+forge task create \
+  --title "Add integration tests for payment flow" \
+  --type testing \
+  --description "
+  Test scenarios:
+  - Successful payment
+  - Failed payment (card declined)
+  - Network timeout during payment
+  - Webhook handling
+  - Refund flow
+
+  Use Jest + Supertest
+  Aim for 90%+ coverage
+  " \
+  --labels "testing,payment"
+```
+
+---
+
+## Writing Effective Task Descriptions
+
+### Bad Description ❌
+
+```
+Add user stuff to the dashboard
+```
+
+### Good Description ✅
+
+```markdown
+## Goal
+Add user management section to admin dashboard
+
+## Requirements
+- Display paginated user list (20 per page)
+- Show: name, email, registration date, status
+- Add filters: status (active/inactive), role
+- Implement search by name or email
+- Add "Edit User" modal with:
+  - Change role (user/admin)
+  - Toggle active status
+  - Reset password option
+
+## Technical Notes
+- Use existing UserService API
+- Match design system components
+- Add loading states and error handling
+- Include unit tests for filtering logic
+
+## Acceptance Criteria
+- [ ] User list loads and paginates correctly
+- [ ] Filters work as expected
+- [ ] Search returns accurate results
+- [ ] Edit modal saves changes successfully
+- [ ] All edge cases handled (empty state, API errors)
+```
+
+### Tips for Great Descriptions
+
+<CardGroup cols={2}>
+  <Card title="Be Specific" icon="bullseye">
+    **Bad**: "Make it faster"
+    **Good**: "Reduce API response time from 2s to under 500ms by adding Redis caching"
+  </Card>
+
+  <Card title="Include Context" icon="lightbulb">
+    Why is this needed? What problem does it solve?
+
+    "Users complain about slow dashboard load times. Profiling shows 80% time spent in database queries."
+  </Card>
+
+  <Card title="Define Success" icon="check">
+    Add acceptance criteria:
+    - [ ] Dashboard loads in under 1 second
+    - [ ] Cache hit rate over 70%
+    - [ ] Tests pass
+  </Card>
+
+  <Card title="Attach References" icon="link">
+    Include:
+    - Design mockups
+    - API documentation
+    - Similar implementations
+    - Stack traces (for bugs)
+  </Card>
+</CardGroup>
+
+---
+
+## Task Organization
+
+### Using Labels
+
+```bash
+# Category labels
+--labels "feature,bug,docs,refactor,testing"
+
+# Priority labels
+--labels "priority:high,priority:low"
+
+# Component labels
+--labels "frontend,backend,database,auth"
+
+# Status labels
+--labels "blocked,in-review,needs-testing"
+
+# Team labels
+--labels "team:mobile,team:api"
+
+# Combine multiple
+--labels "feature,backend,priority:high,team:api"
+```
+
+### Filtering Tasks
+
+```bash
+# By label
+forge task list --labels "feature"
+forge task list --labels "priority:high"
+
+# By status
+forge task list --status pending
+forge task list --status in_progress
+
+# By assignee
+forge task list --assignee claude
+
+# Combine filters
+forge task list --labels "bug" --priority high --status pending
+```
+
+---
+
+## Attaching Context
+
+### Code Snippets
+
+```bash
+forge task create \
+  --title "Optimize database query" \
+  --description "
+  Current slow query:
+  \`\`\`sql
+  SELECT * FROM users
+  WHERE created_at > NOW() - INTERVAL 30 DAY
+  \`\`\`
+
+  Takes 5 seconds on 1M users. Add index on created_at.
+  "
+```
+
+### Screenshots (Web UI)
+
+1. Click **Attach Files** in task creation modal
+2. Upload screenshots, diagrams, or mockups
+3. Reference in description: "See attached mockup.png"
+
+### Links
+
+```markdown
+## References
+- Design: https://figma.com/file/xyz
+- API Docs: https://docs.example.com/api
+- Similar feature: https://github.com/user/repo/pull/123
+```
+
+---
+
+## Advanced: Task Dependencies
+
+```bash
+# Create parent task
+forge task create \
+  --title "Build payment system" \
+  --id parent-task
+
+# Create dependent tasks
+forge task create \
+  --title "Stripe integration" \
+  --depends-on parent-task
+
+forge task create \
+  --title "Payment UI components" \
+  --depends-on parent-task
+
+forge task create \
+  --title "Webhook handling" \
+  --depends-on parent-task
+```
+
+Tasks with dependencies are blocked until parent completes.
+
+---
+
+## Batch Task Creation
+
+### From File
+
+Create `tasks.yaml`:
+
+```yaml
+tasks:
+  - title: "Setup database schema"
+    description: "Create tables for users, posts, comments"
+    priority: high
+    labels: ["database", "setup"]
+
+  - title: "Create API endpoints"
+    description: "CRUD operations for posts"
+    labels: ["backend", "api"]
+
+  - title: "Build frontend components"
+    description: "Post list, create post form"
+    labels: ["frontend", "ui"]
+```
+
+Import:
+
+```bash
+forge task import tasks.yaml
+```
+
+### Programmatic Creation
+
+```typescript
+import { ForgeClient } from 'automagik-forge-sdk';
+
+const forge = new ForgeClient();
+
+const tasks = [
+  { title: "Task 1", description: "..." },
+  { title: "Task 2", description: "..." },
+  { title: "Task 3", description: "..." },
+];
+
+for (const task of tasks) {
+  await forge.createTask(task);
+}
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Tasks Small" icon="puzzle-piece">
+    **Bad**: "Build entire e-commerce platform"
+    **Good**: "Add product listing page"
+
+    Smaller tasks = better AI results
+  </Card>
+
+  <Card title="One Thing Per Task" icon="bullseye">
+    **Bad**: "Add auth and refactor database"
+    **Good**: Two separate tasks
+
+    Focus improves quality
+  </Card>
+
+  <Card title="Clear Acceptance Criteria" icon="check-double">
+    Define done:
+    - [ ] Feature works as described
+    - [ ] Tests pass
+    - [ ] Documentation updated
+  </Card>
+
+  <Card title="Include Examples" icon="code">
+    Show, don't just tell:
+    ```javascript
+    // Expected usage:
+    const token = await auth.generateToken(user);
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Task creation fails">
+    **Error**: "Failed to create task"
+
+    **Solutions**:
+    - Check project is selected
+    - Verify database is accessible
+    - Ensure title is not empty
+    - Check LLM is configured
+  </Accordion>
+
+  <Accordion title="Can't find created task">
+    **Issue**: Task created but not visible
+
+    **Solutions**:
+    - Refresh the Kanban board
+    - Check filters aren't hiding it
+    - Use search: `forge task list --search "your title"`
+  </Accordion>
+
+  <Accordion title="Duplicate tasks">
+    **Issue**: Same task created multiple times
+
+    **Solutions**:
+    - Check for button double-clicks
+    - Use unique IDs if programmatic
+    - Search before creating: `forge task list --search "similar"`
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Managing Attempts" icon="flask" href="/forge/working/managing-attempts">
+    Run tasks with different AI agents
+  </Card>
+
+  <Card title="Comparing Results" icon="code-compare" href="/forge/working/comparing-results">
+    Compare outputs from multiple agents
+  </Card>
+
+  <Card title="Task Templates" icon="file-lines" href="/forge/advanced/task-templates">
+    Reusable patterns for common workflows
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/forge/cli/task-commands">
+    Complete CLI command reference
+  </Card>
+</CardGroup>

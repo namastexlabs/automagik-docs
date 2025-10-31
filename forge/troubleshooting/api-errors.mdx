@@ -1,0 +1,678 @@
+---
+title: "API Errors"
+description: "Troubleshooting REST API and MCP connection issues"
+icon: "plug"
+---
+
+## Overview
+
+Forge exposes a REST API for the web UI and an MCP server for AI agent integration. This guide helps troubleshoot API connection and communication issues.
+
+---
+
+## Connection Errors
+
+### Cannot Connect to Backend
+
+**Problem**: Frontend shows "Failed to connect to API" or network errors
+
+**Symptoms**:
+- Tasks don't load
+- Empty project list
+- Console errors: `net::ERR_CONNECTION_REFUSED`
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check Backend is Running">
+    ```bash
+    # Verify backend port in logs
+    # Look for: "Backend server listening on: http://127.0.0.1:XXXX"
+
+    # Test connection
+    curl http://localhost:5000/api/projects
+
+    # Should return JSON, not connection error
+    ```
+  </Accordion>
+
+  <Accordion title="Check Port Configuration">
+    ```bash
+    # Backend auto-assigns port if not specified
+    # Check what port it's using
+
+    # Set explicit port
+    export BACKEND_PORT=5000
+    automagik-forge --backend-port 5000
+
+    # Verify
+    curl http://localhost:5000/api/projects
+    ```
+  </Accordion>
+
+  <Accordion title="Check Firewall">
+    ```bash
+    # macOS
+    sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+
+    # Linux (ufw)
+    sudo ufw status
+    sudo ufw allow 5000/tcp
+
+    # Windows Firewall
+    # Allow automagik-forge in Windows Defender Firewall settings
+    ```
+  </Accordion>
+
+  <Accordion title="Check for Port Conflicts">
+    ```bash
+    # See what's using the port
+    lsof -i :5000  # macOS/Linux
+    netstat -ano | findstr :5000  # Windows
+
+    # Kill conflicting process or use different port
+    automagik-forge --backend-port 5001
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### CORS Errors
+
+**Problem**: `Access to fetch has been blocked by CORS policy`
+
+**Cause**: Backend and frontend on different origins
+
+**Solution**:
+
+```bash
+# Forge handles CORS automatically
+# But if you're using custom setup:
+
+# 1. Ensure backend allows frontend origin
+# Backend should already allow http://localhost:3000
+
+# 2. Don't use IP address for frontend
+# Use localhost, not 127.0.0.1
+
+# 3. Check browser console for exact CORS error
+# F12 → Console → Look for CORS details
+```
+
+---
+
+### Timeout Errors
+
+**Problem**: Requests timeout with no response
+
+**Solutions**:
+
+```bash
+# Increase timeout in frontend
+# (Already set to reasonable defaults)
+
+# Check if backend is overloaded
+top  # Check CPU/memory
+
+# Check backend logs for errors
+# Forge outputs logs to console
+
+# Test API directly
+curl -v http://localhost:5000/api/projects
+# Look for response time
+```
+
+---
+
+## Authentication Errors
+
+### Unauthorized (401)
+
+**Problem**: API returns 401 Unauthorized
+
+**Cause**: Missing or invalid auth token (GitHub OAuth)
+
+**Solution**:
+
+```bash
+# Re-authenticate with GitHub
+# Via UI: Settings → GitHub → Reconnect
+
+# Or clear cached token
+rm .forge/github-token.enc
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+### Forbidden (403)
+
+**Problem**: API returns 403 Forbidden
+
+**Cause**: Insufficient permissions for requested resource
+
+**Solution**:
+
+```bash
+# Check GitHub OAuth scopes
+# Ensure OAuth app has repo access
+
+# Verify you have access to the repository
+gh repo view owner/repo
+
+# Re-authorize with correct scopes
+```
+
+---
+
+## Request Errors
+
+### Bad Request (400)
+
+**Problem**: API returns 400 Bad Request
+
+**Causes**:
+
+<Tabs>
+  <Tab title="Invalid JSON">
+    ```bash
+    # Check request body is valid JSON
+    curl -X POST http://localhost:5000/api/tasks \
+      -H "Content-Type: application/json" \
+      -d '{"title":"Test"}' # Valid
+
+    # Not this:
+    -d '{title:"Test"}' # Invalid (missing quotes)
+    ```
+  </Tab>
+
+  <Tab title="Missing Required Fields">
+    ```bash
+    # Check API documentation for required fields
+    curl -X POST http://localhost:5000/api/tasks \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "Required",
+        "description": "Also required",
+        "project_id": "uuid-required"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Invalid Field Values">
+    ```bash
+    # Check field validation
+    # Example: status must be valid enum
+    {
+      "status": "in_progress" // Valid
+      "status": "invalid_status" // Invalid
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Not Found (404)
+
+**Problem**: API returns 404 Not Found
+
+**Solutions**:
+
+```bash
+# Verify endpoint path
+curl http://localhost:5000/api/tasks  # Correct
+curl http://localhost:5000/api/task   # Wrong (singular)
+
+# Verify resource exists
+curl http://localhost:5000/api/tasks/{task-id}
+
+# Check if ID is correct UUID format
+# Valid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+# Invalid: task-123
+```
+
+---
+
+### Internal Server Error (500)
+
+**Problem**: API returns 500 Internal Server Error
+
+**Solution**:
+
+```bash
+# Check backend logs for stack trace
+# Forge outputs detailed error logs
+
+# Common causes:
+# 1. Database corruption
+sqlite3 .forge/db.sqlite "PRAGMA integrity_check;"
+
+# 2. Disk space full
+df -h
+
+# 3. Permission errors
+ls -la .forge/
+
+# 4. Bug in Forge
+# Report to: https://github.com/namastexlabs/automagik-forge/issues
+```
+
+---
+
+## MCP Server Errors
+
+### MCP Server Not Responding
+
+**Problem**: AI agent can't connect to Forge via MCP
+
+**Symptoms**:
+- MCP tools not available in AI agent
+- Connection timeoutErrors in AI agent logs
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Verify MCP Mode">
+    ```bash
+    # Start Forge in MCP mode
+    automagik-forge --mcp
+
+    # Or advanced mode for more tools
+    automagik-forge --mcp-advanced
+
+    # Verify it's running in MCP mode
+    # Look for: "MCP server listening on stdio"
+    ```
+  </Accordion>
+
+  <Accordion title="Check MCP Configuration">
+    **Claude Code** (`.claude/mcp.json`):
+    ```json
+    {
+      "mcpServers": {
+        "automagik-forge": {
+          "command": "npx",
+          "args": ["automagik-forge", "--mcp"],
+          "env": {
+            "PROJECT_ID": "your-project-uuid"
+          }
+        }
+      }
+    }
+    ```
+
+    **Cursor** (settings.json):
+    ```json
+    {
+      "mcp.servers": {
+        "automagik-forge": {
+          "command": "npx",
+          "args": ["automagik-forge", "--mcp"],
+          "projectId": "your-project-uuid"
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Get Project ID">
+    ```bash
+    # Method 1: From UI
+    # Settings → Project Info → Project ID
+
+    # Method 2: From config file
+    cat .forge/config.json | grep project_id
+
+    # Method 3: From API
+    curl http://localhost:5000/api/projects | jq '.[0].id'
+    ```
+  </Accordion>
+
+  <Accordion title="Check MCP Logs">
+    ```bash
+    # MCP server logs to stderr
+    # Check AI agent's MCP logs
+
+    # Claude Code logs
+    ~/.claude/logs/
+
+    # Cursor logs
+    # Help → Show Logs → MCP
+
+    # Look for connection errors or tool loading issues
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### MCP Tools Not Available
+
+**Problem**: `list_tasks`, `create_task`, etc. not showing up in AI agent
+
+**Solution**:
+
+<Steps>
+  <Step title="Verify MCP Server Started">
+    ```bash
+    # Check AI agent recognized the MCP server
+    # In AI agent, ask: "What MCP servers are available?"
+
+    # Should list: automagik-forge
+    ```
+  </Step>
+
+  <Step title="Check Tool Mode">
+    ```bash
+    # Basic mode: 6 core tools
+    automagik-forge --mcp
+
+    # Advanced mode: 56+ tools
+    automagik-forge --mcp-advanced
+
+    # Use advanced if you need all tools
+    ```
+  </Step>
+
+  <Step title="Restart AI Agent">
+    ```bash
+    # Reload MCP servers
+    # Claude Code: Cmd+Shift+P → "Reload MCP Servers"
+    # Cursor: Reload window
+
+    # Or restart the AI agent completely
+    ```
+  </Step>
+</Steps>
+
+---
+
+### MCP Tool Execution Failed
+
+**Problem**: MCP tool returns error when executed
+
+**Common Errors**:
+
+<Tabs>
+  <Tab title="Project Not Found">
+    ```json
+    // Error: "Project with ID xxx not found"
+
+    // Solution: Verify PROJECT_ID in MCP config
+    {
+      "env": {
+        "PROJECT_ID": "correct-uuid-here"
+      }
+    }
+
+    // Get correct ID:
+    cat .forge/config.json | grep project_id
+    ```
+  </Tab>
+
+  <Tab title="Task Not Found">
+    ```json
+    // Error: "Task xxx does not exist"
+
+    // Solution: List tasks first to get valid IDs
+    {
+      "tool": "list_tasks",
+      "arguments": {
+        "project_id": "uuid"
+      }
+    }
+
+    // Then use returned task IDs
+    ```
+  </Tab>
+
+  <Tab title="Invalid Arguments">
+    ```json
+    // Error: "Missing required field: title"
+
+    // Solution: Include all required fields
+    {
+      "tool": "create_task",
+      "arguments": {
+        "project_id": "uuid",
+        "title": "Required field",
+        "description": "Also required"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## SSE (Server-Sent Events) Issues
+
+### Real-time Logs Not Streaming
+
+**Problem**: Task execution logs don't appear in real-time
+
+**Causes & Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Corporate Proxy Blocking SSE">
+    ```bash
+    # Some proxies block Server-Sent Events
+
+    # Test SSE connection
+    curl -N http://localhost:5000/api/events/processes/{id}/logs
+
+    # Should stream data, not close immediately
+
+    # If blocked, disable proxy temporarily
+    unset HTTP_PROXY
+    unset HTTPS_PROXY
+    ```
+  </Accordion>
+
+  <Accordion title="Browser Limiting Connections">
+    ```bash
+    # Browsers limit concurrent SSE connections
+
+    # Close other Forge tabs
+    # Or use different browser
+
+    # Firefox: about:config
+    # network.http.max-persistent-connections-per-server = 10
+    ```
+  </Accordion>
+
+  <Accordion title="Backend Not Sending Events">
+    ```bash
+    # Check backend is configured to stream
+    # This should be automatic in Forge
+
+    # Verify in logs:
+    # "Streaming process logs for ID: xxx"
+
+    # If not streaming, restart Forge
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Database Errors
+
+### SQLite Errors
+
+**Problem**: API returns database-related errors
+
+<Tabs>
+  <Tab title="Database Locked">
+    ```bash
+    # Error: "database is locked"
+
+    # Stop all Forge instances
+    pkill -f automagik-forge
+
+    # Remove lock files
+    rm .forge/db.sqlite-shm
+    rm .forge/db.sqlite-wal
+
+    # Restart single instance
+    automagik-forge
+    ```
+  </Tab>
+
+  <Tab title="Database Corrupted">
+    ```bash
+    # Check integrity
+    sqlite3 .forge/db.sqlite "PRAGMA integrity_check;"
+
+    # If corrupted, restore from backup
+    cp .forge/db.backup.sqlite .forge/db.sqlite
+
+    # Or rebuild database (loses data)
+    mv .forge/db.sqlite .forge/db.sqlite.old
+    automagik-forge  # Creates new database
+    ```
+  </Tab>
+
+  <Tab title="Migration Failed">
+    ```bash
+    # Error: "database migration failed"
+
+    # Backup database
+    cp .forge/db.sqlite .forge/db.backup.sqlite
+
+    # Delete database (will rebuild)
+    rm .forge/db.sqlite
+
+    # Restart Forge
+    automagik-forge
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Performance Issues
+
+### Slow API Responses
+
+**Problem**: API requests take very long to respond
+
+**Solutions**:
+
+```bash
+# Check database size
+du -h .forge/db.sqlite
+
+# If very large (>100MB), clean up old data
+sqlite3 .forge/db.sqlite "DELETE FROM tasks WHERE status='done' AND updated_at < datetime('now', '-30 days');"
+
+# Vacuum database to reclaim space
+sqlite3 .forge/db.sqlite "VACUUM;"
+
+# Restart Forge
+automagik-forge
+```
+
+---
+
+### Rate Limiting
+
+**Problem**: AI executor APIs return rate limit errors
+
+**Solution**:
+
+```json
+// Configure rate limits in .forge/config.json
+{
+  "executors": {
+    "claude-code": {
+      "rate_limit": {
+        "requests_per_minute": 50,
+        "tokens_per_minute": 100000
+      },
+      "retry": {
+        "max_retries": 3,
+        "backoff_ms": 1000
+      }
+    }
+  }
+}
+```
+
+---
+
+## Debugging API Issues
+
+### Enable Debug Logging
+
+```bash
+# Set debug log level
+export RUST_LOG=debug
+
+# Start Forge
+automagik-forge
+
+# Watch for API request/response logs
+# Each API call will be logged with details
+```
+
+### Test API Directly
+
+```bash
+# Test with curl
+curl -v http://localhost:5000/api/projects
+
+# -v shows full request/response
+# Look for:
+# - Status code
+# - Response headers
+# - Response body
+# - Timing information
+
+# Test specific endpoints
+curl http://localhost:5000/api/tasks
+curl http://localhost:5000/api/tasks/{task-id}
+curl -X POST http://localhost:5000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","description":"Test task","project_id":"uuid"}'
+```
+
+### Inspect Network Traffic
+
+```bash
+# Use browser DevTools
+# F12 → Network tab
+
+# Filter by "Fetch/XHR"
+# Click on request to see:
+# - Headers
+# - Payload
+# - Response
+# - Timing
+
+# Look for failed requests (red)
+# Check status codes and error messages
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="circle-exclamation" href="/forge/troubleshooting/common-issues">
+    General troubleshooting guide
+  </Card>
+  <Card title="Git Worktree Errors" icon="code-branch" href="/forge/troubleshooting/git-worktree-errors">
+    Worktree-specific issues
+  </Card>
+  <Card title="API Reference" icon="code" href="/forge/api/rest-overview">
+    Complete API documentation
+  </Card>
+  <Card title="MCP Tools" icon="plug" href="/forge/api/mcp-tools">
+    MCP integration reference
+  </Card>
+</CardGroup>
