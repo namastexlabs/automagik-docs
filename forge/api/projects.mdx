@@ -1,5 +1,6 @@
 ---
 title: "Projects API"
+openapi: "GET /api/projects"
 description: "Manage Forge projects via REST API"
 icon: "folder"
 ---
@@ -8,36 +9,39 @@ icon: "folder"
 
 Projects are the top-level organizational unit in Forge. Each project contains tasks, attempts, and configuration.
 
-**Base URL**: `/api/projects`
+**Base URL**: `http://localhost:8887/api/projects`
 
 ---
 
 ## List Projects
 
-Get all projects with optional filtering.
+<RequestExample>
 
-```http
-GET /api/projects
+```bash cURL
+curl http://localhost:8887/api/projects?page=1&limit=10
 ```
 
-### Query Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `page` | integer | Page number (default: 1) |
-| `limit` | integer | Items per page (default: 20, max: 100) |
-| `sort` | string | Sort field (e.g., `-created_at`) |
-| `search` | string | Search project names |
-
-### Example Request
-
-```bash
-curl http://localhost:8080/api/projects?page=1&limit=10
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/projects?page=1&limit=10');
+const data = await response.json();
+console.log(data);
 ```
 
-### Example Response
+```python Python
+import requests
 
-```json
+response = requests.get(
+    'http://localhost:8887/api/projects',
+    params={'page': 1, 'limit': 10}
+)
+projects = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": [
@@ -45,28 +49,27 @@ curl http://localhost:8080/api/projects?page=1&limit=10
       "id": "proj_abc123",
       "name": "My Web App",
       "description": "E-commerce platform",
-      "repository": {
-        "url": "https://github.com/user/repo",
-        "branch": "main"
-      },
-      "defaultLLM": "claude",
+      "git_repo_path": "/home/user/projects/my-web-app",
+      "setup_script": "npm install",
+      "dev_script": "npm run dev",
       "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-15T15:45:00Z",
-      "stats": {
-        "tasks": 42,
-        "completedTasks": 38,
-        "activeAttempts": 2
-      }
+      "updatedAt": "2024-01-15T15:45:00Z"
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 1,
-    "pages": 1
+  ]
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
   }
 }
 ```
+
+</ResponseExample>
 
 ---
 
@@ -81,7 +84,7 @@ GET /api/projects/:id
 ### Example Request
 
 ```bash
-curl http://localhost:8080/api/projects/proj_abc123
+curl http://localhost:8887/api/projects/proj_abc123
 ```
 
 ### Example Response
@@ -130,28 +133,28 @@ curl http://localhost:8080/api/projects/proj_abc123
 
 Create a new Forge project.
 
-```http
-POST /api/projects
-```
+<ParamField body="name" type="string" required>
+  Project name
+</ParamField>
 
-### Request Body
+<ParamField body="description" type="string">
+  Project description
+</ParamField>
 
-```json
-{
-  "name": "My New Project",
-  "description": "Project description",
-  "repository": {
-    "url": "https://github.com/user/repo",
-    "branch": "main"
-  },
-  "defaultLLM": "claude"
-}
-```
+<ParamField body="repository" type="object" required>
+  Repository configuration
+  - `url` (string, required): GitHub repository URL
+  - `branch` (string): Branch name (default: "main")
+</ParamField>
 
-### Example Request
+<ParamField body="defaultLLM" type="string">
+  Default AI agent (claude, gemini, gpt-4, etc.)
+</ParamField>
 
-```bash
-curl -X POST http://localhost:8080/api/projects \
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8887/api/projects \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My New Project",
@@ -162,9 +165,39 @@ curl -X POST http://localhost:8080/api/projects \
   }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/projects', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'My New Project',
+    repository: {
+      url: 'https://github.com/user/repo'
+    },
+    defaultLLM: 'claude'
+  })
+});
+const project = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post('http://localhost:8887/api/projects', json={
+    'name': 'My New Project',
+    'repository': {
+        'url': 'https://github.com/user/repo'
+    },
+    'defaultLLM': 'claude'
+})
+project = response.json()
+```
+
+</CodeGroup>
+
+### Response
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -177,6 +210,30 @@ curl -X POST http://localhost:8080/api/projects \
     "defaultLLM": "claude",
     "createdAt": "2024-01-15T16:00:00Z",
     "updatedAt": "2024-01-15T16:00:00Z"
+  }
+}
+```
+
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid project data",
+    "details": {
+      "name": "Project name is required",
+      "repository.url": "Invalid repository URL"
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "success": false,
+  "error": {
+    "code": "PROJECT_EXISTS",
+    "message": "Project with name 'My New Project' already exists"
   }
 }
 ```
@@ -204,7 +261,7 @@ PATCH /api/projects/:id
 ### Example Request
 
 ```bash
-curl -X PATCH http://localhost:8080/api/projects/proj_abc123 \
+curl -X PATCH http://localhost:8887/api/projects/proj_abc123 \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Project Name",
@@ -243,7 +300,7 @@ This permanently deletes the project, all tasks, attempts, and associated data. 
 ### Example Request
 
 ```bash
-curl -X DELETE http://localhost:8080/api/projects/proj_abc123
+curl -X DELETE http://localhost:8887/api/projects/proj_abc123
 ```
 
 ### Example Response
@@ -276,7 +333,7 @@ Same as [Tasks API](/forge/api/tasks) list parameters.
 ### Example Request
 
 ```bash
-curl http://localhost:8080/api/projects/proj_abc123/tasks?status=in_progress
+curl http://localhost:8887/api/projects/proj_abc123/tasks?status=in_progress
 ```
 
 ---
@@ -398,6 +455,97 @@ forge.projects.delete('proj_abc123')
 # Get stats
 stats = forge.projects.stats('proj_abc123')
 ```
+
+---
+
+## Get Project Branches
+
+List all git branches for a project.
+
+```http
+GET /api/projects/:id/branches
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "currentBranch": "main",
+    "branches": [
+      {
+        "name": "main",
+        "commit": "abc123def456",
+        "isCurrent": true,
+        "isDefault": true,
+        "lastCommit": {
+          "hash": "abc123def456",
+          "message": "Add authentication",
+          "author": "John Doe",
+          "date": "2024-01-15T10:00:00Z"
+        }
+      },
+      {
+        "name": "develop",
+        "commit": "def456ghi789",
+        "isCurrent": false,
+        "isDefault": false,
+        "lastCommit": {
+          "hash": "def456ghi789",
+          "message": "Work in progress",
+          "author": "Jane Smith",
+          "date": "2024-01-14T15:30:00Z"
+        }
+      },
+      {
+        "name": "forge/task-abc123-attempt-1",
+        "commit": "ghi789jkl012",
+        "isCurrent": false,
+        "isDefault": false,
+        "isForgeWorktree": true,
+        "taskId": "abc123",
+        "attemptId": "attempt-1",
+        "lastCommit": {
+          "hash": "ghi789jkl012",
+          "message": "Add user authentication (automagik-forge abc1)",
+          "author": "Claude AI",
+          "date": "2024-01-15T11:00:00Z"
+        }
+      }
+    ],
+    "forgeBranches": [
+      {
+        "name": "forge/task-abc123-attempt-1",
+        "taskId": "abc123",
+        "attemptId": "attempt-1"
+      }
+    ]
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currentBranch` | string | Currently checked out branch |
+| `branches` | array | All branches in repository |
+| `branches[].name` | string | Branch name |
+| `branches[].commit` | string | Latest commit hash |
+| `branches[].isCurrent` | boolean | Currently checked out |
+| `branches[].isDefault` | boolean | Default branch (main/master) |
+| `branches[].isForgeWorktree` | boolean | Created by Forge for task attempt |
+| `branches[].taskId` | string | Associated task ID (Forge branches only) |
+| `branches[].attemptId` | string | Associated attempt ID (Forge branches only) |
+| `forgeBranches` | array | Filtered list of Forge-created branches |
+
+### Use Cases
+
+- List available target branches for merging
+- Identify Forge worktree branches
+- Check current repository state
+- Find branches associated with specific tasks
 
 ---
 

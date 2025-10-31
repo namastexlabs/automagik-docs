@@ -1,5 +1,6 @@
 ---
 title: "Attempts API"
+openapi: "POST /api/tasks/:taskId/attempts"
 description: "Execute and manage task attempts"
 icon: "flask"
 ---
@@ -8,7 +9,7 @@ icon: "flask"
 
 Attempts represent individual executions of tasks by AI agents. Each task can have multiple attempts with different agents or configurations.
 
-**Base URL**: `/api/attempts`
+**Base URL**: `http://localhost:8887/api/attempts`
 
 ---
 
@@ -38,15 +39,29 @@ GET /api/attempts
 - `failed` - Execution failed
 - `cancelled` - Cancelled by user
 
-### Example Request
+<RequestExample>
 
-```bash
-curl "http://localhost:8080/api/attempts?taskId=task_abc123&status=completed"
+```bash cURL
+curl "http://localhost:8887/api/attempts?taskId=task_abc123&status=completed"
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts?taskId=task_abc123&status=completed');
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/attempts?taskId=task_abc123&status=completed')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": [
@@ -71,6 +86,18 @@ curl "http://localhost:8080/api/attempts?taskId=task_abc123&status=completed"
   ]
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -149,10 +176,10 @@ POST /api/attempts
 }
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/attempts \
+```bash cURL
+curl -X POST http://localhost:8887/api/attempts \
   -H "Content-Type: application/json" \
   -d '{
     "taskId": "task_xyz789",
@@ -160,9 +187,30 @@ curl -X POST http://localhost:8080/api/attempts \
   }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({...})
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/attempts',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -175,6 +223,18 @@ curl -X POST http://localhost:8080/api/attempts \
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Start Attempt
@@ -185,15 +245,32 @@ Begin execution of a created attempt.
 POST /api/attempts/:id/start
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/attempts/attempt_new123/start
+```bash cURL
+curl -X POST http://localhost:8887/api/attempts/attempt_new123/start
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_new123/start', { method: 'POST' });
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/attempts/attempt_new123/start',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -205,6 +282,18 @@ curl -X POST http://localhost:8080/api/attempts/attempt_new123/start
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Cancel Attempt
@@ -215,15 +304,32 @@ Stop a running attempt.
 POST /api/attempts/:id/cancel
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/attempts/attempt_abc123/cancel
+```bash cURL
+curl -X POST http://localhost:8887/api/attempts/attempt_abc123/cancel
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_abc123/cancel', { method: 'POST' });
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/attempts/attempt_abc123/cancel',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -233,6 +339,18 @@ curl -X POST http://localhost:8080/api/attempts/attempt_abc123/cancel
   }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -248,10 +366,10 @@ DELETE /api/attempts/:id
 This permanently deletes the attempt and removes the associated Git worktree.
 </Warning>
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X DELETE http://localhost:8080/api/attempts/attempt_abc123
+```bash cURL
+curl -X DELETE http://localhost:8887/api/attempts/attempt_abc123
 ```
 
 ---
@@ -272,15 +390,42 @@ GET /api/attempts/:id/logs
 | `level` | enum | Filter by log level |
 | `since` | timestamp | Only logs after this time |
 
-### Example Request
+<RequestExample>
 
-```bash
-curl "http://localhost:8080/api/attempts/attempt_abc123/logs?follow=true"
+```bash cURL
+curl "http://localhost:8887/api/attempts/attempt_abc123/logs?follow=true"
 ```
 
-### Example Response (Streaming)
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_abc123/logs?follow=true');
+const reader = response.body.getReader();
+// Stream logs line by line
+while (true) {
+  const {done, value} = await reader.read();
+  if (done) break;
+  console.log(new TextDecoder().decode(value));
+}
+```
 
-```json
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/attempts/attempt_abc123/logs',
+    params={'follow': True},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        print(line.decode('utf-8'))
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success (Streaming)
 {"level":"info","message":"Starting attempt execution","timestamp":"2024-01-15T10:30:00Z"}
 {"level":"info","message":"Creating git worktree","timestamp":"2024-01-15T10:30:01Z"}
 {"level":"info","message":"Worktree created: .forge/worktrees/task-xyz-claude","timestamp":"2024-01-15T10:30:02Z"}
@@ -288,6 +433,18 @@ curl "http://localhost:8080/api/attempts/attempt_abc123/logs?follow=true"
 {"level":"info","message":"Generating code...","timestamp":"2024-01-15T10:30:05Z"}
 {"level":"info","message":"Created file: src/auth/jwt.ts","timestamp":"2024-01-15T10:32:15Z"}
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -306,15 +463,32 @@ GET /api/attempts/:id/diff
 | `file` | string | Specific file to diff |
 | `format` | enum | `unified`, `split`, `json` (default: unified) |
 
-### Example Request
+<RequestExample>
 
-```bash
-curl "http://localhost:8080/api/attempts/attempt_abc123/diff?format=json"
+```bash cURL
+curl "http://localhost:8887/api/attempts/attempt_abc123/diff?format=json"
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_abc123/diff?format=json');
+const diff = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/attempts/attempt_abc123/diff',
+    params={'format': 'json'}
+)
+diff = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -349,6 +523,18 @@ curl "http://localhost:8080/api/attempts/attempt_abc123/diff?format=json"
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Merge Attempt
@@ -375,10 +561,10 @@ POST /api/attempts/:id/merge
 - `no-ff` - Create merge commit
 - `squash` - Squash commits into one
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/attempts/attempt_abc123/merge \
+```bash cURL
+curl -X POST http://localhost:8887/api/attempts/attempt_abc123/merge \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Add JWT authentication (Claude implementation)",
@@ -387,9 +573,30 @@ curl -X POST http://localhost:8080/api/attempts/attempt_abc123/merge \
   }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/attempts/attempt_abc123/merge', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({...})
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/attempts/attempt_abc123/merge',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -401,6 +608,18 @@ curl -X POST http://localhost:8080/api/attempts/attempt_abc123/merge \
   }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -449,6 +668,485 @@ POST /api/attempts/compare
       "cheaperAttempt": "attempt_2",
       "moreCompleteAttempt": "attempt_1"
     }
+  }
+}
+```
+
+---
+
+## Get Commit Info
+
+Get commit information for a task attempt.
+
+```http
+GET /api/task-attempts/:id/commit-info
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "commitId": "abc123def456",
+    "message": "Add user authentication (automagik-forge a1b2)",
+    "author": "Claude AI <ai@automagik.ai>",
+    "timestamp": "2024-01-15T10:45:00Z",
+    "filesChanged": 8,
+    "insertions": 245,
+    "deletions": 12
+  }
+}
+```
+
+---
+
+## Compare to Head
+
+Compare task attempt branch to HEAD of target branch.
+
+```http
+GET /api/task-attempts/:id/compare-to-head
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "diff": "diff --git a/src/auth.ts...",
+    "filesChanged": 8,
+    "ahead": 3,
+    "behind": 0,
+    "conflicts": []
+  }
+}
+```
+
+---
+
+## Merge Attempt
+
+Merge task attempt into target branch.
+
+```http
+POST /api/task-attempts/:id/merge
+```
+
+### Request Body
+
+```json
+{
+  "strategy": "squash",
+  "message": "Add authentication system",
+  "cleanup": true
+}
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `strategy` | enum | `squash` | Merge strategy: `squash`, `merge`, `rebase` |
+| `message` | string | auto | Custom commit message |
+| `cleanup` | boolean | `true` | Delete worktree after merge |
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "commitId": "abc123def456",
+    "mergedAt": "2024-01-15T11:00:00Z",
+    "branch": "main",
+    "filesChanged": 8
+  }
+}
+```
+
+---
+
+## Push Branch
+
+Push task attempt branch to remote.
+
+```http
+POST /api/task-attempts/:id/push
+```
+
+### Request Body
+
+```json
+{
+  "remote": "origin",
+  "force": false
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "remote": "origin",
+    "branch": "forge/task-abc123-attempt-1",
+    "pushedAt": "2024-01-15T10:50:00Z"
+  }
+}
+```
+
+---
+
+## Create GitHub PR
+
+Create a pull request from task attempt branch.
+
+```http
+POST /api/task-attempts/:id/create-pr
+```
+
+### Request Body
+
+```json
+{
+  "title": "Add user authentication",
+  "body": "Implements JWT-based authentication with refresh tokens",
+  "baseBranch": "main",
+  "draft": false
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "prNumber": 42,
+    "url": "https://github.com/user/repo/pull/42",
+    "createdAt": "2024-01-15T10:55:00Z"
+  }
+}
+```
+
+---
+
+## Attach Existing PR
+
+Attach an existing GitHub PR to this attempt.
+
+```http
+POST /api/task-attempts/:id/attach-pr
+```
+
+### Request Body
+
+```json
+{
+  "prNumber": 42,
+  "repository": "user/repo"
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "prNumber": 42,
+    "url": "https://github.com/user/repo/pull/42",
+    "status": "open"
+  }
+}
+```
+
+---
+
+## Open in Editor
+
+Open task attempt worktree in IDE/editor.
+
+```http
+POST /api/task-attempts/:id/open-in-editor
+```
+
+### Request Body
+
+```json
+{
+  "editor": "vscode"
+}
+```
+
+### Supported Editors
+
+- `vscode` - Visual Studio Code
+- `cursor` - Cursor IDE
+- `idea` - IntelliJ IDEA
+- `sublime` - Sublime Text
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "editor": "vscode",
+    "worktreePath": "/path/to/.forge/worktrees/task-abc123",
+    "opened": true
+  }
+}
+```
+
+---
+
+## Get Branch Status
+
+Get git status of task attempt branch.
+
+```http
+GET /api/task-attempts/:id/branch-status
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "branch": "forge/task-abc123-attempt-1",
+    "baseBranch": "main",
+    "ahead": 3,
+    "behind": 0,
+    "conflicted": false,
+    "modifiedFiles": [],
+    "untrackedFiles": [],
+    "status": "clean"
+  }
+}
+```
+
+---
+
+## Change Target Branch
+
+Change the base branch for this attempt.
+
+```http
+POST /api/task-attempts/:id/change-target-branch
+```
+
+### Request Body
+
+```json
+{
+  "newBaseBranch": "develop"
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "previousBase": "main",
+    "newBase": "develop",
+    "conflicts": []
+  }
+}
+```
+
+---
+
+## Rebase Attempt
+
+Rebase task attempt onto latest base branch.
+
+```http
+POST /api/task-attempts/:id/rebase
+```
+
+### Request Body
+
+```json
+{
+  "interactive": false
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "success",
+    "conflicts": [],
+    "commitsReplayed": 3
+  }
+}
+```
+
+**Conflict Response**:
+```json
+{
+  "success": false,
+  "data": {
+    "status": "conflict",
+    "conflicts": [
+      "src/auth.ts",
+      "src/users.ts"
+    ]
+  }
+}
+```
+
+---
+
+## Abort Conflicts
+
+Abort merge/rebase conflicts and return to clean state.
+
+```http
+POST /api/task-attempts/:id/abort-conflicts
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "clean",
+    "abortedOperation": "rebase"
+  }
+}
+```
+
+---
+
+## Delete File
+
+Delete a file from task attempt worktree.
+
+```http
+DELETE /api/task-attempts/:id/files/:path
+```
+
+### Example
+
+```bash
+curl -X DELETE \
+  http://localhost:8887/api/task-attempts/attempt_123/files/src/old-file.ts
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "path": "src/old-file.ts",
+    "deleted": true
+  }
+}
+```
+
+---
+
+## Start Dev Server
+
+Start development server in task attempt worktree.
+
+```http
+POST /api/task-attempts/:id/start-dev-server
+```
+
+### Request Body
+
+```json
+{
+  "script": "dev",
+  "port": 3000
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "processId": "process_abc123",
+    "port": 3000,
+    "url": "http://localhost:3000",
+    "status": "running"
+  }
+}
+```
+
+---
+
+## Get Child Tasks
+
+Get tasks created from this attempt (subtasks).
+
+```http
+GET /api/task-attempts/:id/children
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "task_child1",
+      "title": "Add unit tests for auth",
+      "status": "todo",
+      "createdAt": "2024-01-15T11:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Replace Process
+
+Replace the running execution process with a new one.
+
+```http
+POST /api/task-attempts/:id/replace-process
+```
+
+### Request Body
+
+```json
+{
+  "executorProfileId": {
+    "executor": "CLAUDE_CODE",
+    "variant": null
+  },
+  "prompt": "Continue with different approach"
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "oldProcessId": "process_123",
+    "newProcessId": "process_456",
+    "status": "running"
   }
 }
 ```
@@ -542,7 +1240,7 @@ forge.attempts.merge(
 Subscribe to real-time attempt updates:
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+const ws = new WebSocket('ws://localhost:8887/ws');
 
 ws.send(JSON.stringify({
   type: 'subscribe',

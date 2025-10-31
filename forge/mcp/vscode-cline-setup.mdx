@@ -1,56 +1,187 @@
 ---
 title: "VSCode + Cline Setup"
-description: "Configure Forge MCP server for Cline extension"
+description: "Configure MCP for VSCode with Cline extension"
 icon: "code"
 ---
 
-## Introduction
+## VSCode + Cline MCP Setup
 
-This guide covers configure forge mcp server for cline extension.
+Configure Forge as an MCP server for the Cline extension in VSCode.
 
 ---
 
-## Install Cline
+## Prerequisites
 
+<Steps>
+  <Step title="Install Cline Extension">
+    1. Open VSCode
+    2. Go to Extensions (`Cmd/Ctrl + Shift + X`)
+    3. Search for "Cline"
+    4. Install the Cline extension
+  </Step>
 
+  <Step title="Install Forge">
+    ```bash
+    npm install -g automagik-forge
+    ```
+  </Step>
 
+  <Step title="Get Project ID">
+    ```bash
+    npx automagik-forge
+    ```
 
+    Copy UUID from browser URL:
+    ```
+    http://localhost:3000/projects/a1b2c3d4-e5f6-7890-abcd-ef1234567890/tasks
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ```
+  </Step>
+</Steps>
 
+---
 
+## Configuration
 
-## MCP Configuration
+### Option 1: Via Cline Settings UI
 
+<Steps>
+  <Step title="Open Cline Settings">
+    - Press `Cmd/Ctrl + Shift + P`
+    - Type "Cline: Settings"
+    - Select and open
+  </Step>
 
+  <Step title="Add MCP Server">
+    In the MCP Servers section, add:
 
+    **Name**: `automagik-forge`
+    **Command**: `npx`
+    **Args**: `automagik-forge --mcp`
+    **Project ID**: `your-project-uuid-here`
+  </Step>
 
+  <Step title="Save and Restart">
+    Save settings and reload VSCode window
+  </Step>
+</Steps>
 
+### Option 2: Via JSON Configuration
 
+<Steps>
+  <Step title="Open Settings JSON">
+    - `Cmd/Ctrl + Shift + P`
+    - "Preferences: Open Settings (JSON)"
+  </Step>
 
-## Testing
+  <Step title="Add Configuration">
+    ```json
+    {
+      "cline.mcpServers": [
+        {
+          "name": "automagik-forge",
+          "command": "npx",
+          "args": ["automagik-forge", "--mcp"],
+          "env": {
+            "PROJECT_ID": "your-project-uuid-here"
+          }
+        }
+      ]
+    }
+    ```
+  </Step>
 
+  <Step title="Reload VSCode">
+    `Cmd/Ctrl + Shift + P` → "Developer: Reload Window"
+  </Step>
+</Steps>
 
+### Advanced Mode
 
+For power users:
 
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "automagik-forge",
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp-advanced"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid-here"
+      }
+    }
+  ]
+}
+```
 
+---
 
+## Usage with Cline
 
-## Examples
+### Task Management
 
+```
+You: "Create a task to implement Redis caching"
 
+Cline: [Uses MCP to create task in Forge]
 
+Cline: "Task #47 created. Should I start implementing it?"
+```
 
+### Planning
 
+```
+You: "Help me plan an e-commerce checkout flow"
 
+Cline: [Creates multiple tasks via MCP]
+
+Cline: "Created 6 tasks:
+       - Cart management
+       - Payment integration
+       - Order processing
+       - Email notifications
+       - Receipt generation
+       - Error handling"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cline can't find MCP server">
+    1. Check Forge is installed: `npm list -g automagik-forge`
+    2. Verify JSON syntax in settings
+    3. Reload VSCode window
+    4. Check Cline output panel for errors
+  </Accordion>
+
+  <Accordion title="Project ID invalid">
+    1. Open Forge: `npx automagik-forge`
+    2. Verify project exists
+    3. Copy correct UUID
+    4. Update settings
+    5. Reload VSCode
+  </Accordion>
+
+  <Accordion title="Tools not working">
+    Ask Cline: "What MCP tools do you have?"
+
+    If `automagik-forge` doesn't appear, check configuration.
+  </Accordion>
+</AccordionGroup>
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Previous Topic" icon="arrow-left" href="#">
-    Go back
+  <Card title="MCP Overview" icon="book" href="/forge/mcp/overview">
+    Learn about MCP
   </Card>
-  <Card title="Next Topic" icon="arrow-right" href="#">
-    Continue
+
+  <Card title="MCP Tools" icon="wrench" href="/forge/api/mcp-tools">
+    Available tools
   </Card>
 </CardGroup>

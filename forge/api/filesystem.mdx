@@ -1,0 +1,511 @@
+---
+title: "Filesystem API"
+openapi: "GET /api/filesystem/list"
+description: "Browse repository files and discover git repositories"
+icon: "folder-tree"
+---
+
+## Overview
+
+The Filesystem API provides endpoints for browsing repository files and discovering git repositories on the local filesystem.
+
+**Base URL**: `http://localhost:8887/api/filesystem`
+
+---
+
+## List Directory
+
+List files and subdirectories in a given path.
+
+```http
+GET /api/filesystem/list
+```
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | ✅ | Directory path to list |
+| `showHidden` | boolean | ⚠️ | Include hidden files (default: false) |
+| `recursive` | boolean | ⚠️ | Recursively list subdirectories (default: false) |
+| `maxDepth` | integer | ⚠️ | Max recursion depth (default: 1) |
+
+<RequestExample>
+
+```bash cURL
+curl "http://localhost:8887/api/filesystem/list?path=/home/user/projects&showHidden=false"
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/filesystem/list?path=/home/user/projects&showHidden=false');
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/filesystem/list?path=/home/user/projects&showHidden=false')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "success": true,
+  "data": {
+    "path": "/home/user/projects",
+    "entries": [
+      {
+        "name": "my-app",
+        "path": "/home/user/projects/my-app",
+        "type": "directory",
+        "isGitRepo": true,
+        "size": 4096,
+        "modifiedAt": "2024-01-15T10:00:00Z",
+        "permissions": "rwxr-xr-x"
+      },
+      {
+        "name": "package.json",
+        "path": "/home/user/projects/my-app/package.json",
+        "type": "file",
+        "size": 1024,
+        "modifiedAt": "2024-01-15T09:30:00Z",
+        "permissions": "rw-r--r--"
+      },
+      {
+        "name": "src",
+        "path": "/home/user/projects/my-app/src",
+        "type": "directory",
+        "size": 4096,
+        "modifiedAt": "2024-01-15T10:15:00Z",
+        "permissions": "rwxr-xr-x"
+      },
+      {
+        "name": ".git",
+        "path": "/home/user/projects/my-app/.git",
+        "type": "directory",
+        "isGitRepo": true,
+        "hidden": true,
+        "size": 4096,
+        "modifiedAt": "2024-01-15T11:00:00Z",
+        "permissions": "rwxr-xr-x"
+      }
+    ],
+    "totalEntries": 4,
+    "directories": 3,
+    "files": 1,
+    "gitRepos": 1
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `path` | string | Directory path that was listed |
+| `entries` | array | List of files and directories |
+| `entries[].name` | string | File or directory name |
+| `entries[].path` | string | Absolute path |
+| `entries[].type` | enum | `file` or `directory` |
+| `entries[].isGitRepo` | boolean | Is a git repository (directories only) |
+| `entries[].hidden` | boolean | Hidden file/directory |
+| `entries[].size` | integer | Size in bytes |
+| `entries[].modifiedAt` | string | Last modified timestamp |
+| `entries[].permissions` | string | Unix-style permissions |
+| `totalEntries` | integer | Total number of entries |
+| `directories` | integer | Number of directories |
+| `files` | integer | Number of files |
+| `gitRepos` | integer | Number of git repositories found |
+
+---
+
+## List Git Repositories
+
+Discover all git repositories under a given path.
+
+```http
+GET /api/filesystem/git-repos
+```
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | ✅ | Root path to search |
+| `maxDepth` | integer | ⚠️ | Max directory depth (default: 3) |
+| `includeSubmodules` | boolean | ⚠️ | Include git submodules (default: true) |
+
+<RequestExample>
+
+```bash cURL
+curl "http://localhost:8887/api/filesystem/git-repos?path=/home/user/projects&maxDepth=2"
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/filesystem/git-repos?path=/home/user/projects&maxDepth=2');
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/filesystem/git-repos?path=/home/user/projects&maxDepth=2')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "success": true,
+  "data": {
+    "searchPath": "/home/user/projects",
+    "repositories": [
+      {
+        "name": "my-app",
+        "path": "/home/user/projects/my-app",
+        "gitPath": "/home/user/projects/my-app/.git",
+        "isSubmodule": false,
+        "branch": "main",
+        "hasUncommittedChanges": false,
+        "hasUnpushedCommits": true,
+        "remotes": [
+          {
+            "name": "origin",
+            "url": "https://github.com/user/my-app.git",
+            "type": "https"
+          }
+        ],
+        "lastCommit": {
+          "hash": "abc123def456",
+          "message": "Add authentication",
+          "author": "John Doe",
+          "date": "2024-01-15T10:00:00Z"
+        }
+      },
+      {
+        "name": "another-project",
+        "path": "/home/user/projects/another-project",
+        "gitPath": "/home/user/projects/another-project/.git",
+        "isSubmodule": false,
+        "branch": "develop",
+        "hasUncommittedChanges": true,
+        "hasUnpushedCommits": false,
+        "remotes": [
+          {
+            "name": "origin",
+            "url": "git@github.com:user/another-project.git",
+            "type": "ssh"
+          }
+        ],
+        "lastCommit": {
+          "hash": "def456ghi789",
+          "message": "Work in progress",
+          "author": "Jane Smith",
+          "date": "2024-01-14T15:30:00Z"
+        }
+      }
+    ],
+    "totalFound": 2,
+    "searchDepth": 2,
+    "searchDuration": 145
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `searchPath` | string | Root path that was searched |
+| `repositories` | array | List of discovered git repositories |
+| `repositories[].name` | string | Repository name (directory name) |
+| `repositories[].path` | string | Absolute path to repository |
+| `repositories[].gitPath` | string | Path to .git directory |
+| `repositories[].isSubmodule` | boolean | Is a git submodule |
+| `repositories[].branch` | string | Current branch |
+| `repositories[].hasUncommittedChanges` | boolean | Has uncommitted changes |
+| `repositories[].hasUnpushedCommits` | boolean | Has unpushed commits |
+| `repositories[].remotes` | array | Configured git remotes |
+| `repositories[].lastCommit` | object | Most recent commit info |
+| `totalFound` | integer | Total repositories found |
+| `searchDepth` | integer | Depth of search performed |
+| `searchDuration` | integer | Search duration in milliseconds |
+
+---
+
+## Use Cases
+
+### Project Selection
+
+Use filesystem browsing to help users select a git repository when creating a new Forge project:
+
+```javascript
+// 1. List user's common project directories
+const dirs = await forge.filesystem.list({
+  path: '/home/user/projects'
+});
+
+// 2. Find git repositories
+const repos = await forge.filesystem.gitRepos({
+  path: '/home/user/projects',
+  maxDepth: 2
+});
+
+// 3. Present repos to user for selection
+repos.repositories.forEach(repo => {
+  console.log(`${repo.name} - ${repo.branch} (${repo.lastCommit.message})`);
+});
+```
+
+### Repository Discovery
+
+Automatically discover all git repositories on the system:
+
+```javascript
+// Search common locations
+const searchPaths = [
+  '/home/user/projects',
+  '/home/user/Documents/code',
+  '/workspace'
+];
+
+const allRepos = [];
+for (const path of searchPaths) {
+  const result = await forge.filesystem.gitRepos({ path });
+  allRepos.push(...result.repositories);
+}
+
+console.log(`Found ${allRepos.length} repositories`);
+```
+
+### File Browser
+
+Build a file browser interface for selecting files to include in task context:
+
+```javascript
+async function browseDirectory(path, depth = 0) {
+  const result = await forge.filesystem.list({
+    path,
+    showHidden: false
+  });
+
+  result.entries.forEach(entry => {
+    const indent = '  '.repeat(depth);
+    const icon = entry.type === 'directory' ? '📁' : '📄';
+    const gitBadge = entry.isGitRepo ? ' [GIT]' : '';
+
+    console.log(`${indent}${icon} ${entry.name}${gitBadge}`);
+  });
+}
+```
+
+---
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// List directory contents
+const contents = await forge.filesystem.list({
+  path: '/home/user/projects',
+  showHidden: false,
+  recursive: false
+});
+
+console.log(`Found ${contents.directories} directories and ${contents.files} files`);
+
+// Find all git repositories
+const repos = await forge.filesystem.gitRepos({
+  path: '/home/user',
+  maxDepth: 3,
+  includeSubmodules: true
+});
+
+repos.repositories.forEach(repo => {
+  console.log(`${repo.name}: ${repo.branch}`);
+  if (repo.hasUncommittedChanges) {
+    console.log('  ⚠️  Uncommitted changes');
+  }
+  if (repo.hasUnpushedCommits) {
+    console.log('  📤 Unpushed commits');
+  }
+});
+
+// Recursive directory listing
+const tree = await forge.filesystem.list({
+  path: '/home/user/my-project',
+  recursive: true,
+  maxDepth: 3
+});
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+
+forge = ForgeClient()
+
+# List directory
+contents = forge.filesystem.list(
+    path='/home/user/projects',
+    show_hidden=False
+)
+
+print(f"Found {contents['directories']} directories")
+
+# Find git repositories
+repos = forge.filesystem.git_repos(
+    path='/home/user',
+    max_depth=3
+)
+
+for repo in repos['repositories']:
+    print(f"{repo['name']}: {repo['branch']}")
+    if repo['hasUncommittedChanges']:
+        print("  ⚠️  Uncommitted changes")
+```
+
+---
+
+## Security Considerations
+
+<Warning>
+**Path Traversal Protection**: The Filesystem API includes built-in protection against path traversal attacks. Requests attempting to access paths outside allowed directories will be rejected.
+</Warning>
+
+### Allowed Directories
+
+By default, filesystem access is restricted to:
+
+- User's home directory
+- Common project directories (`~/projects`, `~/Documents`, `~/workspace`)
+- Directories explicitly added to Forge projects
+
+### Blocked Paths
+
+The following paths are always blocked:
+
+- `/etc` - System configuration
+- `/var` - System variables
+- `/sys` - System files
+- `/proc` - Process information
+- Root filesystem access (requires explicit configuration)
+
+### Configuration
+
+Customize allowed paths in Forge configuration:
+
+```json
+{
+  "filesystem": {
+    "allowedPaths": [
+      "/home/user/projects",
+      "/workspace",
+      "/custom/path"
+    ],
+    "blockedPaths": [
+      "/home/user/secrets",
+      "/home/user/.ssh"
+    ]
+  }
+}
+```
+
+---
+
+## Error Responses
+
+### Path Not Found
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PATH_NOT_FOUND",
+    "message": "Path '/nonexistent/path' does not exist"
+  }
+}
+```
+
+### Access Denied
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ACCESS_DENIED",
+    "message": "Access to path '/etc/passwd' is not allowed"
+  }
+}
+```
+
+### Not a Directory
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_A_DIRECTORY",
+    "message": "Path '/home/user/file.txt' is not a directory"
+  }
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Projects API" icon="folder" href="/forge/api/projects">
+    Create projects from discovered repositories
+  </Card>
+
+  <Card title="Configuration" icon="gear" href="/forge/config/project-structure">
+    Configure allowed filesystem paths
+  </Card>
+
+  <Card title="REST Overview" icon="book" href="/forge/api/rest-overview">
+    API fundamentals
+  </Card>
+
+  <Card title="Security" icon="shield" href="/forge/troubleshooting/common-issues">
+    Security best practices
+  </Card>
+</CardGroup>

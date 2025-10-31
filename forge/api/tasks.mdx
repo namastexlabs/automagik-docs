@@ -1,5 +1,6 @@
 ---
 title: "Tasks API"
+openapi: "GET /api/tasks"
 description: "Create and manage tasks via REST API"
 icon: "list-check"
 ---
@@ -8,7 +9,7 @@ icon: "list-check"
 
 Tasks represent individual pieces of work to be executed by AI agents.
 
-**Base URL**: `/api/tasks`
+**Base URL**: `http://localhost:8887/api/tasks`
 
 ---
 
@@ -50,15 +51,32 @@ GET /api/tasks
 - `high`
 - `critical`
 
-### Example Request
+<RequestExample>
 
-```bash
-curl "http://localhost:8080/api/tasks?status=in_progress&priority=high&limit=20"
+```bash cURL
+curl "http://localhost:8887/api/tasks?status=in_progress&priority=high&limit=20"
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks?status=in_progress&priority=high&limit=20');
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/tasks',
+    params={'status': 'in_progress', 'priority': 'high', 'limit': 20}
+)
+tasks = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": [
@@ -73,20 +91,7 @@ curl "http://localhost:8080/api/tasks?status=in_progress&priority=high&limit=20"
       "assignee": "claude",
       "createdBy": "user_123",
       "createdAt": "2024-01-15T10:00:00Z",
-      "updatedAt": "2024-01-15T10:30:00Z",
-      "attempts": [
-        {
-          "id": "attempt_1",
-          "llm": "claude",
-          "status": "running",
-          "startedAt": "2024-01-15T10:30:00Z"
-        }
-      ],
-      "stats": {
-        "totalAttempts": 1,
-        "activeAttempts": 1,
-        "cost": 0.23
-      }
+      "updatedAt": "2024-01-15T10:30:00Z"
     }
   ],
   "pagination": {
@@ -98,6 +103,18 @@ curl "http://localhost:8080/api/tasks?status=in_progress&priority=high&limit=20"
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Get Task
@@ -108,15 +125,29 @@ Retrieve a specific task with all details.
 GET /api/tasks/:id
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl http://localhost:8080/api/tasks/task_abc123
+```bash cURL
+curl http://localhost:8887/api/tasks/task_abc123
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks/task_abc123');
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/tasks/task_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -162,6 +193,18 @@ curl http://localhost:8080/api/tasks/task_abc123
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Create Task
@@ -188,10 +231,10 @@ POST /api/tasks
 }
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/tasks \
+```bash cURL
+curl -X POST http://localhost:8887/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "projectId": "proj_xyz789",
@@ -202,9 +245,30 @@ curl -X POST http://localhost:8080/api/tasks \
   }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({...})
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/tasks',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -217,6 +281,18 @@ curl -X POST http://localhost:8080/api/tasks \
   }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -241,10 +317,10 @@ PATCH /api/tasks/:id
 }
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X PATCH http://localhost:8080/api/tasks/task_abc123 \
+```bash cURL
+curl -X PATCH http://localhost:8887/api/tasks/task_abc123 \
   -H "Content-Type: application/json" \
   -d '{
     "status": "review",
@@ -266,11 +342,51 @@ DELETE /api/tasks/:id
 This deletes the task and all attempts permanently.
 </Warning>
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X DELETE http://localhost:8080/api/tasks/task_abc123
+```bash cURL
+curl -X DELETE http://localhost:8887/api/tasks/task_abc123
 ```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks/task_abc123', {
+  method: 'DELETE'
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete('http://localhost:8887/api/tasks/task_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "taskId": "task_abc123"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Task not found"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -294,19 +410,83 @@ POST /api/tasks/:id/start
 }
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/tasks/task_abc123/start \
+```bash cURL
+curl -X POST http://localhost:8887/api/tasks/task_abc123/start \
   -H "Content-Type: application/json" \
   -d '{
     "llm": "claude"
   }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks/task_abc123/start', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    llm: 'claude',
+    options: {
+      temperature: 0.7,
+      maxTokens: 4096
+    }
+  })
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/tasks/task_abc123/start',
+    json={'llm': 'claude', 'options': {'temperature': 0.7, 'maxTokens': 4096}}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "success": true,
+  "data": {
+    "attemptId": "attempt_new123",
+    "status": "running",
+    "startedAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/tasks/task_abc123',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -316,6 +496,18 @@ curl -X POST http://localhost:8080/api/tasks/task_abc123/start \
   }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -327,10 +519,10 @@ Cancel a running task.
 POST /api/tasks/:id/cancel
 ```
 
-### Example Request
+<RequestExample>
 
-```bash
-curl -X POST http://localhost:8080/api/tasks/task_abc123/cancel
+```bash cURL
+curl -X POST http://localhost:8887/api/tasks/task_abc123/cancel
 ```
 
 ---
@@ -343,9 +535,26 @@ Get all attempts for a task.
 GET /api/tasks/:id/attempts
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks/task_abc123/cancel', { method: 'POST' });
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/tasks/task_abc123/cancel',
+    json={...}
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": [
@@ -367,6 +576,18 @@ GET /api/tasks/:id/attempts
 }
 ```
 
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Get Task Logs
@@ -385,11 +606,28 @@ GET /api/tasks/:id/logs
 | `level` | enum | Filter by log level (info, warn, error) |
 | `follow` | boolean | Stream logs in real-time |
 
-### Example Request
+<RequestExample>
 
-```bash
-curl "http://localhost:8080/api/tasks/task_abc123/logs?attemptId=attempt_1&follow=true"
+```bash cURL
+curl "http://localhost:8887/api/tasks/task_abc123/logs?attemptId=attempt_1&follow=true"
 ```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/tasks/task_abc123/logs?attemptId=attempt_1&follow=true');
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/tasks/task_abc123/logs',
+    params={'attemptId': 'attempt_1', 'follow': True}
+)
+logs = response.json()
+```
+
+</RequestExample>
 
 ---
 

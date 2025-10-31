@@ -9,7 +9,7 @@ icon: "code"
 Forge provides a comprehensive REST API for programmatic access to all features. Build integrations, automate workflows, or create custom tooling.
 
 <Info>
-**Base URL**: `http://localhost:8080/api` (default)
+**Base URL**: `http://localhost:8887/api` (default)
 </Info>
 
 ---
@@ -23,7 +23,7 @@ Currently, Forge runs locally without authentication. API key authentication wil
 ```bash
 # Future API key usage
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  http://localhost:8080/api/projects
+  http://localhost:8887/api/projects
 ```
 
 ### GitHub OAuth
@@ -36,10 +36,10 @@ For web UI access, GitHub OAuth is used. API access uses session cookies.
 
 ```bash
 # Local development (default)
-BASE_URL=http://localhost:8080
+BASE_URL=http://localhost:8887
 
-# Custom port
-BASE_URL=http://localhost:3001
+# Custom port (if configured)
+BASE_URL=http://localhost:9000
 
 # Remote deployment
 BASE_URL=https://forge.yourdomain.com
@@ -210,13 +210,13 @@ GET /api/tasks?sort=-priority,created_at
 ### Get All Tasks
 
 ```bash
-curl http://localhost:8080/api/tasks
+curl http://localhost:8887/api/tasks
 ```
 
 ### Create New Task
 
 ```bash
-curl -X POST http://localhost:8080/api/tasks \
+curl -X POST http://localhost:8887/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Add user authentication",
@@ -231,7 +231,7 @@ curl -X POST http://localhost:8080/api/tasks \
 ### Update Task Status
 
 ```bash
-curl -X PATCH http://localhost:8080/api/tasks/task-123 \
+curl -X PATCH http://localhost:8887/api/tasks/task-123 \
   -H "Content-Type: application/json" \
   -d '{
     "status": "in_progress"
@@ -241,7 +241,7 @@ curl -X PATCH http://localhost:8080/api/tasks/task-123 \
 ### Start Task Attempt
 
 ```bash
-curl -X POST http://localhost:8080/api/attempts \
+curl -X POST http://localhost:8887/api/attempts \
   -H "Content-Type: application/json" \
   -d '{
     "taskId": "task-123",
@@ -310,7 +310,7 @@ POST /api/webhooks
 Real-time updates via WebSocket:
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+const ws = new WebSocket('ws://localhost:8887/ws');
 
 ws.onopen = () => {
   // Subscribe to task updates
@@ -351,7 +351,7 @@ npm install @automagik/forge-sdk
 import { ForgeClient } from '@automagik/forge-sdk';
 
 const forge = new ForgeClient({
-  baseUrl: 'http://localhost:8080'
+  baseUrl: 'http://localhost:8887'
 });
 
 // Create task
@@ -377,7 +377,7 @@ pip install automagik-forge
 ```python
 from automagik_forge import ForgeClient
 
-forge = ForgeClient(base_url='http://localhost:8080')
+forge = ForgeClient(base_url='http://localhost:8887')
 
 # Create task
 task = forge.tasks.create(
@@ -418,10 +418,10 @@ Download the full OpenAPI spec:
 
 ```bash
 # JSON format
-curl http://localhost:8080/api/openapi.json > forge-api.json
+curl http://localhost:8887/api/openapi.json > forge-api.json
 
 # YAML format
-curl http://localhost:8080/api/openapi.yaml > forge-api.yaml
+curl http://localhost:8887/api/openapi.yaml > forge-api.yaml
 ```
 
 Import into tools like:
@@ -438,7 +438,7 @@ Import into tools like:
 
 ```bash
 # Set base URL
-BASE=http://localhost:8080/api
+BASE=http://localhost:8887/api
 
 # Get all tasks
 curl $BASE/tasks
@@ -459,10 +459,10 @@ curl $BASE/tasks | jq
 brew install httpie
 
 # Get tasks (cleaner syntax)
-http localhost:8080/api/tasks
+http localhost:8887/api/tasks
 
 # Create task
-http POST localhost:8080/api/tasks \
+http POST localhost:8887/api/tasks \
   title="Add feature" \
   projectId="project-123" \
   llm="claude"
@@ -470,8 +470,8 @@ http POST localhost:8080/api/tasks \
 
 ### Using Postman
 
-1. Import OpenAPI spec: `http://localhost:8080/api/openapi.json`
-2. Set environment variable: `baseUrl = http://localhost:8080`
+1. Import OpenAPI spec: `http://localhost:8887/api/openapi.json`
+2. Set environment variable: `baseUrl = http://localhost:8887`
 3. Start making requests
 
 ---

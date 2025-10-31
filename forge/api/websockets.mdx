@@ -1,0 +1,591 @@
+---
+title: "WebSocket API"
+description: "Real-time updates via WebSocket connections"
+icon: "bolt"
+---
+
+## Overview
+
+Forge provides WebSocket endpoints for real-time updates on process execution, task attempts, and system events.
+
+**WebSocket Base URL**: `ws://localhost:8887/ws`
+
+---
+
+## Connection Basics
+
+### Establishing Connection
+
+```javascript
+const ws = new WebSocket('ws://localhost:8887/ws/execution-processes');
+
+ws.onopen = () => {
+  console.log('WebSocket connected');
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('WebSocket disconnected');
+};
+```
+
+### Authentication
+
+WebSocket connections use the same GitHub OAuth authentication as REST API:
+
+```javascript
+// Include auth token in connection URL
+const token = 'your-github-oauth-token';
+const ws = new WebSocket(`ws://localhost:8887/ws/execution-processes?token=${token}`);
+```
+
+Or use cookies from authenticated REST session.
+
+---
+
+## Process Log Streaming
+
+### Raw Logs Stream
+
+Stream unprocessed output from execution processes.
+
+```
+ws://localhost:8887/ws/execution-processes/:id/logs/raw
+```
+
+**Example**:
+```javascript
+const processId = 'proc_abc123';
+const ws = new WebSocket(`ws://localhost:8887/ws/execution-processes/${processId}/logs/raw`);
+
+ws.onmessage = (event) => {
+  // Raw text output
+  console.log(event.data);
+};
+```
+
+**Output Example**:
+```
+Installing dependencies...
+npm install
+✓ Installed 245 packages
+Running tests...
+✓ All tests passed (12/12)
+```
+
+---
+
+### Normalized Logs Stream
+
+Stream structured, processed log messages.
+
+```
+ws://localhost:8887/ws/execution-processes/:id/logs/normalized
+```
+
+**Example**:
+```javascript
+const processId = 'proc_abc123';
+const ws = new WebSocket(`ws://localhost:8887/ws/execution-processes/${processId}/logs/normalized`);
+
+ws.onmessage = (event) => {
+  const log = JSON.parse(event.data);
+
+  // Structured log object
+  console.log(`[${log.level}] ${log.message}`);
+
+  if (log.metadata) {
+    console.log('Metadata:', log.metadata);
+  }
+};
+```
+
+**Message Format**:
+```json
+{
+  "level": "info",
+  "message": "Installing dependencies",
+  "timestamp": "2024-01-15T10:30:15Z",
+  "source": "executor",
+  "metadata": {
+    "stage": "setup",
+    "progress": 15
+  }
+}
+```
+
+**Log Levels**:
+- `debug` - Detailed diagnostic information
+- `info` - General informational messages
+- `warn` - Warning messages
+- `error` - Error messages
+- `success` - Success/completion messages
+
+---
+
+## Process Status Streaming
+
+Monitor all execution processes in real-time.
+
+```
+ws://localhost:8887/ws/execution-processes
+```
+
+**Example**:
+```javascript
+const ws = new WebSocket('ws://localhost:8887/ws/execution-processes');
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+
+  switch (update.type) {
+    case 'process_started':
+      console.log(`Process ${update.processId} started`);
+      break;
+    case 'process_progress':
+      console.log(`Progress: ${update.progress}%`);
+      break;
+    case 'process_completed':
+      console.log(`Process ${update.processId} completed`);
+      break;
+    case 'process_failed':
+      console.error(`Process ${update.processId} failed:`, update.error);
+      break;
+  }
+};
+```
+
+**Event Types**:
+
+### process_started
+```json
+{
+  "type": "process_started",
+  "processId": "proc_abc123",
+  "taskAttemptId": "attempt_xyz789",
+  "executor": "CLAUDE_CODE",
+  "startedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+### process_progress
+```json
+{
+  "type": "process_progress",
+  "processId": "proc_abc123",
+  "progress": {
+    "percentage": 65,
+    "stage": "code_generation",
+    "message": "Generating authentication logic",
+    "estimatedRemaining": 25000
+  }
+}
+```
+
+### process_completed
+```json
+{
+  "type": "process_completed",
+  "processId": "proc_abc123",
+  "completedAt": "2024-01-15T10:45:00Z",
+  "duration": 900000,
+  "exitCode": 0,
+  "stats": {
+    "filesChanged": 8,
+    "linesAdded": 245,
+    "linesRemoved": 12
+  }
+}
+```
+
+### process_failed
+```json
+{
+  "type": "process_failed",
+  "processId": "proc_abc123",
+  "failedAt": "2024-01-15T10:35:00Z",
+  "error": {
+    "code": "EXECUTION_ERROR",
+    "message": "Compilation failed",
+    "details": "TypeError: Cannot read property 'map' of undefined"
+  }
+}
+```
+
+### process_stopped
+```json
+{
+  "type": "process_stopped",
+  "processId": "proc_abc123",
+  "stoppedAt": "2024-01-15T10:35:00Z",
+  "stoppedBy": "user@example.com",
+  "reason": "Manual stop requested"
+}
+```
+
+---
+
+## Task Attempt Diff Streaming
+
+Stream git diff updates as task attempt progresses.
+
+```
+ws://localhost:8887/ws/task-attempts/:id/diff
+```
+
+**Example**:
+```javascript
+const attemptId = 'attempt_abc123';
+const ws = new WebSocket(`ws://localhost:8887/ws/task-attempts/${attemptId}/diff`);
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+
+  console.log('Files changed:', update.filesChanged);
+  console.log('Diff:', update.diff);
+};
+```
+
+**Message Format**:
+```json
+{
+  "type": "diff_update",
+  "attemptId": "attempt_abc123",
+  "diff": "diff --git a/src/auth.ts b/src/auth.ts\nindex abc123..def456 100644\n--- a/src/auth.ts\n+++ b/src/auth.ts\n@@ -1,5 +1,10 @@\n+import jwt from 'jsonwebtoken';\n+",
+  "filesChanged": 3,
+  "insertions": 125,
+  "deletions": 8,
+  "timestamp": "2024-01-15T10:35:00Z"
+}
+```
+
+---
+
+## Advanced Usage
+
+### Reconnection Strategy
+
+Implement automatic reconnection for production use:
+
+```javascript
+class ForgeWebSocket {
+  constructor(url) {
+    this.url = url;
+    this.reconnectDelay = 1000;
+    this.maxReconnectDelay = 30000;
+    this.connect();
+  }
+
+  connect() {
+    this.ws = new WebSocket(this.url);
+
+    this.ws.onopen = () => {
+      console.log('Connected');
+      this.reconnectDelay = 1000; // Reset delay on successful connection
+    };
+
+    this.ws.onmessage = (event) => {
+      this.handleMessage(JSON.parse(event.data));
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    this.ws.onclose = () => {
+      console.log('Disconnected, reconnecting...');
+      setTimeout(() => {
+        this.reconnectDelay = Math.min(
+          this.reconnectDelay * 2,
+          this.maxReconnectDelay
+        );
+        this.connect();
+      }, this.reconnectDelay);
+    };
+  }
+
+  handleMessage(data) {
+    // Override this method
+  }
+
+  send(data) {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    }
+  }
+
+  close() {
+    this.ws.close();
+  }
+}
+
+// Usage
+const processWs = new ForgeWebSocket('ws://localhost:8887/ws/execution-processes');
+processWs.handleMessage = (data) => {
+  console.log('Process update:', data);
+};
+```
+
+### Heartbeat / Keep-Alive
+
+Maintain connection with periodic heartbeat:
+
+```javascript
+const ws = new WebSocket('ws://localhost:8887/ws/execution-processes');
+let heartbeatInterval;
+
+ws.onopen = () => {
+  // Send heartbeat every 30 seconds
+  heartbeatInterval = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }, 30000);
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === 'pong') {
+    // Server acknowledged heartbeat
+    return;
+  }
+
+  // Handle other messages
+};
+
+ws.onclose = () => {
+  clearInterval(heartbeatInterval);
+};
+```
+
+### Message Buffering
+
+Buffer messages when connection is unavailable:
+
+```javascript
+class BufferedWebSocket {
+  constructor(url) {
+    this.url = url;
+    this.buffer = [];
+    this.connect();
+  }
+
+  connect() {
+    this.ws = new WebSocket(this.url);
+
+    this.ws.onopen = () => {
+      // Send buffered messages
+      while (this.buffer.length > 0) {
+        const message = this.buffer.shift();
+        this.ws.send(JSON.stringify(message));
+      }
+    };
+  }
+
+  send(data) {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    } else {
+      // Buffer message for later
+      this.buffer.push(data);
+    }
+  }
+}
+```
+
+---
+
+## SDK Integration
+
+### JavaScript/TypeScript
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// Stream process logs
+const logStream = forge.processes.streamLogs('proc_abc123', {
+  format: 'normalized'
+});
+
+logStream.on('log', (log) => {
+  console.log(`[${log.level}] ${log.message}`);
+});
+
+logStream.on('error', (error) => {
+  console.error('Stream error:', error);
+});
+
+// Monitor all processes
+const processMonitor = forge.processes.monitor();
+
+processMonitor.on('started', (process) => {
+  console.log(`Process ${process.id} started`);
+});
+
+processMonitor.on('completed', (process) => {
+  console.log(`Process ${process.id} completed`);
+});
+
+// Stream task attempt diff
+const diffStream = forge.attempts.streamDiff('attempt_abc123');
+
+diffStream.on('update', (diff) => {
+  console.log('Files changed:', diff.filesChanged);
+});
+```
+
+### Python
+
+```python
+from automagik_forge import ForgeClient
+import asyncio
+
+forge = ForgeClient()
+
+# Stream process logs
+async def stream_logs():
+    async for log in forge.processes.stream_logs('proc_abc123', format='normalized'):
+        print(f"[{log.level}] {log.message}")
+
+# Monitor processes
+async def monitor_processes():
+    async for event in forge.processes.monitor():
+        if event.type == 'process_started':
+            print(f"Process {event.process_id} started")
+        elif event.type == 'process_completed':
+            print(f"Process {event.process_id} completed")
+
+asyncio.run(stream_logs())
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Handle Connection Failures">
+    Always implement reconnection logic and handle connection failures gracefully:
+
+    ```javascript
+    ws.onerror = (error) => {
+      console.error('Connection failed:', error);
+      // Show user notification
+      // Attempt reconnection
+    };
+
+    ws.onclose = () => {
+      // Reconnect after delay
+      setTimeout(reconnect, 5000);
+    };
+    ```
+  </Accordion>
+
+  <Accordion title="Clean Up Resources">
+    Close WebSocket connections when no longer needed:
+
+    ```javascript
+    // Component unmount / cleanup
+    componentWillUnmount() {
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use Structured Logs">
+    Prefer normalized logs over raw logs for easier parsing:
+
+    ```javascript
+    // Preferred ✅
+    const ws = new WebSocket('.../logs/normalized');
+
+    // Avoid for production ❌
+    const ws = new WebSocket('.../logs/raw');
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Connection Health">
+    Implement heartbeat to detect stale connections:
+
+    ```javascript
+    let lastHeartbeat = Date.now();
+
+    setInterval(() => {
+      if (Date.now() - lastHeartbeat > 60000) {
+        // No heartbeat for 60s, reconnect
+        ws.close();
+        reconnect();
+      }
+    }, 10000);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+### Connection Refused
+
+**Error**: `WebSocket connection to 'ws://localhost:8887/ws/...' failed`
+
+**Solutions**:
+- Verify Forge backend is running
+- Check firewall allows WebSocket connections
+- Ensure port 8080 is not blocked
+- Try HTTP upgrade instead of direct WebSocket
+
+### Unexpected Disconnections
+
+**Issue**: WebSocket disconnects frequently
+
+**Solutions**:
+- Implement heartbeat/ping-pong
+- Check network stability
+- Increase timeout settings
+- Use reconnection strategy
+
+### Missing Messages
+
+**Issue**: Not receiving all events
+
+**Solutions**:
+- Check message handler for errors
+- Verify WebSocket is in OPEN state before sending
+- Implement message buffering
+- Check server-side logs
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Processes API" icon="gear" href="/forge/api/processes">
+    Process execution endpoints
+  </Card>
+
+  <Card title="Attempts API" icon="flask" href="/forge/api/attempts">
+    Task attempt management
+  </Card>
+
+  <Card title="Events (SSE)" icon="rss" href="/forge/api/rest-overview">
+    Server-Sent Events alternative
+  </Card>
+
+  <Card title="SDK" icon="code" href="/forge/api/rest-overview">
+    Use SDK for simpler integration
+  </Card>
+</CardGroup>

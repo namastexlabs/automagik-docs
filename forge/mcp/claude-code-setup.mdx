@@ -1,56 +1,333 @@
 ---
 title: "Claude Code Setup"
-description: "Configure Forge MCP server for Claude Code"
+description: "Configure MCP for Claude Desktop and Claude Code"
 icon: "brain"
 ---
 
-## Introduction
+## Claude Code MCP Setup
 
-This guide covers configure forge mcp server for claude code.
+Configure Forge as an MCP server for Claude Code in 3 minutes.
+
+<Info>
+Works with both **Claude Desktop** and **Claude Code** (CLI). Same configuration for both.
+</Info>
 
 ---
 
-## Installation
+## Prerequisites
 
+<Steps>
+  <Step title="Install Forge">
+    ```bash
+    npm install -g automagik-forge
+    ```
+  </Step>
 
+  <Step title="Get Your Project ID">
+    ```bash
+    # Start Forge
+    npx automagik-forge
+    ```
 
+    Open browser, navigate to your project, and copy the UUID from the URL:
+    ```
+    http://localhost:3000/projects/a1b2c3d4-e5f6-7890-abcd-ef1234567890/tasks
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                              Your Project ID
+    ```
+  </Step>
+</Steps>
 
+---
 
+## Configuration
 
+### Option 1: Basic Mode (Recommended)
 
-## Basic Configuration
+**7 core tools** for task management. Best for most users.
 
+<Steps>
+  <Step title="Open Claude Code Settings">
+    - **macOS**: `Cmd + ,` or Claude Code → Settings
+    - **Windows/Linux**: `Ctrl + ,`
+    - Navigate to **MCP Servers** section
+  </Step>
 
+  <Step title="Add Forge Configuration">
+    Add this to your MCP servers configuration:
 
+    ```json
+    {
+      "mcpServers": {
+        "automagik-forge": {
+          "command": "npx",
+          "args": ["automagik-forge", "--mcp"],
+          "env": {
+            "PROJECT_ID": "your-project-uuid-here"
+          }
+        }
+      }
+    }
+    ```
 
+    Replace `your-project-uuid-here` with your actual Project ID.
+  </Step>
 
+  <Step title="Restart Claude Code">
+    Fully quit and restart Claude Code for changes to take effect.
+  </Step>
 
+  <Step title="Test It">
+    In Claude Code, try:
+    ```
+    "Create a task to add a README file"
+    ```
 
-## Advanced Configuration
+    Claude should use the MCP tool to create the task in Forge!
+  </Step>
+</Steps>
 
+### Option 2: Advanced Mode
 
+**56 tools** including worktrees, processes, filesystem. For power users.
 
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp-advanced"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid-here"
+      }
+    }
+  }
+}
+```
 
+<Warning>
+Advanced mode can overwhelm Claude with too many tools. Start with basic mode first!
+</Warning>
 
+---
 
+## Available Tools
 
-## Testing
+### Basic Mode (7 tools)
 
+| Tool | What it does | Example |
+|------|--------------|---------|
+| `list_projects` | Get all projects | "Show my projects" |
+| `list_tasks` | View tasks with filters | "Show pending tasks" |
+| `create_task` | Create new task | "Add task: Fix auth bug" |
+| `get_task` | Get task details | "Show task #42" |
+| `update_task` | Modify task properties | "Mark task #42 complete" |
+| `delete_task` | Remove task | "Delete task #38" |
 
+### Advanced Mode (+49 additional tools)
 
+Includes all basic tools PLUS:
+- Project management (8 tools)
+- Task attempts (12 tools)
+- Process management (9 tools)
+- Git worktrees (7 tools)
+- File operations (6 tools)
+- Templates & drafts (5 tools)
+- Omni integration (8 tools)
 
+---
 
+## Usage Examples
 
+### Task Creation
+
+```
+You: "Create a task to implement dark mode with LocalStorage persistence"
+
+Claude: [Uses create_task MCP tool]
+
+Claude: "I've created task #47: 'Implement dark mode toggle'
+         - Priority: medium
+         - Type: feature
+         - Status: pending
+
+         Would you like me to start working on it?"
+```
+
+### Planning
+
+```
+You: "Help me plan a complete authentication system with OAuth, JWT, and RBAC"
+
+Claude: [Uses create_task multiple times via MCP]
+
+Claude: "I've created 8 tasks for your auth system:
+         #42 - OAuth provider integration
+         #43 - JWT token generation
+         #44 - Refresh token mechanism
+         #45 - Role-based permissions
+         #46 - User session management
+         #47 - Password reset flow
+         #48 - Email verification
+         #49 - Security audit
+
+         Should I prioritize these or start on any?"
+```
+
+### Status Checks
+
+```
+You: "Show me all high-priority bugs"
+
+Claude: [Uses list_tasks with filters via MCP]
+
+Claude: "You have 3 high-priority bugs:
+         #35 - API crash on malformed JSON (pending)
+         #38 - Memory leak in WebSocket (in progress)
+         #41 - Auth token expiry issue (review)
+
+         Want me to work on #35 first?"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP server not found">
+    **Error**: `Could not connect to MCP server 'automagik-forge'`
+
+    **Solutions**:
+    1. Verify Forge is installed:
+       ```bash
+       npm list -g automagik-forge
+       ```
+
+    2. Check configuration syntax (valid JSON, no trailing commas)
+
+    3. Ensure `"command": "npx"` (not `"node"` or full path)
+
+    4. Restart Claude Code completely (quit and reopen)
+  </Accordion>
+
+  <Accordion title="Project not found error">
+    **Error**: `Project 'proj_xyz' does not exist`
+
+    **Solutions**:
+    1. Verify project exists in Forge UI
+    2. Copy correct UUID from browser URL
+    3. Update `PROJECT_ID` in config
+    4. Restart Claude Code
+  </Accordion>
+
+  <Accordion title="Tools not appearing">
+    **Symptom**: Claude doesn't seem to have Forge tools
+
+    **Solutions**:
+    1. Ask Claude directly: "What MCP tools do you have access to?"
+    2. Check if `automagik-forge` appears in the list
+    3. If not, verify config and restart Claude Code
+  </Accordion>
+
+  <Accordion title="Too verbose responses">
+    **Symptom**: Claude lists many tool options or seems confused
+
+    **Solution**: You're in advanced mode (56 tools). Switch to basic:
+    ```json
+    {
+      "args": ["automagik-forge", "--mcp"]
+    }
+    ```
+    Remove `-advanced` and restart.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Configuration File Location
+
+Claude Code MCP configuration is stored in:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Claude/config.json
+    ```
+
+    Or edit via Claude Code Settings UI.
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Claude\config.json
+    ```
+
+    Or edit via Claude Code Settings UI.
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Claude/config.json
+    ```
+
+    Or edit via Claude Code Settings UI.
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+<Tip>
+**Use natural language**: Don't try to call tools directly. Just describe what you want, and Claude will use the right MCP tool.
+
+✅ Good: "Create a task to add Redis caching"
+❌ Bad: "use create_task with title Redis"
+</Tip>
+
+<Tip>
+**Start with basic mode**: Only upgrade to advanced if you need specific features like manual worktree control or filesystem operations.
+</Tip>
+
+<Tip>
+**One project per config**: If you work on multiple projects, create separate MCP server entries with different PROJECT_IDs:
+
+```json
+{
+  "mcpServers": {
+    "forge-frontend": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": { "PROJECT_ID": "proj_frontend123" }
+    },
+    "forge-backend": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": { "PROJECT_ID": "proj_backend456" }
+    }
+  }
+}
+```
+</Tip>
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Previous Topic" icon="arrow-left" href="#">
-    Go back
+  <Card title="MCP Overview" icon="book" href="/forge/mcp/overview">
+    Learn more about MCP integration
   </Card>
-  <Card title="Next Topic" icon="arrow-right" href="#">
-    Continue
+
+  <Card title="MCP Architecture" icon="diagram-project" href="/forge/concepts/mcp-architecture">
+    Understand how MCP works
+  </Card>
+
+  <Card title="MCP Tools Reference" icon="wrench" href="/forge/api/mcp-tools">
+    Complete list of all MCP tools
+  </Card>
+
+  <Card title="Workflows" icon="flow" href="/forge/workflows/feature-development">
+    See MCP in action
   </Card>
 </CardGroup>

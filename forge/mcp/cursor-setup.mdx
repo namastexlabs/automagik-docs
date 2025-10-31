@@ -1,56 +1,202 @@
 ---
 title: "Cursor Setup"
-description: "Configure Forge MCP server for Cursor"
-icon: "cursor"
+description: "Configure MCP for Cursor IDE"
+icon: "terminal"
 ---
 
-## Introduction
+## Cursor MCP Setup
 
-This guide covers configure forge mcp server for cursor.
+Configure Forge as an MCP server for Cursor in 3 minutes.
 
 ---
 
-## Installation
+## Prerequisites
 
+<Steps>
+  <Step title="Install Forge">
+    ```bash
+    npm install -g automagik-forge
+    ```
+  </Step>
 
+  <Step title="Get Your Project ID">
+    ```bash
+    npx automagik-forge
+    ```
 
+    Copy the UUID from your browser URL:
+    ```
+    http://localhost:3000/projects/a1b2c3d4-e5f6-7890-abcd-ef1234567890/tasks
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                              Your Project ID
+    ```
+  </Step>
+</Steps>
 
-
-
+---
 
 ## Configuration
 
+### Option 1: Basic Mode (Recommended)
 
+<Steps>
+  <Step title="Open Cursor Settings">
+    - Press `Cmd/Ctrl + ,`
+    - Or go to **Cursor → Settings**
+  </Step>
 
+  <Step title="Search for MCP">
+    Type "MCP" in the settings search box
+  </Step>
 
+  <Step title="Add Configuration">
+    Add this to your MCP configuration:
 
+    ```json
+    {
+      "mcp.servers": {
+        "automagik-forge": {
+          "command": "npx",
+          "args": ["automagik-forge", "--mcp"],
+          "projectId": "your-project-uuid-here"
+        }
+      }
+    }
+    ```
 
+    Replace `your-project-uuid-here` with your actual Project ID.
+  </Step>
 
-## Usage
+  <Step title="Reload Window">
+    - Press `Cmd/Ctrl + R` to reload Cursor
+    - Or restart Cursor completely
+  </Step>
 
+  <Step title="Test">
+    Try: `"Create a task to add a README file"`
 
+    Cursor's AI should create the task via MCP!
+  </Step>
+</Steps>
 
+### Option 2: Advanced Mode
 
+For power users who need full Forge control:
 
+```json
+{
+  "mcp.servers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp-advanced"],
+      "projectId": "your-project-uuid-here"
+    }
+  }
+}
+```
 
+<Warning>
+Start with basic mode (7 tools). Advanced mode has 56 tools which can confuse the AI.
+</Warning>
+
+---
+
+## Usage in Cursor
+
+### With Cursor Composer
+
+```
+You: "Create tasks for building an authentication system"
+
+Cursor AI: [Uses MCP to create multiple tasks in Forge]
+
+Cursor AI: "I've created 5 tasks:
+           - OAuth integration
+           - JWT token generation
+           - User session management
+           - Password reset
+           - Security audit
+
+           Want me to start on any?"
+```
+
+### With @ Commands
+
+Access Forge tasks using `@`:
+
+```
+You: @automagik-forge "Show my pending tasks"
+
+Cursor AI: [Lists tasks via MCP]
+```
+
+---
 
 ## Troubleshooting
 
+<AccordionGroup>
+  <Accordion title="MCP server not found">
+    **Solutions**:
+    1. Verify Forge is installed: `npm list -g automagik-forge`
+    2. Check settings JSON syntax (no trailing commas)
+    3. Ensure `"command": "npx"` not `"node"`
+    4. Reload Cursor window (`Cmd/Ctrl + R`)
+  </Accordion>
 
+  <Accordion title="Project ID error">
+    **Error**: `Project not found`
 
+    **Fix**:
+    1. Open Forge UI: `npx automagik-forge`
+    2. Copy correct UUID from URL
+    3. Update `projectId` in Cursor settings
+    4. Reload Cursor
+  </Accordion>
 
+  <Accordion title="Tools not working">
+    **Check**:
+    1. Ask Cursor: "What MCP servers do you have?"
+    2. Verify `automagik-forge` appears
+    3. If not, check config and reload
+  </Accordion>
+</AccordionGroup>
 
+---
 
+## Configuration File Location
+
+Cursor stores MCP config in:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Cursor/User/settings.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Cursor\User\settings.json
+    ```
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Cursor/User/settings.json
+    ```
+  </Tab>
+</Tabs>
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Previous Topic" icon="arrow-left" href="#">
-    Go back
+  <Card title="MCP Overview" icon="book" href="/forge/mcp/overview">
+    Learn about MCP integration
   </Card>
-  <Card title="Next Topic" icon="arrow-right" href="#">
-    Continue
+
+  <Card title="MCP Tools" icon="wrench" href="/forge/api/mcp-tools">
+    See all available tools
   </Card>
 </CardGroup>

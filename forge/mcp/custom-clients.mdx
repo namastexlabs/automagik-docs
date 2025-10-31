@@ -1,48 +1,296 @@
 ---
 title: "Custom MCP Clients"
-description: "Connect any MCP-compatible client to Forge"
-icon: "puzzle-piece"
+description: "Configure Forge MCP for any MCP-compatible client"
+icon: "wrench"
 ---
 
-## Introduction
+## Custom MCP Client Setup
 
-This guide covers connect any mcp-compatible client to forge.
+Configure Forge as an MCP server for any MCP-compatible tool.
 
 ---
 
-## Generic Configuration
+## Generic Configuration Pattern
 
+All MCP clients follow a similar pattern. Forge uses standard MCP protocol.
 
+### Standard Configuration
 
+```json
+{
+  "command": "npx",
+  "args": ["automagik-forge", "--mcp"],
+  "env": {
+    "PROJECT_ID": "your-project-uuid-here"
+  }
+}
+```
 
+### Advanced Mode
 
+```json
+{
+  "command": "npx",
+  "args": ["automagik-forge", "--mcp-advanced"],
+  "env": {
+    "PROJECT_ID": "your-project-uuid-here"
+  }
+}
+```
 
+---
 
-## Environment Variables
+## Common MCP Clients
 
+### Roo Code
 
+```yaml
+servers:
+  automagik-forge:
+    command: npx
+    args:
+      - automagik-forge
+      - --mcp
+    environment:
+      PROJECT_ID: your-project-uuid-here
+```
 
+### Gemini CLI
 
+```json
+{
+  "mcp": {
+    "servers": {
+      "automagik-forge": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["automagik-forge", "--mcp"],
+        "env": {
+          "PROJECT_ID": "your-project-uuid-here"
+        }
+      }
+    }
+  }
+}
+```
 
+### Continue.dev
 
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": {
+        "PROJECT_ID": "your-project-uuid-here"
+      }
+    }
+  }
+}
+```
 
-## Testing Connection
+---
 
+## Configuration Elements
 
+### Required Fields
 
+| Field | Value | Description |
+|-------|-------|-------------|
+| `command` | `"npx"` | Package runner command |
+| `args` | `["automagik-forge", "--mcp"]` | Forge with MCP mode |
+| `PROJECT_ID` | UUID | Your Forge project ID |
 
+### Optional Fields
 
+| Field | Value | Description |
+|-------|-------|-------------|
+| `name` | `"automagik-forge"` | Server name identifier |
+| `type` | `"stdio"` | Communication protocol |
+| `description` | Custom text | Server description |
 
+---
+
+## Getting Your Project ID
+
+<Steps>
+  <Step title="Start Forge">
+    ```bash
+    npx automagik-forge
+    ```
+  </Step>
+
+  <Step title="Navigate to Project">
+    Open browser, create or select your project
+  </Step>
+
+  <Step title="Copy UUID">
+    From the browser URL:
+    ```
+    http://localhost:3000/projects/a1b2c3d4-e5f6-7890-abcd-ef1234567890/tasks
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                              Copy this UUID
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Testing Your Configuration
+
+After configuring, test with these commands:
+
+```
+"What MCP servers do you have?"
+```
+
+Should show `automagik-forge` in the list.
+
+```
+"Create a task to add a README file"
+```
+
+Should create task #X in Forge.
+
+```
+"Show my pending tasks"
+```
+
+Should list tasks from Forge.
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Find your client's MCP config location">
+    Check your client's documentation for:
+    - "MCP configuration"
+    - "External tools"
+    - "Model Context Protocol"
+    - "Extensions" or "Plugins"
+
+    Common locations:
+    - Settings UI → MCP Servers
+    - Preferences → Tools → MCP
+    - Config file: `~/.config/<client>/config.json`
+  </Accordion>
+
+  <Accordion title="Verify Forge is accessible">
+    Test Forge command directly:
+
+    ```bash
+    npx automagik-forge --mcp
+    ```
+
+    Should start the MCP server without errors.
+  </Accordion>
+
+  <Accordion title="Check Project ID validity">
+    Ensure:
+    1. Project exists in Forge UI
+    2. UUID is exact (no extra spaces/quotes)
+    3. Format is correct: `proj_xxxxx` or full UUID
+  </Accordion>
+
+  <Accordion title="Enable debug logging">
+    Some clients support debug mode:
+
+    ```json
+    {
+      "env": {
+        "PROJECT_ID": "...",
+        "DEBUG": "mcp:*"
+      }
+    }
+    ```
+
+    Check client logs for MCP connection errors.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Configuration Formats
+
+Different clients use different formats:
+
+### JSON (Most Common)
+
+```json
+{
+  "mcpServers": {
+    "automagik-forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": { "PROJECT_ID": "..." }
+    }
+  }
+}
+```
+
+### YAML
+
+```yaml
+mcpServers:
+  automagik-forge:
+    command: npx
+    args:
+      - automagik-forge
+      - --mcp
+    env:
+      PROJECT_ID: your-project-uuid
+```
+
+### TOML
+
+```toml
+[mcpServers.automagik-forge]
+command = "npx"
+args = ["automagik-forge", "--mcp"]
+
+[mcpServers.automagik-forge.env]
+PROJECT_ID = "your-project-uuid"
+```
+
+---
+
+## Advanced: Multiple Projects
+
+Configure multiple Forge projects:
+
+```json
+{
+  "mcpServers": {
+    "forge-frontend": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": { "PROJECT_ID": "proj_frontend123" }
+    },
+    "forge-backend": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": { "PROJECT_ID": "proj_backend456" }
+    }
+  }
+}
+```
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Previous Topic" icon="arrow-left" href="#">
-    Go back
+  <Card title="MCP Overview" icon="book" href="/forge/mcp/overview">
+    Learn about MCP integration
   </Card>
-  <Card title="Next Topic" icon="arrow-right" href="#">
-    Continue
+
+  <Card title="MCP Tools Reference" icon="wrench" href="/forge/api/mcp-tools">
+    See all available MCP tools
+  </Card>
+
+  <Card title="Report Issues" icon="github" href="https://github.com/namastexlabs/automagik-forge/issues">
+    Get help with your specific client
   </Card>
 </CardGroup>

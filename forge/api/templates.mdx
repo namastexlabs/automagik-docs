@@ -1,0 +1,305 @@
+---
+title: "Task Templates API"
+openapi: "GET /api/task-templates"
+description: "Manage reusable task templates"
+icon: "file-lines"
+---
+
+## Overview
+
+Task Templates allow you to create reusable task configurations for common workflows like bug fixes, feature development, code reviews, and refactoring.
+
+**Base URL**: `http://localhost:8887/api/task-templates`
+
+---
+
+## List Templates
+
+Get all available task templates.
+
+```http
+GET /api/task-templates
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "template_bug_fix",
+      "name": "Bug Fix Workflow",
+      "description": "Standard bug fix workflow with reproduction, fix, and testing",
+      "category": "bugfix",
+      "tasks": [
+        {
+          "title": "Reproduce bug",
+          "description": "Create minimal reproduction",
+          "order": 1
+        },
+        {
+          "title": "Fix bug",
+          "description": "Implement fix",
+          "order": 2
+        },
+        {
+          "title": "Add tests",
+          "description": "Add regression tests",
+          "order": 3
+        }
+      ],
+      "createdAt": "2024-01-10T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Get Template
+
+Get a specific template by ID.
+
+```http
+GET /api/task-templates/:id
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "template_feature",
+    "name": "Feature Development",
+    "description": "Complete feature development workflow",
+    "category": "feature",
+    "tasks": [
+      {
+        "title": "Design feature",
+        "description": "Create technical design",
+        "order": 1,
+        "estimatedTime": 60
+      },
+      {
+        "title": "Implement feature",
+        "description": "Write implementation code",
+        "order": 2,
+        "estimatedTime": 180
+      },
+      {
+        "title": "Write tests",
+        "description": "Add unit and integration tests",
+        "order": 3,
+        "estimatedTime": 90
+      },
+      {
+        "title": "Update documentation",
+        "description": "Document new feature",
+        "order": 4,
+        "estimatedTime": 30
+      }
+    ],
+    "metadata": {
+      "totalEstimatedTime": 360,
+      "difficulty": "medium"
+    }
+  }
+}
+```
+
+---
+
+## Create Template
+
+Create a new task template.
+
+```http
+POST /api/task-templates
+```
+
+### Request Body
+
+```json
+{
+  "name": "API Endpoint Template",
+  "description": "Template for creating new API endpoints",
+  "category": "development",
+  "tasks": [
+    {
+      "title": "Define API schema",
+      "description": "Create OpenAPI specification",
+      "order": 1
+    },
+    {
+      "title": "Implement endpoint",
+      "description": "Write handler and validation",
+      "order": 2
+    },
+    {
+      "title": "Add tests",
+      "description": "Unit and integration tests",
+      "order": 3
+    },
+    {
+      "title": "Update API docs",
+      "description": "Document in API reference",
+      "order": 4
+    }
+  ]
+}
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "template_api_endpoint",
+    "name": "API Endpoint Template",
+    "description": "Template for creating new API endpoints",
+    "category": "development",
+    "tasks": [...],
+    "createdAt": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+---
+
+## Update Template
+
+Update an existing template.
+
+```http
+PUT /api/task-templates/:id
+```
+
+### Request Body
+
+```json
+{
+  "name": "Updated Template Name",
+  "description": "Updated description",
+  "tasks": [...]
+}
+```
+
+---
+
+## Delete Template
+
+Delete a template.
+
+```http
+DELETE /api/task-templates/:id
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true,
+    "templateId": "template_abc123"
+  }
+}
+```
+
+---
+
+## Built-in Templates
+
+Forge includes several built-in templates:
+
+### Bug Fix
+
+```yaml
+name: Bug Fix Workflow
+tasks:
+  - Reproduce bug
+  - Fix issue
+  - Add regression tests
+  - Update changelog
+```
+
+### Feature Development
+
+```yaml
+name: Feature Development
+tasks:
+  - Design feature
+  - Implement code
+  - Write tests
+  - Update documentation
+```
+
+### Code Review
+
+```yaml
+name: Code Review
+tasks:
+  - Review code quality
+  - Check test coverage
+  - Verify documentation
+  - Approve or request changes
+```
+
+### Refactoring
+
+```yaml
+name: Refactoring
+tasks:
+  - Analyze current code
+  - Plan refactoring approach
+  - Execute refactoring
+  - Verify tests pass
+```
+
+---
+
+## SDK Examples
+
+```typescript
+import { ForgeClient } from '@automagik/forge-sdk';
+
+const forge = new ForgeClient();
+
+// List templates
+const templates = await forge.templates.list();
+
+// Get template
+const template = await forge.templates.get('template_bug_fix');
+
+// Create from template
+const tasks = await forge.templates.createTasks('proj_123', 'template_feature', {
+  context: {
+    feature: 'User notifications',
+    description: 'Add email and push notifications'
+  }
+});
+
+// Create custom template
+const newTemplate = await forge.templates.create({
+  name: 'My Custom Template',
+  category: 'custom',
+  tasks: [...]
+});
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tasks API" icon="list-check" href="/forge/api/tasks">
+    Create tasks from templates
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/forge/workflows/feature-development">
+    Template-based workflows
+  </Card>
+</CardGroup>

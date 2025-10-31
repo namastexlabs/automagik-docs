@@ -20,6 +20,13 @@
       "family": "Manrope"
     }
   },
+  "openapi": "/openapi.yaml",
+  "api": {
+    "baseUrl": "http://localhost:8887",
+    "auth": {
+      "method": "bearer"
+    }
+  },
   "favicon": "/favicon.ico",
   "navigation": {
     "tabs": [
@@ -138,6 +145,13 @@
                   "forge/api/tasks",
                   "forge/api/attempts",
                   "forge/api/processes",
+                  "forge/api/approvals",
+                  "forge/api/drafts",
+                  "forge/api/templates",
+                  "forge/api/containers",
+                  "forge/api/filesystem",
+                  "forge/api/github",
+                  "forge/api/websockets",
                   "forge/api/mcp-tools"
                 ]
               },
