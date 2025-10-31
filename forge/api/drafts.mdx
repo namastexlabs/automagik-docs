@@ -1,5 +1,5 @@
 ---
-title: "Drafts API"
+title: "Drafts"
 openapi: "POST /api/task-attempts/:id/drafts"
 description: "Manage draft prompts and follow-up queues"
 icon: "pen-to-square"
@@ -21,19 +21,6 @@ Save a draft prompt for a task attempt.
 POST /api/task-attempts/:id/drafts
 ```
 
-### Request Body
-
-```json
-{
-  "content": "Add unit tests for the authentication functions",
-  "type": "follow_up",
-  "metadata": {
-    "priority": "high",
-    "category": "testing"
-  }
-}
-```
-
 ### Parameters
 
 | Parameter | Type | Required | Description |
@@ -42,9 +29,59 @@ POST /api/task-attempts/:id/drafts
 | `type` | enum | ✅ | Draft type: `follow_up`, `retry`, `initial` |
 | `metadata` | object | ⚠️ | Additional metadata |
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl -X POST http://localhost:8887/api/task-attempts/attempt_xyz789/drafts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Add unit tests for the authentication functions",
+    "type": "follow_up",
+    "metadata": {
+      "priority": "high",
+      "category": "testing"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/drafts', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    content: 'Add unit tests for the authentication functions',
+    type: 'follow_up',
+    metadata: {
+      priority: 'high',
+      category: 'testing'
+    }
+  })
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_xyz789/drafts',
+    json={
+        'content': 'Add unit tests for the authentication functions',
+        'type': 'follow_up',
+        'metadata': {
+            'priority': 'high',
+            'category': 'testing'
+        }
+    }
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -62,6 +99,18 @@ POST /api/task-attempts/:id/drafts
 }
 ```
 
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: content"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Get Draft
@@ -72,9 +121,29 @@ Retrieve a saved draft.
 GET /api/task-attempts/:attemptId/drafts/:draftId
 ```
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123');
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -88,6 +157,18 @@ GET /api/task-attempts/:attemptId/drafts/:draftId
 }
 ```
 
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Draft not found"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Delete Draft
@@ -98,9 +179,31 @@ Delete a saved draft.
 DELETE /api/task-attempts/:attemptId/drafts/:draftId
 ```
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl -X DELETE http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123', {
+  method: 'DELETE'
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete('http://localhost:8887/api/task-attempts/attempt_xyz789/drafts/draft_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -109,6 +212,18 @@ DELETE /api/task-attempts/:attemptId/drafts/:draftId
   }
 }
 ```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Draft not found"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -120,16 +235,6 @@ Save a draft for follow-up instructions to a running task.
 POST /api/task-attempts/:id/follow-up-draft
 ```
 
-### Request Body
-
-```json
-{
-  "prompt": "Also add integration tests for the login flow",
-  "autoSend": false,
-  "sendAfter": "2024-01-15T11:00:00Z"
-}
-```
-
 ### Parameters
 
 | Parameter | Type | Default | Description |
@@ -138,9 +243,50 @@ POST /api/task-attempts/:id/follow-up-draft
 | `autoSend` | boolean | `false` | Automatically send when ready |
 | `sendAfter` | string | null | Schedule send time |
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl -X POST http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-draft \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Also add integration tests for the login flow",
+    "autoSend": false,
+    "sendAfter": "2024-01-15T11:00:00Z"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-draft', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    prompt: 'Also add integration tests for the login flow',
+    autoSend: false,
+    sendAfter: '2024-01-15T11:00:00Z'
+  })
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-draft',
+    json={
+        'prompt': 'Also add integration tests for the login flow',
+        'autoSend': False,
+        'sendAfter': '2024-01-15T11:00:00Z'
+    }
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -155,6 +301,18 @@ POST /api/task-attempts/:id/follow-up-draft
 }
 ```
 
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: prompt"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Save Retry Follow-Up Draft
@@ -165,19 +323,50 @@ Save a draft for retry attempts with modified prompts.
 POST /api/task-attempts/:id/retry-follow-up-draft
 ```
 
-### Request Body
+<RequestExample>
 
-```json
-{
-  "originalPrompt": "Implement authentication",
-  "retryPrompt": "Implement authentication using JWT with refresh tokens",
-  "retryReason": "Initial attempt didn't include refresh token logic"
-}
+```bash cURL
+curl -X POST http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft \
+  -H "Content-Type: application/json" \
+  -d '{
+    "originalPrompt": "Implement authentication",
+    "retryPrompt": "Implement authentication using JWT with refresh tokens",
+    "retryReason": "Initial attempt didn'\''t include refresh token logic"
+  }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    originalPrompt: 'Implement authentication',
+    retryPrompt: 'Implement authentication using JWT with refresh tokens',
+    retryReason: 'Initial attempt didn\'t include refresh token logic'
+  })
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft',
+    json={
+        'originalPrompt': 'Implement authentication',
+        'retryPrompt': 'Implement authentication using JWT with refresh tokens',
+        'retryReason': 'Initial attempt didn\'t include refresh token logic'
+    }
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -191,6 +380,18 @@ POST /api/task-attempts/:id/retry-follow-up-draft
 }
 ```
 
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: retryPrompt"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Delete Retry Follow-Up Draft
@@ -201,9 +402,31 @@ Delete a retry follow-up draft.
 DELETE /api/task-attempts/:id/retry-follow-up-draft/:draftId
 ```
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl -X DELETE http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft/draft_retry_abc123
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft/draft_retry_abc123', {
+  method: 'DELETE'
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete('http://localhost:8887/api/task-attempts/attempt_xyz789/retry-follow-up-draft/draft_retry_abc123')
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -212,6 +435,18 @@ DELETE /api/task-attempts/:id/retry-follow-up-draft/:draftId
   }
 }
 ```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Draft not found"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -223,28 +458,6 @@ Set a queue of follow-up prompts to be executed in sequence.
 POST /api/task-attempts/:id/follow-up-queue
 ```
 
-### Request Body
-
-```json
-{
-  "queue": [
-    {
-      "prompt": "Add input validation",
-      "order": 1
-    },
-    {
-      "prompt": "Add error handling",
-      "order": 2
-    },
-    {
-      "prompt": "Add unit tests",
-      "order": 3
-    }
-  ],
-  "autoExecute": false
-}
-```
-
 ### Parameters
 
 | Parameter | Type | Default | Description |
@@ -254,9 +467,68 @@ POST /api/task-attempts/:id/follow-up-queue
 | `queue[].order` | integer | - | Execution order |
 | `autoExecute` | boolean | `false` | Auto-execute queue |
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl -X POST http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-queue \
+  -H "Content-Type: application/json" \
+  -d '{
+    "queue": [
+      {
+        "prompt": "Add input validation",
+        "order": 1
+      },
+      {
+        "prompt": "Add error handling",
+        "order": 2
+      },
+      {
+        "prompt": "Add unit tests",
+        "order": 3
+      }
+    ],
+    "autoExecute": false
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-queue', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    queue: [
+      { prompt: 'Add input validation', order: 1 },
+      { prompt: 'Add error handling', order: 2 },
+      { prompt: 'Add unit tests', order: 3 }
+    ],
+    autoExecute: false
+  })
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_xyz789/follow-up-queue',
+    json={
+        'queue': [
+            {'prompt': 'Add input validation', 'order': 1},
+            {'prompt': 'Add error handling', 'order': 2},
+            {'prompt': 'Add unit tests', 'order': 3}
+        ],
+        'autoExecute': False
+    }
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -287,6 +559,18 @@ POST /api/task-attempts/:id/follow-up-queue
 }
 ```
 
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Queue must be an array with at least one item"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Set Draft Queue
@@ -297,28 +581,77 @@ Set a queue of draft prompts for task creation.
 POST /api/task-attempts/:id/draft-queue
 ```
 
-### Request Body
+<RequestExample>
 
-```json
-{
-  "queue": [
-    {
-      "title": "Implement user registration",
-      "description": "Create registration endpoint with email validation",
-      "order": 1
-    },
-    {
-      "title": "Implement user login",
-      "description": "Create login endpoint with JWT generation",
-      "order": 2
-    }
-  ]
-}
+```bash cURL
+curl -X POST http://localhost:8887/api/task-attempts/attempt_xyz789/draft-queue \
+  -H "Content-Type: application/json" \
+  -d '{
+    "queue": [
+      {
+        "title": "Implement user registration",
+        "description": "Create registration endpoint with email validation",
+        "order": 1
+      },
+      {
+        "title": "Implement user login",
+        "description": "Create login endpoint with JWT generation",
+        "order": 2
+      }
+    ]
+  }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_xyz789/draft-queue', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    queue: [
+      {
+        title: 'Implement user registration',
+        description: 'Create registration endpoint with email validation',
+        order: 1
+      },
+      {
+        title: 'Implement user login',
+        description: 'Create login endpoint with JWT generation',
+        order: 2
+      }
+    ]
+  })
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_xyz789/draft-queue',
+    json={
+        'queue': [
+            {
+                'title': 'Implement user registration',
+                'description': 'Create registration endpoint with email validation',
+                'order': 1
+            },
+            {
+                'title': 'Implement user login',
+                'description': 'Create login endpoint with JWT generation',
+                'order': 2
+            }
+        ]
+    }
+)
+data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201 Created
 {
   "success": true,
   "data": {
@@ -342,6 +675,18 @@ POST /api/task-attempts/:id/draft-queue
   }
 }
 ```
+
+```json 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Queue must be an array with at least one item"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 

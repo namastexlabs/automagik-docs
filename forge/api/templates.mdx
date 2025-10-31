@@ -1,5 +1,5 @@
 ---
-title: "Task Templates API"
+title: "Task Templates"
 openapi: "GET /api/task-templates"
 description: "Manage reusable task templates"
 icon: "file-lines"
@@ -21,9 +21,42 @@ Get all available task templates.
 GET /api/task-templates
 ```
 
-### Example Response
+### Query Parameters
 
-```json
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Page number (default: 1) |
+| `limit` | integer | Items per page (default: 20) |
+| `category` | string | Filter by template category |
+| `search` | string | Search by template name |
+
+<RequestExample>
+
+```bash cURL
+curl "http://localhost:8887/api/task-templates?page=1&limit=10"
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-templates?page=1&limit=10');
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/task-templates',
+    params={'page': 1, 'limit': 10}
+)
+templates = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": [
@@ -51,9 +84,27 @@ GET /api/task-templates
       ],
       "createdAt": "2024-01-10T00:00:00Z"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 5,
+    "pages": 1
+  }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -65,9 +116,30 @@ Get a specific template by ID.
 GET /api/task-templates/:id
 ```
 
-### Example Response
+<RequestExample>
 
-```json
+```bash cURL
+curl http://localhost:8887/api/task-templates/template_feature
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-templates/template_feature');
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:8887/api/task-templates/template_feature')
+template = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -109,6 +181,28 @@ GET /api/task-templates/:id
 }
 ```
 
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Template not found"
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
+
 ---
 
 ## Create Template
@@ -119,41 +213,90 @@ Create a new task template.
 POST /api/task-templates
 ```
 
-### Request Body
+<ParamField body="name" type="string" required>
+  Template name
+</ParamField>
 
-```json
-{
-  "name": "API Endpoint Template",
-  "description": "Template for creating new API endpoints",
-  "category": "development",
-  "tasks": [
-    {
-      "title": "Define API schema",
-      "description": "Create OpenAPI specification",
-      "order": 1
-    },
-    {
-      "title": "Implement endpoint",
-      "description": "Write handler and validation",
-      "order": 2
-    },
-    {
-      "title": "Add tests",
-      "description": "Unit and integration tests",
-      "order": 3
-    },
-    {
-      "title": "Update API docs",
-      "description": "Document in API reference",
-      "order": 4
-    }
-  ]
-}
+<ParamField body="description" type="string" required>
+  Template description
+</ParamField>
+
+<ParamField body="category" type="string" required>
+  Template category (e.g., "bugfix", "feature", "refactor", "review")
+</ParamField>
+
+<ParamField body="tasks" type="array" required>
+  Array of task definitions with title, description, and order
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST http://localhost:8887/api/task-templates \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "API Endpoint Template",
+    "description": "Template for creating new API endpoints",
+    "category": "development",
+    "tasks": [
+      {
+        "title": "Define API schema",
+        "description": "Create OpenAPI specification",
+        "order": 1
+      },
+      {
+        "title": "Implement endpoint",
+        "description": "Write handler and validation",
+        "order": 2
+      },
+      {
+        "title": "Add tests",
+        "description": "Unit and integration tests",
+        "order": 3
+      },
+      {
+        "title": "Update API docs",
+        "description": "Document in API reference",
+        "order": 4
+      }
+    ]
+  }'
 ```
 
-### Example Response
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-templates', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'API Endpoint Template',
+    description: 'Template for creating new API endpoints',
+    category: 'development',
+    tasks: [...]
+  })
+});
+const data = await response.json();
+```
 
-```json
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-templates',
+    json={
+        'name': 'API Endpoint Template',
+        'description': 'Template for creating new API endpoints',
+        'category': 'development',
+        'tasks': [...]
+    }
+)
+template = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
@@ -161,11 +304,44 @@ POST /api/task-templates
     "name": "API Endpoint Template",
     "description": "Template for creating new API endpoints",
     "category": "development",
-    "tasks": [...],
+    "tasks": [
+      {
+        "title": "Define API schema",
+        "description": "Create OpenAPI specification",
+        "order": 1
+      },
+      {
+        "title": "Implement endpoint",
+        "description": "Write handler and validation",
+        "order": 2
+      },
+      {
+        "title": "Add tests",
+        "description": "Unit and integration tests",
+        "order": 3
+      },
+      {
+        "title": "Update API docs",
+        "description": "Document in API reference",
+        "order": 4
+      }
+    ],
     "createdAt": "2024-01-15T11:00:00Z"
   }
 }
 ```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -177,15 +353,97 @@ Update an existing template.
 PUT /api/task-templates/:id
 ```
 
-### Request Body
+<ParamField body="name" type="string">
+  Updated template name
+</ParamField>
 
-```json
+<ParamField body="description" type="string">
+  Updated template description
+</ParamField>
+
+<ParamField body="category" type="string">
+  Updated template category
+</ParamField>
+
+<ParamField body="tasks" type="array">
+  Updated task definitions array
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X PUT http://localhost:8887/api/task-templates/template_api_endpoint \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Template Name",
+    "description": "Updated description with new details"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-templates/template_api_endpoint', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Updated Template Name',
+    description: 'Updated description'
+  })
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'http://localhost:8887/api/task-templates/template_api_endpoint',
+    json={
+        'name': 'Updated Template Name',
+        'description': 'Updated description'
+    }
+)
+template = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
-  "name": "Updated Template Name",
-  "description": "Updated description",
-  "tasks": [...]
+  "success": true,
+  "data": {
+    "id": "template_api_endpoint",
+    "name": "Updated Template Name",
+    "description": "Updated description with new details",
+    "category": "development",
+    "tasks": [...],
+    "updatedAt": "2024-01-15T14:30:00Z"
+  }
 }
 ```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Template not found"
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 
@@ -197,17 +455,65 @@ Delete a template.
 DELETE /api/task-templates/:id
 ```
 
-### Example Response
+<Warning>
+Deleting a template is permanent and cannot be undone.
+</Warning>
 
-```json
+<RequestExample>
+
+```bash cURL
+curl -X DELETE http://localhost:8887/api/task-templates/template_api_endpoint
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8887/api/task-templates/template_api_endpoint', {
+  method: 'DELETE'
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.delete('http://localhost:8887/api/task-templates/template_api_endpoint')
+result = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
 {
   "success": true,
   "data": {
     "deleted": true,
-    "templateId": "template_abc123"
+    "templateId": "template_api_endpoint"
   }
 }
 ```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Template not found"
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+</ResponseExample>
 
 ---
 

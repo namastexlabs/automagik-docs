@@ -1,5 +1,5 @@
 ---
-title: "GitHub Integration API"
+title: "GitHub Integration"
 openapi: "POST /api/task-attempts/:id/create-pr"
 description: "GitHub integration for PRs and repository management"
 icon: "github"
@@ -80,9 +80,89 @@ POST /api/auth/github/device/poll
 
 Create a GitHub PR from task attempt branch (covered in Attempts API).
 
+<ParamField path="id" type="string" required>
+  The task attempt ID
+</ParamField>
+
 ```http
 POST /api/task-attempts/:id/create-pr
 ```
+
+<RequestExample>
+```curl
+curl -X POST http://localhost:8887/api/task-attempts/attempt_abc123/create-pr \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add authentication system",
+    "body": "Implements JWT authentication for the application",
+    "baseBranch": "main",
+    "draft": false
+  }'
+```
+
+```javascript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_abc123/create-pr', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Add authentication system',
+    body: 'Implements JWT authentication for the application',
+    baseBranch: 'main',
+    draft: false
+  })
+});
+
+const data = await response.json();
+console.log(`PR created: ${data.data.htmlUrl}`);
+```
+
+```python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_abc123/create-pr',
+    json={
+        'title': 'Add authentication system',
+        'body': 'Implements JWT authentication for the application',
+        'baseBranch': 'main',
+        'draft': False
+    }
+)
+
+data = response.json()
+print(f"PR created: {data['data']['htmlUrl']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": {
+    "number": 42,
+    "title": "Add authentication system",
+    "body": "Implements JWT authentication for the application",
+    "state": "open",
+    "author": "forge-bot",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "htmlUrl": "https://github.com/owner/repo/pull/42",
+    "head": "forge/task-abc123-attempt-1",
+    "base": "main",
+    "url": "https://api.github.com/repos/owner/repo/pulls/42"
+  }
+}
+```
+
+```json Error
+{
+  "success": false,
+  "error": "github_auth_required",
+  "message": "GitHub authentication is required. Please authenticate first."
+}
+```
+</ResponseExample>
 
 See [Attempts API - Create GitHub PR](/forge/api/attempts#create-github-pr) for details.
 
@@ -92,9 +172,79 @@ See [Attempts API - Create GitHub PR](/forge/api/attempts#create-github-pr) for 
 
 Link an existing GitHub PR to a task attempt.
 
+<ParamField path="id" type="string" required>
+  The task attempt ID
+</ParamField>
+
 ```http
 POST /api/task-attempts/:id/attach-pr
 ```
+
+<RequestExample>
+```curl
+curl -X POST http://localhost:8887/api/task-attempts/attempt_abc123/attach-pr \
+  -H "Content-Type: application/json" \
+  -d '{
+    "owner": "namastexlabs",
+    "repo": "automagik-forge",
+    "prNumber": 42
+  }'
+```
+
+```javascript
+const response = await fetch('http://localhost:8887/api/task-attempts/attempt_abc123/attach-pr', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    owner: 'namastexlabs',
+    repo: 'automagik-forge',
+    prNumber: 42
+  })
+});
+
+const data = await response.json();
+console.log('PR attached successfully');
+```
+
+```python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/task-attempts/attempt_abc123/attach-pr',
+    json={
+        'owner': 'namastexlabs',
+        'repo': 'automagik-forge',
+        'prNumber': 42
+    }
+)
+
+print('PR attached successfully')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": {
+    "attemptId": "attempt_abc123",
+    "prUrl": "https://github.com/namastexlabs/automagik-forge/pull/42",
+    "prNumber": 42,
+    "attachedAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+```json Error
+{
+  "success": false,
+  "error": "pr_not_found",
+  "message": "Pull request #42 not found in namastexlabs/automagik-forge"
+}
+```
+</ResponseExample>
 
 See [Attempts API - Attach Existing PR](/forge/api/attempts#attach-existing-pr) for details.
 
@@ -106,12 +256,39 @@ See [Attempts API - Attach Existing PR](/forge/api/attempts#attach-existing-pr) 
 
 Get information about the project's GitHub repository.
 
+<ParamField path="id" type="string" required>
+  The project ID
+</ParamField>
+
 ```http
 GET /api/projects/:id/github/repository
 ```
 
-**Response**:
-```json
+<RequestExample>
+```curl
+curl -X GET http://localhost:8887/api/projects/proj_abc123/github/repository
+```
+
+```javascript
+const response = await fetch('http://localhost:8887/api/projects/proj_abc123/github/repository');
+const data = await response.json();
+console.log(`Repository: ${data.data.fullName}`);
+console.log(`Default branch: ${data.data.defaultBranch}`);
+```
+
+```python
+import requests
+
+response = requests.get('http://localhost:8887/api/projects/proj_abc123/github/repository')
+data = response.json()
+
+print(f"Repository: {data['data']['fullName']}")
+print(f"Default branch: {data['data']['defaultBranch']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
 {
   "success": true,
   "data": {
@@ -126,23 +303,80 @@ GET /api/projects/:id/github/repository
 }
 ```
 
+```json Error
+{
+  "success": false,
+  "error": "project_not_found",
+  "message": "Project proj_abc123 not found"
+}
+```
+</ResponseExample>
+
 ---
 
 ### List Pull Requests
 
 List pull requests for a project.
 
+<ParamField path="id" type="string" required>
+  The project ID
+</ParamField>
+
+<ParamField query="state" type="string" default="open">
+  Filter by PR state: `open`, `closed`, or `all`
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Items per page (max 100)
+</ParamField>
+
 ```http
 GET /api/projects/:id/github/pulls
 ```
 
-**Query Parameters**:
-- `state`: `open`, `closed`, `all` (default: `open`)
-- `page`: Page number
-- `limit`: Items per page
+<RequestExample>
+```curl
+curl -X GET "http://localhost:8887/api/projects/proj_abc123/github/pulls?state=open&limit=10"
+```
 
-**Response**:
-```json
+```javascript
+const response = await fetch(
+  'http://localhost:8887/api/projects/proj_abc123/github/pulls?state=open&limit=10'
+);
+const data = await response.json();
+
+data.data.forEach(pr => {
+  console.log(`PR #${pr.number}: ${pr.title} (${pr.state})`);
+  console.log(`  Author: ${pr.author}`);
+  console.log(`  Created: ${pr.createdAt}`);
+});
+```
+
+```python
+import requests
+
+response = requests.get(
+    'http://localhost:8887/api/projects/proj_abc123/github/pulls',
+    params={
+        'state': 'open',
+        'limit': 10
+    }
+)
+
+data = response.json()
+for pr in data['data']:
+    print(f"PR #{pr['number']}: {pr['title']} ({pr['state']})")
+    print(f"  Author: {pr['author']}")
+    print(f"  Created: {pr['createdAt']}")
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
 {
   "success": true,
   "data": [
@@ -155,10 +389,29 @@ GET /api/projects/:id/github/pulls
       "htmlUrl": "https://github.com/owner/repo/pull/42",
       "head": "forge/task-abc123-attempt-1",
       "base": "main"
+    },
+    {
+      "number": 41,
+      "title": "Fix database connection",
+      "state": "open",
+      "author": "bot",
+      "createdAt": "2024-01-14T15:30:00Z",
+      "htmlUrl": "https://github.com/owner/repo/pull/41",
+      "head": "forge/task-xyz789-attempt-2",
+      "base": "main"
     }
   ]
 }
 ```
+
+```json Error
+{
+  "success": false,
+  "error": "project_not_found",
+  "message": "Project proj_abc123 not found"
+}
+```
+</ResponseExample>
 
 ---
 
@@ -168,17 +421,89 @@ GET /api/projects/:id/github/pulls
 
 Set up GitHub webhook to receive events.
 
+<ParamField path="id" type="string" required>
+  The project ID
+</ParamField>
+
+<ParamField body="events" type="array" required>
+  Array of events to subscribe to: `pull_request`, `push`, `issue_comment`, `pull_request_review`
+</ParamField>
+
+<ParamField body="url" type="string" required>
+  The webhook endpoint URL to receive GitHub events
+</ParamField>
+
 ```http
 POST /api/projects/:id/github/webhook
 ```
 
-**Request**:
-```json
-{
-  "events": ["pull_request", "push", "issue_comment"],
-  "url": "https://forge.yourdomain.com/webhooks/github"
+<RequestExample>
+```curl
+curl -X POST http://localhost:8887/api/projects/proj_abc123/github/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["pull_request", "push", "issue_comment"],
+    "url": "https://forge.yourdomain.com/webhooks/github"
+  }'
+```
+
+```javascript
+const response = await fetch('http://localhost:8887/api/projects/proj_abc123/github/webhook', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    events: ['pull_request', 'push', 'issue_comment'],
+    url: 'https://forge.yourdomain.com/webhooks/github'
+  })
+});
+
+const data = await response.json();
+if (data.success) {
+  console.log('Webhook configured successfully');
 }
 ```
+
+```python
+import requests
+
+response = requests.post(
+    'http://localhost:8887/api/projects/proj_abc123/github/webhook',
+    json={
+        'events': ['pull_request', 'push', 'issue_comment'],
+        'url': 'https://forge.yourdomain.com/webhooks/github'
+    }
+)
+
+data = response.json()
+if data['success']:
+    print('Webhook configured successfully')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": {
+    "webhookId": "webhook_abc123",
+    "url": "https://forge.yourdomain.com/webhooks/github",
+    "events": ["pull_request", "push", "issue_comment"],
+    "active": true,
+    "createdAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+```json Error
+{
+  "success": false,
+  "error": "invalid_webhook_url",
+  "message": "Webhook URL is not accessible or invalid"
+}
+```
+</ResponseExample>
 
 **Supported Events**:
 - `pull_request` - PR opened, closed, merged
