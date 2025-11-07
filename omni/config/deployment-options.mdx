@@ -1,0 +1,751 @@
+---
+title: "Deployment Options"
+description: "Deploy Automagik OMNI to production with PM2, Docker, or systemd"
+icon: "rocket"
+---
+
+## Overview
+
+Automagik OMNI supports multiple deployment strategies to fit your infrastructure. Choose the option that best matches your team's expertise and requirements.
+
+<CardGroup cols={3}>
+  <Card title="PM2" icon="circle-play">
+    **Recommended** for most deployments
+    - Easy setup
+    - Process management
+    - Auto-restart
+    - Log management
+  </Card>
+
+  <Card title="Docker" icon="docker">
+    **Best** for containerized environments
+    - Isolated runtime
+    - Easy scaling
+    - Portable
+    - CI/CD friendly
+  </Card>
+
+  <Card title="systemd" icon="gear">
+    **Best** for native Linux services
+    - OS-level integration
+    - Auto-start on boot
+    - Resource limits
+    - System logging
+  </Card>
+</CardGroup>
+
+---
+
+## PM2 Deployment (Recommended)
+
+PM2 is the recommended deployment method - it's battle-tested, easy to use, and handles OMNI's multi-service architecture perfectly.
+
+### Installation
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Or with yarn
+yarn global add pm2
+
+# Verify installation
+pm2 --version
+```
+
+### Quick Start
+
+<Steps>
+  <Step title="Clone and Install">
+    ```bash
+    # Clone repository
+    git clone --recurse-submodules https://github.com/namastexlabs/automagik-omni.git
+    cd automagik-omni
+
+    # Install dependencies
+    make install
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    # Copy environment file
+    cp .env.example .env
+
+    # Edit configuration
+    nano .env
+
+    # Set required variables:
+    # - AUTOMAGIK_OMNI_API_KEY
+    # - EVOLUTION_API_KEY
+    # - AUTOMAGIK_OMNI_DATABASE_URL (for production)
+    ```
+  </Step>
+
+  <Step title="Start Services">
+    ```bash
+    # Start all services with PM2
+    pm2 start ecosystem.config.js
+
+    # Verify services are running
+    pm2 list
+
+    # Check logs
+    pm2 logs
+    ```
+  </Step>
+
+  <Step title="Configure Auto-Start">
+    ```bash
+    # Save PM2 process list
+    pm2 save
+
+    # Generate startup script
+    pm2 startup
+
+    # Follow the command PM2 provides
+    # (usually requires sudo)
+    ```
+  </Step>
+</Steps>
+
+### PM2 Configuration
+
+The `ecosystem.config.js` file manages all OMNI services:
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [
+    // Evolution API (WhatsApp)
+    {
+      name: 'Evolution API (SQLite)',
+      cwd: './resources/evolution-api',
+      script: 'npm',
+      args: 'run start',
+      interpreter: 'none',
+      env: {
+        SERVER_PORT: process.env.EVOLUTION_API_PORT || '18082',
+        // ... other Evolution API settings
+      },
+      instances: 1,
+      autorestart: true,
+      max_memory_restart: '512M'
+    },
+
+    // OMNI API
+    {
+      name: 'Omni Backend - API',
+      cwd: process.cwd(),
+      script: '.venv/bin/uvicorn',
+      args: 'src.api.app:app --host 0.0.0.0 --port 8882',
+      interpreter: 'none',
+      env: {
+        PYTHONPATH: process.cwd(),
+        // ... OMNI environment variables
+      },
+      instances: 1,
+      autorestart: true,
+      max_memory_restart: '1G'
+    },
+
+    // Health Check
+    {
+      name: 'Omni Backend - Health Check',
+      script: '.venv/bin/python',
+      args: 'scripts/wait_for_api.py',
+      autorestart: false
+    },
+
+    // Discord Service (optional)
+    {
+      name: 'Omni Backend - Discord',
+      script: '.venv/bin/python',
+      args: 'src/commands/discord_service_manager.py',
+      autorestart: true,
+      max_memory_restart: '512M'
+    }
+  ]
+};
+```
+
+### PM2 Commands
+
+```bash
+# Process management
+pm2 start ecosystem.config.js    # Start all services
+pm2 restart all                   # Restart all services
+pm2 stop all                      # Stop all services
+pm2 delete all                    # Remove all services
+
+# Individual service control
+pm2 restart omni-api              # Restart specific service
+pm2 logs omni-api                 # View logs for specific service
+
+# Monitoring
+pm2 list                          # List all processes
+pm2 monit                         # Real-time monitoring dashboard
+pm2 status                        # Show process status
+
+# Logs
+pm2 logs                          # Tail all logs
+pm2 logs omni-api --lines 100     # Last 100 lines
+pm2 flush                         # Clear logs
+
+# Information
+pm2 describe omni-api             # Detailed process info
+pm2 show omni-api                 # Show process details
+
+# Resource management
+pm2 restart omni-api --update-env # Restart with updated env vars
+```
+
+### Production Configuration
+
+```bash .env.production
+# Production environment
+ENVIRONMENT=production
+LOG_LEVEL=WARNING
+
+# Database - PostgreSQL
+AUTOMAGIK_OMNI_DATABASE_URL=postgresql://omni_prod:${DB_PASSWORD}@db.prod.example.com:5432/omni_prod
+
+# API settings
+AUTOMAGIK_OMNI_API_HOST=0.0.0.0
+AUTOMAGIK_OMNI_API_PORT=8882
+AUTOMAGIK_OMNI_PROD_SERVER_URL=https://api.example.com
+
+# CORS - specific origins
+AUTOMAGIK_OMNI_CORS_ORIGINS=https://app.example.com
+
+# Security
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+```
+
+### Monitoring with PM2 Plus (Optional)
+
+```bash
+# Link PM2 to PM2 Plus for advanced monitoring
+pm2 link <secret-key> <public-key>
+
+# Features:
+# - Real-time monitoring dashboard
+# - Email/SMS alerts
+# - Error tracking
+# - Performance metrics
+# - Remote access
+```
+
+---
+
+## Docker Deployment
+
+Perfect for containerized environments and CI/CD pipelines.
+
+### Docker Compose (Recommended)
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: omni-postgres
+    environment:
+      POSTGRES_USER: omni_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: automagik_omni
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - omni-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Evolution API (WhatsApp)
+  evolution-api:
+    build:
+      context: ./resources/evolution-api
+      dockerfile: Dockerfile
+    container_name: omni-evolution
+    environment:
+      SERVER_PORT: 18082
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://omni_user:${DB_PASSWORD}@postgres:5432/evolution
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+    ports:
+      - "18082:18082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - omni-network
+    restart: unless-stopped
+
+  # OMNI API
+  omni-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omni-api
+    environment:
+      AUTOMAGIK_OMNI_API_KEY: ${AUTOMAGIK_OMNI_API_KEY}
+      AUTOMAGIK_OMNI_DATABASE_URL: postgresql://omni_user:${DB_PASSWORD}@postgres:5432/automagik_omni
+      EVOLUTION_API_URL: http://evolution-api:18082
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      LOG_LEVEL: INFO
+    ports:
+      - "8882:8882"
+    depends_on:
+      - postgres
+      - evolution-api
+    networks:
+      - omni-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # nginx (reverse proxy + SSL)
+  nginx:
+    image: nginx:alpine
+    container_name: omni-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - omni-api
+    networks:
+      - omni-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  omni-network:
+    driver: bridge
+```
+
+### Dockerfile
+
+```dockerfile
+# Dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY src ./src
+COPY .env .env
+
+# Expose port
+EXPOSE 8882
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8882/health || exit 1
+
+# Run application
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8882"]
+```
+
+### Docker Commands
+
+```bash
+# Build and start
+docker-compose up -d
+
+# View logs
+docker-compose logs -f omni-api
+
+# Restart services
+docker-compose restart omni-api
+
+# Stop services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# Scale OMNI API (load balancing)
+docker-compose up -d --scale omni-api=3
+```
+
+### Docker Swarm (Production Orchestration)
+
+```yaml docker-stack.yml
+version: '3.8'
+
+services:
+  omni-api:
+    image: registry.example.com/omni-api:latest
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    networks:
+      - omni-network
+
+networks:
+  omni-network:
+    driver: overlay
+```
+
+```bash
+# Deploy to swarm
+docker stack deploy -c docker-stack.yml omni
+
+# Check services
+docker stack services omni
+
+# Scale service
+docker service scale omni_omni-api=5
+```
+
+---
+
+## systemd Deployment
+
+Native Linux service integration with systemd.
+
+### Service Files
+
+```ini /etc/systemd/system/omni-api.service
+[Unit]
+Description=Automagik OMNI API Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=omni
+Group=omni
+WorkingDirectory=/opt/automagik-omni
+
+# Environment
+EnvironmentFile=/opt/automagik-omni/.env
+
+# Start command
+ExecStart=/opt/automagik-omni/.venv/bin/uvicorn \
+  src.api.app:app \
+  --host 0.0.0.0 \
+  --port 8882 \
+  --workers 4
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits
+LimitNOFILE=65535
+MemoryMax=2G
+CPUQuota=200%
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/automagik-omni/data /opt/automagik-omni/logs
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=omni-api
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini /etc/systemd/system/evolution-api.service
+[Unit]
+Description=Evolution API (WhatsApp)
+After=network.target postgresql.service
+Before=omni-api.service
+
+[Service]
+Type=simple
+User=omni
+Group=omni
+WorkingDirectory=/opt/automagik-omni/resources/evolution-api
+
+EnvironmentFile=/opt/automagik-omni/.env
+ExecStart=/usr/bin/npm run start
+
+Restart=on-failure
+RestartSec=10s
+
+LimitNOFILE=65535
+MemoryMax=512M
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=evolution-api
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### systemd Commands
+
+```bash
+# Reload systemd after creating/editing services
+sudo systemctl daemon-reload
+
+# Enable services (start on boot)
+sudo systemctl enable omni-api evolution-api
+
+# Start services
+sudo systemctl start evolution-api
+sudo systemctl start omni-api
+
+# Check status
+sudo systemctl status omni-api
+
+# View logs
+sudo journalctl -u omni-api -f
+
+# Restart service
+sudo systemctl restart omni-api
+
+# Stop service
+sudo systemctl stop omni-api
+```
+
+---
+
+## Cloud Platform Deployments
+
+### AWS Elastic Beanstalk
+
+```yaml .ebextensions/01_omni.config
+option_settings:
+  aws:elasticbeanstalk:application:environment:
+    AUTOMAGIK_OMNI_API_KEY: '{{resolve:secretsmanager:omni/api-key}}'
+    AUTOMAGIK_OMNI_DATABASE_URL: '{{resolve:secretsmanager:omni/db-url}}'
+  aws:elasticbeanstalk:environment:proxy:
+    ProxyServer: nginx
+  aws:autoscaling:launchconfiguration:
+    InstanceType: t3.medium
+```
+
+### Google Cloud Run
+
+```yaml cloudbuild.yaml
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/omni-api', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/omni-api']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'omni-api'
+      - '--image=gcr.io/$PROJECT_ID/omni-api'
+      - '--platform=managed'
+      - '--region=us-central1'
+      - '--memory=2Gi'
+      - '--cpu=2'
+```
+
+### Azure Container Instances
+
+```bash
+# Create resource group
+az group create --name omni-rg --location eastus
+
+# Deploy container
+az container create \
+  --resource-group omni-rg \
+  --name omni-api \
+  --image registry.example.com/omni-api:latest \
+  --cpu 2 \
+  --memory 4 \
+  --ports 8882 \
+  --environment-variables \
+    AUTOMAGIK_OMNI_API_KEY="$API_KEY" \
+  --secure-environment-variables \
+    AUTOMAGIK_OMNI_DATABASE_URL="$DB_URL"
+```
+
+---
+
+## Load Balancing and High Availability
+
+### nginx Load Balancer
+
+```nginx /etc/nginx/conf.d/omni-lb.conf
+upstream omni_backend {
+    least_conn;
+
+    server 10.0.1.10:8882 weight=3 max_fails=3 fail_timeout=30s;
+    server 10.0.1.11:8882 weight=3 max_fails=3 fail_timeout=30s;
+    server 10.0.1.12:8882 weight=2 max_fails=3 fail_timeout=30s;
+
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name api.example.com;
+
+    location / {
+        proxy_pass http://omni_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # Health checks
+        proxy_next_upstream error timeout http_500 http_502 http_503;
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    location /health {
+        access_log off;
+        proxy_pass http://omni_backend/health;
+    }
+}
+```
+
+### HAProxy Configuration
+
+```cfg /etc/haproxy/haproxy.cfg
+global
+    maxconn 4096
+
+defaults
+    mode http
+    timeout connect 10s
+    timeout client 30s
+    timeout server 30s
+
+frontend omni_front
+    bind *:80
+    default_backend omni_servers
+
+backend omni_servers
+    balance roundrobin
+    option httpchk GET /health
+
+    server omni1 10.0.1.10:8882 check inter 5s
+    server omni2 10.0.1.11:8882 check inter 5s
+    server omni3 10.0.1.12:8882 check inter 5s backup
+```
+
+---
+
+## Auto-Scaling
+
+### Kubernetes Horizontal Pod Autoscaler
+
+```yaml k8s/omni-hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: omni-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: omni-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+```
+
+---
+
+## Monitoring and Logging
+
+### Prometheus Metrics
+
+```python
+# Add to OMNI for metrics export
+from prometheus_client import Counter, Histogram, start_http_server
+
+# Metrics
+message_counter = Counter('omni_messages_total', 'Total messages processed')
+response_time = Histogram('omni_response_seconds', 'Response time')
+
+# Start metrics server
+start_http_server(9090)
+```
+
+### Grafana Dashboard
+
+Import OMNI dashboard template for visualization:
+- Message throughput
+- Response times
+- Error rates
+- Instance health
+- Database performance
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/omni/config/environment-variables">
+    Configure your deployment
+  </Card>
+
+  <Card title="Security Best Practices" icon="shield" href="/omni/config/security-best-practices">
+    Secure your production deployment
+  </Card>
+
+  <Card title="Database Setup" icon="database" href="/omni/config/database-setup">
+    Configure PostgreSQL for production
+  </Card>
+
+  <Card title="Customer Support Workflow" icon="headset" href="/omni/workflows/customer-support">
+    Build your first AI support bot
+  </Card>
+</CardGroup>

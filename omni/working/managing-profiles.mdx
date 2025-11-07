@@ -1,0 +1,767 @@
+---
+title: "Managing Profiles"
+description: "Fetch user profiles and update bot profile pictures and settings"
+icon: "user"
+---
+
+## Overview
+
+Profile management in Automagik OMNI allows you to fetch user information and update your bot's profile settings across platforms. This guide covers fetching user profiles, updating profile pictures, and managing bot metadata.
+
+---
+
+## Fetching User Profiles
+
+### Fetch Profile by Phone Number (WhatsApp)
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/profile/fetch \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone_number": "+1234567890"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/profile/fetch",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone_number": "+1234567890"
+        }
+    )
+
+    profile = response.json()
+    print(f"Name: {profile['name']}")
+    print(f"About: {profile.get('about', 'N/A')}")
+    print(f"Profile Picture: {profile.get('profile_pic_url', 'None')}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/profile/fetch',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone_number: '+1234567890'
+        })
+      }
+    );
+
+    const profile = await response.json();
+    console.log(`Name: ${profile.name}`);
+    console.log(`About: ${profile.about || 'N/A'}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "status": "success",
+  "phone_number": "+1234567890",
+  "name": "John Doe",
+  "about": "Hey there! I am using WhatsApp.",
+  "profile_pic_url": "https://example.com/profile-pictures/abc123.jpg",
+  "is_business": false,
+  "is_enterprise": false
+}
+```
+
+---
+
+### Fetch Profile by User ID (Discord)
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/discord-bot/profile/fetch \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "user_id": "123456789012345678"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/discord-bot/profile/fetch",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "user_id": "123456789012345678"
+        }
+    )
+
+    profile = response.json()
+    print(f"Username: {profile['username']}")
+    print(f"Discriminator: {profile['discriminator']}")
+    print(f"Avatar URL: {profile['avatar_url']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/discord-bot/profile/fetch',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          user_id: '123456789012345678'
+        })
+      }
+    );
+
+    const profile = await response.json();
+    console.log(`${profile.username}#${profile.discriminator}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Discord Profile Response
+
+```json
+{
+  "status": "success",
+  "user_id": "123456789012345678",
+  "username": "johndoe",
+  "discriminator": "1234",
+  "avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/abc123.png",
+  "is_bot": false,
+  "created_at": "2020-01-15T10:30:00Z"
+}
+```
+
+---
+
+## Batch Profile Fetching
+
+### Fetch Multiple User Profiles
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    OMNI_URL = "http://localhost:8882"
+    API_KEY = "your-omni-api-key"
+    INSTANCE = "support-bot"
+
+    phone_numbers = ["+1234567890", "+9876543210", "+5555555555"]
+
+    profiles = []
+    for phone in phone_numbers:
+        response = requests.post(
+            f"{OMNI_URL}/api/v1/instances/{INSTANCE}/profile/fetch",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": API_KEY
+            },
+            json={"phone_number": phone}
+        )
+
+        if response.status_code == 200:
+            profile = response.json()
+            profiles.append({
+                "phone": phone,
+                "name": profile.get("name", "Unknown"),
+                "about": profile.get("about", ""),
+                "has_picture": bool(profile.get("profile_pic_url"))
+            })
+            print(f"✅ Fetched profile for {phone}")
+        else:
+            print(f"❌ Failed to fetch profile for {phone}")
+
+    # Display results
+    for p in profiles:
+        print(f"\n{p['name']} ({p['phone']})")
+        print(f"  About: {p['about']}")
+        print(f"  Has Picture: {'Yes' if p['has_picture'] else 'No'}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const OMNI_URL = 'http://localhost:8882';
+    const API_KEY = 'your-omni-api-key';
+    const INSTANCE = 'support-bot';
+
+    const phoneNumbers = ['+1234567890', '+9876543210', '+5555555555'];
+
+    const profiles = [];
+
+    for (const phone of phoneNumbers) {
+      try {
+        const response = await fetch(
+          `${OMNI_URL}/api/v1/instances/${INSTANCE}/profile/fetch`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': API_KEY
+            },
+            body: JSON.stringify({ phone_number: phone })
+          }
+        );
+
+        if (response.ok) {
+          const profile = await response.json();
+          profiles.push({
+            phone,
+            name: profile.name || 'Unknown',
+            about: profile.about || '',
+            hasPicture: !!profile.profile_pic_url
+          });
+          console.log(`✅ Fetched profile for ${phone}`);
+        } else {
+          console.log(`❌ Failed to fetch profile for ${phone}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching ${phone}:`, error);
+      }
+    }
+
+    // Display results
+    profiles.forEach(p => {
+      console.log(`\n${p.name} (${p.phone})`);
+      console.log(`  About: ${p.about}`);
+      console.log(`  Has Picture: ${p.hasPicture ? 'Yes' : 'No'}`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Updating Bot Profile Picture
+
+### Update WhatsApp Profile Picture
+
+<Steps>
+  <Step title="Prepare Image URL">
+    Ensure your profile picture is:
+    - Publicly accessible via HTTPS
+    - Square aspect ratio (1:1)
+    - Recommended: 640x640 pixels
+    - Format: JPEG or PNG
+    - Size: Under 5MB
+  </Step>
+
+  <Step title="Update Profile Picture">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST http://localhost:8882/api/v1/instances/support-bot/profile/update-picture \
+          -H "Content-Type: application/json" \
+          -H "x-api-key: your-omni-api-key" \
+          -d '{
+            "picture_url": "https://example.com/images/bot-avatar.jpg"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        response = requests.post(
+            "http://localhost:8882/api/v1/instances/support-bot/profile/update-picture",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": "your-omni-api-key"
+            },
+            json={
+                "picture_url": "https://example.com/images/bot-avatar.jpg"
+            }
+        )
+
+        result = response.json()
+        if result["status"] == "success":
+            print("✅ Profile picture updated successfully!")
+        else:
+            print(f"❌ Update failed: {result.get('message', 'Unknown error')}")
+        ```
+      </Tab>
+
+      <Tab title="JavaScript">
+        ```javascript
+        const response = await fetch(
+          'http://localhost:8882/api/v1/instances/support-bot/profile/update-picture',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': 'your-omni-api-key'
+            },
+            body: JSON.stringify({
+              picture_url: 'https://example.com/images/bot-avatar.jpg'
+            })
+          }
+        );
+
+        const result = await response.json();
+        if (result.status === 'success') {
+          console.log('✅ Profile picture updated!');
+        } else {
+          console.error('❌ Update failed:', result.message);
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Verify Update">
+    ```bash
+    # Check if picture was updated
+    curl http://localhost:8882/api/v1/instances/support-bot/profile/fetch \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Step>
+</Steps>
+
+### Response Format
+
+```json
+{
+  "status": "success",
+  "message": "Profile picture updated successfully",
+  "instance_name": "support-bot",
+  "profile_pic_url": "https://example.com/images/bot-avatar.jpg",
+  "updated_at": "2025-11-04T14:30:00Z"
+}
+```
+
+---
+
+### Update Discord Bot Avatar
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/discord-bot/profile/update-picture \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "picture_url": "https://example.com/images/discord-avatar.png"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/discord-bot/profile/update-picture",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "picture_url": "https://example.com/images/discord-avatar.png"
+        }
+    )
+
+    print(response.json())
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    await fetch(
+      'http://localhost:8882/api/v1/instances/discord-bot/profile/update-picture',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          picture_url: 'https://example.com/images/discord-avatar.png'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Profile Metadata Management
+
+### Get Current Bot Profile
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get bot's own profile
+    curl http://localhost:8882/api/v1/instances/support-bot/profile \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "http://localhost:8882/api/v1/instances/support-bot/profile",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    bot_profile = response.json()
+    print(f"Bot Name: {bot_profile['name']}")
+    print(f"Bot Number: {bot_profile['phone']}")
+    print(f"Status: {bot_profile['about']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/profile',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const botProfile = await response.json();
+    console.log(`Bot: ${botProfile.name}`);
+    console.log(`Number: ${botProfile.phone}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Bot Profile Response
+
+```json
+{
+  "instance_name": "support-bot",
+  "channel_type": "whatsapp",
+  "phone": "+1234567890",
+  "name": "Support Bot",
+  "about": "Here to help 24/7",
+  "profile_pic_url": "https://example.com/images/bot-avatar.jpg",
+  "is_business": true,
+  "business_hours": "24/7",
+  "updated_at": "2025-11-04T14:30:00Z"
+}
+```
+
+---
+
+## Advanced Profile Operations
+
+### Profile Sync Across Multiple Bots
+
+```python
+import requests
+
+OMNI_URL = "http://localhost:8882"
+API_KEY = "your-omni-api-key"
+
+# Define instances to sync
+instances = ["support-bot-1", "support-bot-2", "support-bot-3"]
+
+# Common profile picture
+profile_picture_url = "https://example.com/images/company-logo.jpg"
+
+for instance in instances:
+    print(f"Updating {instance}...")
+
+    response = requests.post(
+        f"{OMNI_URL}/api/v1/instances/{instance}/profile/update-picture",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY
+        },
+        json={
+            "picture_url": profile_picture_url
+        }
+    )
+
+    if response.status_code == 200:
+        print(f"✅ {instance} updated successfully")
+    else:
+        print(f"❌ Failed to update {instance}: {response.json()}")
+
+print("\n🎉 Profile sync completed!")
+```
+
+### Profile Information Caching
+
+```python
+import requests
+import time
+from datetime import datetime, timedelta
+
+class ProfileCache:
+    def __init__(self, omni_url, api_key, instance_name, ttl_minutes=60):
+        self.omni_url = omni_url
+        self.api_key = api_key
+        self.instance_name = instance_name
+        self.ttl = timedelta(minutes=ttl_minutes)
+        self.cache = {}
+
+    def get_profile(self, phone_number):
+        """Get profile with caching"""
+        # Check cache
+        if phone_number in self.cache:
+            cached_data, cached_time = self.cache[phone_number]
+            if datetime.now() - cached_time < self.ttl:
+                print(f"📦 Using cached profile for {phone_number}")
+                return cached_data
+
+        # Fetch fresh data
+        print(f"🔄 Fetching profile for {phone_number}")
+        response = requests.post(
+            f"{self.omni_url}/api/v1/instances/{self.instance_name}/profile/fetch",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": self.api_key
+            },
+            json={"phone_number": phone_number}
+        )
+
+        if response.status_code == 200:
+            profile = response.json()
+            # Cache the result
+            self.cache[phone_number] = (profile, datetime.now())
+            return profile
+
+        return None
+
+    def invalidate(self, phone_number=None):
+        """Clear cache for specific number or all"""
+        if phone_number:
+            self.cache.pop(phone_number, None)
+        else:
+            self.cache.clear()
+
+# Usage
+cache = ProfileCache(
+    "http://localhost:8882",
+    "your-omni-api-key",
+    "support-bot",
+    ttl_minutes=30
+)
+
+# First call: fetches from API
+profile1 = cache.get_profile("+1234567890")
+
+# Second call within 30 minutes: uses cache
+profile2 = cache.get_profile("+1234567890")
+
+# Force refresh
+cache.invalidate("+1234567890")
+profile3 = cache.get_profile("+1234567890")
+```
+
+### Contact Enrichment
+
+```javascript
+class ContactEnrichment {
+  constructor(omniUrl, apiKey, instanceName) {
+    this.omniUrl = omniUrl;
+    this.apiKey = apiKey;
+    this.instanceName = instanceName;
+  }
+
+  async enrichContact(phone, existingData = {}) {
+    try {
+      // Fetch profile from OMNI
+      const response = await fetch(
+        `${this.omniUrl}/api/v1/instances/${this.instanceName}/profile/fetch`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.apiKey
+          },
+          body: JSON.stringify({ phone_number: phone })
+        }
+      );
+
+      if (!response.ok) {
+        return existingData;
+      }
+
+      const profile = await response.json();
+
+      // Merge with existing data
+      return {
+        ...existingData,
+        phone,
+        name: profile.name || existingData.name || 'Unknown',
+        about: profile.about || existingData.about || '',
+        profilePicUrl: profile.profile_pic_url || existingData.profilePicUrl,
+        isBusiness: profile.is_business || false,
+        lastEnriched: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`Failed to enrich contact ${phone}:`, error);
+      return existingData;
+    }
+  }
+
+  async enrichContactList(contacts) {
+    const enriched = [];
+
+    for (const contact of contacts) {
+      const enrichedContact = await this.enrichContact(
+        contact.phone,
+        contact
+      );
+      enriched.push(enrichedContact);
+
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return enriched;
+  }
+}
+
+// Usage
+const enricher = new ContactEnrichment(
+  'http://localhost:8882',
+  'your-omni-api-key',
+  'support-bot'
+);
+
+const contacts = [
+  { phone: '+1234567890', email: 'alice@example.com' },
+  { phone: '+9876543210', email: 'bob@example.com' }
+];
+
+const enrichedContacts = await enricher.enrichContactList(contacts);
+console.log(enrichedContacts);
+```
+
+---
+
+## Privacy Considerations
+
+<Warning>
+**Privacy Notice**: Always respect user privacy when fetching and storing profile information. Comply with GDPR, CCPA, and other privacy regulations.
+</Warning>
+
+### Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Get Consent" icon="hand">
+    Always inform users when fetching their profile information and get explicit consent.
+  </Card>
+
+  <Card title="Secure Storage" icon="lock">
+    Store profile data securely with encryption. Never expose sensitive information.
+  </Card>
+
+  <Card title="Data Minimization" icon="filter">
+    Only fetch and store profile data you actually need for your application.
+  </Card>
+
+  <Card title="Right to Delete" icon="trash">
+    Implement mechanisms for users to request deletion of their profile data.
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Profile fetch returns empty data">
+    **Problem**: Profile response has no name or picture
+
+    **Solutions**:
+    1. Verify phone number format is correct (+country code)
+    2. Check if user has set a profile name/picture
+    3. Ensure your bot has permission to view profile
+    4. Some users restrict profile visibility to contacts only
+    5. WhatsApp Business accounts may have different privacy settings
+  </Accordion>
+
+  <Accordion title="Profile picture update fails">
+    **Problem**: Picture update returns error or doesn't apply
+
+    **Solutions**:
+    1. Verify image URL is publicly accessible:
+       ```bash
+       curl -I https://example.com/images/avatar.jpg
+       ```
+    2. Check image format (JPEG/PNG only)
+    3. Verify image size (under 5MB)
+    4. Ensure image is square (1:1 aspect ratio)
+    5. Wait a few minutes - updates may take time to propagate
+  </Accordion>
+
+  <Accordion title="'Permission denied' when fetching profiles">
+    **Problem**: 403 error when fetching user profiles
+
+    **Solutions**:
+    1. WhatsApp: User must have sent at least one message to your bot
+    2. Discord: Bot must share a server with the user
+    3. Check bot permissions in platform settings
+    4. Verify instance is connected and authenticated
+  </Accordion>
+
+  <Accordion title="Cached profile data is stale">
+    **Problem**: Old profile information still showing
+
+    **Solutions**:
+    1. Implement cache invalidation after updates
+    2. Use reasonable TTL (30-60 minutes recommended)
+    3. Force refresh after profile update notifications
+    4. Clear cache when instance restarts
+  </Accordion>
+
+  <Accordion title="Profile picture not displaying">
+    **Problem**: Picture URL returns 404 or access denied
+
+    **Solutions**:
+    1. Profile picture URLs may expire after some time
+    2. Re-fetch profile to get fresh URL
+    3. Download and host pictures on your own CDN
+    4. Handle missing pictures gracefully with fallback avatars
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Messages" icon="paper-plane" href="/omni/working/sending-messages">
+    Send messages to users whose profiles you've fetched
+  </Card>
+
+  <Card title="View Traces" icon="chart-line" href="/omni/working/viewing-traces">
+    Track profile fetch operations and debug issues
+  </Card>
+
+  <Card title="Manage Instances" icon="server" href="/omni/working/managing-instances">
+    Configure and monitor your bot instances
+  </Card>
+
+  <Card title="Analytics" icon="chart-bar" href="/omni/working/analytics-insights">
+    Analyze user engagement and profile data
+  </Card>
+</CardGroup>

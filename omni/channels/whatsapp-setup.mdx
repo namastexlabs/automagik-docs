@@ -1,0 +1,943 @@
+---
+title: "WhatsApp Setup"
+description: "Complete guide to integrating WhatsApp with Automagik OMNI via Evolution API"
+icon: "whatsapp"
+---
+
+## Overview
+
+WhatsApp is the most popular messaging platform globally with over 2 billion active users. OMNI integrates WhatsApp through **Evolution API**, a powerful open-source WhatsApp Web implementation that runs locally with your OMNI instance.
+
+<Info>
+**No Docker Required!** Evolution API is included as a submodule and runs with SQLite out of the box.
+</Info>
+
+---
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+<Tabs>
+  <Tab title="Local Development">
+    **Required**:
+    - Node.js 20+ (for Evolution API)
+    - Python 3.12+ (for OMNI)
+    - A phone number with WhatsApp
+
+    **Optional**:
+    - PM2 (for production deployment)
+    - PostgreSQL (for production, SQLite works for dev)
+  </Tab>
+
+  <Tab title="Production">
+    **Required**:
+    - Linux server (Ubuntu 20.04+ recommended)
+    - Node.js 20+
+    - Python 3.12+
+    - PostgreSQL (recommended)
+    - PM2 or systemd
+    - Domain with SSL certificate (for webhooks)
+
+    **Resources**:
+    - 2+ GB RAM
+    - 2+ CPU cores
+    - 10+ GB storage
+  </Tab>
+</Tabs>
+
+---
+
+## Installation
+
+### Step 1: Clone OMNI with Evolution API
+
+```bash
+# Clone with submodules (includes Evolution API)
+git clone --recurse-submodules https://github.com/namastexlabs/automagik-omni.git
+cd automagik-omni
+```
+
+<Warning>
+Don't forget the `--recurse-submodules` flag! This downloads Evolution API automatically.
+</Warning>
+
+### Step 2: Install Dependencies
+
+<Steps>
+  <Step title="Install All Dependencies">
+    ```bash
+    # Install OMNI + Evolution API + Discord (optional)
+    make install
+    ```
+
+    This installs:
+    - Python dependencies (via `uv`)
+    - Evolution API (via `pnpm` or `npm`)
+    - Discord support (optional)
+  </Step>
+
+  <Step title="Or Install Selectively">
+    ```bash
+    # Install only what you need
+    make install-omni       # OMNI API only
+    make install-evolution  # Evolution API only
+    ```
+  </Step>
+</Steps>
+
+### Step 3: Configure Environment
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit with your preferred editor
+nano .env
+```
+
+**Essential Configuration**:
+
+```env
+# OMNI API Settings
+AUTOMAGIK_OMNI_API_HOST=0.0.0.0
+AUTOMAGIK_OMNI_API_PORT=8882
+AUTOMAGIK_OMNI_API_KEY=your-super-secret-omni-key-here
+
+# Database (SQLite for dev, PostgreSQL for production)
+AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH=./data/automagik-omni.db
+
+# Evolution API Settings
+EVOLUTION_API_PATH=resources/evolution-api
+EVOLUTION_API_URL=http://localhost:18082
+EVOLUTION_API_PORT=18082
+EVOLUTION_API_KEY=your-super-secret-evolution-key-here
+EVOLUTION_LOG_LEVEL=ERROR,WARN
+
+# Your AI Agent
+AGENT_API_URL=http://localhost:8886
+AGENT_API_KEY=your-agent-api-key-here
+```
+
+<Warning>
+**Security**: Generate strong, unique API keys! Never use the example values in production.
+
+```bash
+# Generate secure random keys
+openssl rand -hex 32  # For OMNI API key
+openssl rand -hex 32  # For Evolution API key
+```
+</Warning>
+
+---
+
+## Starting the Services
+
+### Option 1: Development Mode (Recommended for Testing)
+
+<Tabs>
+  <Tab title="Start Everything">
+    ```bash
+    # Start OMNI + Evolution API together
+    make dev-all
+    ```
+
+    **Services will run on**:
+    - OMNI API: `http://localhost:8882`
+    - Evolution API: `http://localhost:18082`
+  </Tab>
+
+  <Tab title="Start Separately">
+    ```bash
+    # Terminal 1: Start OMNI
+    make dev
+
+    # Terminal 2: Start Evolution API
+    make evo
+    ```
+
+    Useful for debugging each service independently.
+  </Tab>
+</Tabs>
+
+### Option 2: Production with PM2
+
+```bash
+# Start all services with PM2
+pm2 start ecosystem.config.js
+
+# Monitor services
+pm2 monit
+
+# View logs
+pm2 logs omni-api
+pm2 logs evolution-api
+
+# Check status
+pm2 status
+```
+
+**PM2 Benefits**:
+- Auto-restart on failure
+- Log management
+- Cluster mode support
+- Process monitoring
+
+### Option 3: Docker (Alternative)
+
+```bash
+# If you prefer Docker
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f omni-api
+
+# Stop services
+docker-compose down
+```
+
+---
+
+## Creating Your First WhatsApp Instance
+
+### Step 1: Create Instance via API
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-whatsapp-bot",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "your-evolution-api-key-here",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "your-agent-api-key-here",
+    "default_agent": "template-agent"
+  }'
+```
+
+<AccordionGroup>
+  <Accordion title="Request Parameters Explained">
+    | Parameter | Required | Description |
+    |-----------|----------|-------------|
+    | `name` | Yes | Unique identifier for this instance |
+    | `channel_type` | Yes | Must be `"whatsapp"` |
+    | `evolution_url` | Yes | URL to Evolution API server |
+    | `evolution_key` | Yes | Evolution API authentication key |
+    | `agent_api_url` | Yes | Your AI agent endpoint |
+    | `agent_api_key` | No | API key for your agent (if required) |
+    | `default_agent` | No | Default agent name/identifier |
+  </Accordion>
+
+  <Accordion title="Response Example">
+    ```json
+    {
+      "id": "cm3abc123...",
+      "name": "my-whatsapp-bot",
+      "channel_type": "whatsapp",
+      "status": "created",
+      "created_at": "2025-01-04T12:00:00Z",
+      "evolution_url": "http://localhost:18082"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Step 2: Connect WhatsApp via QR Code
+
+<Steps>
+  <Step title="Get QR Code">
+    ```bash
+    curl http://localhost:8882/api/v1/instances/my-whatsapp-bot/qr \
+      -H "x-api-key: your-omni-api-key-here"
+    ```
+
+    **Response**:
+    ```json
+    {
+      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+      "status": "disconnected"
+    }
+    ```
+  </Step>
+
+  <Step title="Display QR Code">
+    **Option A: Browser**
+    - Copy the `data:image/png;base64,...` URL
+    - Paste in browser address bar
+    - QR code will display
+
+    **Option B: Terminal (with qrencode)**
+    ```bash
+    # Install qrencode
+    sudo apt install qrencode
+
+    # Generate QR in terminal
+    curl -s http://localhost:8882/api/v1/instances/my-whatsapp-bot/qr \
+      -H "x-api-key: your-key" \
+      | jq -r '.qr_code' \
+      | sed 's/data:image\/png;base64,//' \
+      | base64 -d \
+      | qrencode -t ANSIUTF8
+    ```
+  </Step>
+
+  <Step title="Scan with WhatsApp">
+    1. Open WhatsApp on your phone
+    2. Go to **Settings** → **Linked Devices**
+    3. Tap **Link a Device**
+    4. Scan the QR code displayed
+
+    **Connection takes 5-10 seconds**
+  </Step>
+
+  <Step title="Verify Connection">
+    ```bash
+    curl http://localhost:8882/api/v1/instances/my-whatsapp-bot/status \
+      -H "x-api-key: your-omni-api-key-here"
+    ```
+
+    **When connected**:
+    ```json
+    {
+      "status": "open",
+      "instance": "my-whatsapp-bot",
+      "connected": true
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Sending Your First Message
+
+### Send Text Message
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-text \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message": "🎉 Hello from Automagik OMNI!"
+  }'
+```
+
+<Info>
+**Phone Number Format**: Use international format with country code (e.g., `+1234567890` for US numbers).
+</Info>
+
+### Send Media (Image, Video, Document)
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-media \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "media_url": "https://example.com/image.jpg",
+    "media_type": "image",
+    "caption": "Check out this image!"
+  }'
+```
+
+**Supported Media Types**:
+- `image`: JPEG, PNG, GIF
+- `video`: MP4, MOV
+- `document`: PDF, DOCX, XLSX, etc.
+
+### Send Audio/Voice Note
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-audio \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "audio_url": "https://example.com/audio.mp3"
+  }'
+```
+
+### Send Reaction
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-reaction \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message_id": "MESSAGE_ID_TO_REACT_TO",
+    "emoji": "👍"
+  }'
+```
+
+---
+
+## Receiving Messages (Webhooks)
+
+### How Message Flow Works
+
+```mermaid
+sequenceDiagram
+    User->>WhatsApp: Sends message
+    WhatsApp->>Evolution API: Delivers via WebSocket
+    Evolution API->>OMNI: Forwards via webhook
+    OMNI->>AI Agent: Routes message
+    AI Agent->>OMNI: Returns response
+    OMNI->>Evolution API: Send reply
+    Evolution API->>WhatsApp: Delivers to user
+    WhatsApp->>User: Shows response
+```
+
+### Automatic Webhook Configuration
+
+OMNI automatically configures Evolution API webhooks when you create an instance. No manual setup needed!
+
+**What happens automatically**:
+1. Instance creation registers webhook URL
+2. Evolution API forwards all message events to OMNI
+3. OMNI routes to your configured agent
+4. Agent response sent back through Evolution API
+
+### Testing Message Reception
+
+```bash
+# Send a message to your WhatsApp bot from another phone
+# Then check the traces to see it was received
+
+curl http://localhost:8882/api/v1/traces?instance_name=my-whatsapp-bot&limit=10 \
+  -H "x-api-key: your-omni-api-key-here"
+```
+
+**Response shows full message lifecycle**:
+```json
+{
+  "traces": [
+    {
+      "trace_id": "tr_abc123...",
+      "instance_name": "my-whatsapp-bot",
+      "direction": "inbound",
+      "from_phone": "+1234567890",
+      "message_type": "text",
+      "message_content": "Hello bot!",
+      "agent_response": "Hi there! How can I help?",
+      "status": "completed",
+      "processing_time_ms": 450
+    }
+  ]
+}
+```
+
+---
+
+## WhatsApp-Specific Features
+
+### Presence Updates
+
+Show "typing..." indicator:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/presence \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "state": "composing"
+  }'
+```
+
+**Presence States**:
+- `composing`: Typing indicator
+- `available`: Online status
+- `unavailable`: Offline status
+
+### Profile Management
+
+Update bot profile picture:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/profiles/update-picture \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instance_name": "my-whatsapp-bot",
+    "picture_url": "https://example.com/profile.jpg"
+  }'
+```
+
+Fetch user profile:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/profiles/fetch \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instance_name": "my-whatsapp-bot",
+    "phone_number": "+1234567890"
+  }'
+```
+
+### Stickers
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-sticker \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "sticker_url": "https://example.com/sticker.webp"
+  }'
+```
+
+<Info>
+Stickers must be in WebP format, 512x512 pixels max, and under 100KB.
+</Info>
+
+### Contact Cards
+
+Send vCard contact information:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-contact \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "contacts": [
+      {
+        "full_name": "John Doe",
+        "phone_number": "+1987654321",
+        "organization": "Acme Corp"
+      }
+    ]
+  }'
+```
+
+### Quoted Replies
+
+Reply to a specific message:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp-bot/send-text \
+  -H "x-api-key: your-omni-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message": "Thanks for your question!",
+    "quoted_message_id": "MESSAGE_ID_TO_QUOTE"
+  }'
+```
+
+---
+
+## WhatsApp Business Features (Q4 2025)
+
+<Warning>
+**Coming Soon**: WhatsApp Business API integration with Flows is planned for Q4 2025.
+</Warning>
+
+### Planned Features
+
+<Accordion title="WhatsApp Flows">
+  **Interactive structured messages**:
+  - Forms and data collection
+  - Product catalogs
+  - Order management
+  - Payment integration
+  - Appointment booking
+
+  **Use Cases**:
+  - E-commerce order flows
+  - Customer surveys
+  - Lead qualification
+  - Service bookings
+</Accordion>
+
+<Accordion title="Business Profiles">
+  - Business name and description
+  - Business hours
+  - Website and email
+  - Address and location
+  - Category and tags
+</Accordion>
+
+<Accordion title="Message Templates">
+  - Pre-approved message templates
+  - Outbound messaging outside 24h window
+  - Rich media templates
+  - Call-to-action buttons
+  - Quick replies
+</Accordion>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="QR Code Won't Generate">
+    **Symptoms**: Empty QR code or timeout error
+
+    **Solutions**:
+    1. Check Evolution API is running:
+       ```bash
+       curl http://localhost:18082/health
+       ```
+
+    2. Verify Evolution API key matches:
+       ```bash
+       grep EVOLUTION_API_KEY .env
+       ```
+
+    3. Check Evolution API logs:
+       ```bash
+       pm2 logs evolution-api
+       # or
+       make evo-logs
+       ```
+
+    4. Restart Evolution API:
+       ```bash
+       make evo-restart
+       ```
+  </Accordion>
+
+  <Accordion title="Connection Lost After Scanning">
+    **Symptoms**: QR scanned but instance shows "disconnected"
+
+    **Solutions**:
+    1. WhatsApp might have logged out. Get new QR:
+       ```bash
+       curl .../instances/my-bot/qr
+       ```
+
+    2. Check phone has internet connection
+
+    3. Verify phone battery saver isn't killing WhatsApp
+
+    4. Restart instance:
+       ```bash
+       curl -X POST .../instances/my-bot/restart
+       ```
+  </Accordion>
+
+  <Accordion title="Messages Not Sending">
+    **Symptoms**: API returns success but message doesn't arrive
+
+    **Solutions**:
+    1. Verify phone number format (include country code):
+       ```bash
+       # Correct
+       "+1234567890"
+
+       # Wrong
+       "1234567890"
+       "(123) 456-7890"
+       ```
+
+    2. Check instance connection status:
+       ```bash
+       curl .../instances/my-bot/status
+       ```
+
+    3. Review traces for errors:
+       ```bash
+       curl .../traces?instance_name=my-bot&limit=5
+       ```
+
+    4. Check Evolution API logs for errors
+  </Accordion>
+
+  <Accordion title="Evolution API Won't Start">
+    **Symptoms**: Port 18082 not accessible
+
+    **Solutions**:
+    1. Check if port is already in use:
+       ```bash
+       lsof -i :18082
+       ```
+
+    2. Verify Node.js version:
+       ```bash
+       node --version  # Should be 20+
+       ```
+
+    3. Reinstall Evolution API:
+       ```bash
+       make install-evolution
+       ```
+
+    4. Check for SQLite issues:
+       ```bash
+       ls -la resources/evolution-api/instances/
+       ```
+  </Accordion>
+
+  <Accordion title="High Memory Usage">
+    **Symptoms**: Evolution API consuming lots of RAM
+
+    **Solutions**:
+    1. Multiple instances share resources. Consider:
+       - Limit concurrent instances
+       - Use separate servers for scaling
+       - Restart periodically with PM2
+
+    2. Clear old session data:
+       ```bash
+       # Careful! This will disconnect all instances
+       rm -rf resources/evolution-api/instances/*
+       ```
+
+    3. Monitor with PM2:
+       ```bash
+       pm2 monit
+       ```
+  </Accordion>
+
+  <Accordion title="WhatsApp Web Session Expired">
+    **Symptoms**: "Session not found" or "Logged out" errors
+
+    **Solutions**:
+    1. Log out and reconnect:
+       ```bash
+       curl -X POST .../instances/my-bot/logout
+       curl .../instances/my-bot/qr
+       # Scan new QR code
+       ```
+
+    2. Check phone didn't manually disconnect
+
+    3. Verify Evolution API is running:
+       ```bash
+       pm2 status evolution-api
+       ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Production Deployment
+
+### Best Practices
+
+<Tabs>
+  <Tab title="Infrastructure">
+    **Server Requirements**:
+    - 2+ GB RAM per 50 instances
+    - 2+ CPU cores
+    - SSD storage
+    - Stable internet connection
+
+    **Recommended Setup**:
+    ```bash
+    # Ubuntu 20.04+ server
+    # Install dependencies
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+    sudo apt install -y nodejs postgresql nginx certbot
+
+    # Install PM2 globally
+    sudo npm install -g pm2
+    pm2 startup  # Enable auto-start
+
+    # Clone and setup OMNI
+    git clone --recurse-submodules https://github.com/namastexlabs/automagik-omni.git
+    cd automagik-omni
+    make install
+
+    # Configure production .env
+    cp .env.example .env
+    nano .env  # Set production values
+
+    # Start with PM2
+    pm2 start ecosystem.config.js
+    pm2 save
+    ```
+  </Tab>
+
+  <Tab title="Database">
+    **PostgreSQL (Recommended for Production)**:
+
+    ```bash
+    # Create database
+    sudo -u postgres createdb automagik_omni
+
+    # Create user
+    sudo -u postgres psql -c "CREATE USER omni WITH PASSWORD 'secure-password';"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE automagik_omni TO omni;"
+    ```
+
+    **In .env**:
+    ```env
+    # Remove SQLite setting
+    # AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH=...
+
+    # Add PostgreSQL
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://omni:secure-password@localhost:5432/automagik_omni
+    ```
+  </Tab>
+
+  <Tab title="SSL & Domain">
+    **Setup HTTPS (Required for Webhooks)**:
+
+    ```bash
+    # Install Certbot
+    sudo apt install certbot python3-certbot-nginx
+
+    # Get SSL certificate
+    sudo certbot --nginx -d your-domain.com
+
+    # Configure Nginx reverse proxy
+    sudo nano /etc/nginx/sites-available/omni
+
+    # Nginx config:
+    server {
+        listen 80;
+        server_name your-domain.com;
+        return 301 https://$server_name$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        server_name your-domain.com;
+
+        ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+        location / {
+            proxy_pass http://localhost:8882;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+
+    # Enable and restart
+    sudo ln -s /etc/nginx/sites-available/omni /etc/nginx/sites-enabled/
+    sudo nginx -t
+    sudo systemctl restart nginx
+    ```
+  </Tab>
+
+  <Tab title="Monitoring">
+    **Setup Monitoring**:
+
+    ```bash
+    # PM2 monitoring
+    pm2 install pm2-logrotate  # Rotate logs
+    pm2 set pm2-logrotate:max_size 10M
+
+    # Monitor in real-time
+    pm2 monit
+
+    # Setup alerts (optional)
+    pm2 install pm2-slack
+    pm2 set pm2-slack:slack_url https://hooks.slack.com/...
+    ```
+
+    **Health Checks**:
+    ```bash
+    # Add to cron for monitoring
+    */5 * * * * curl -f http://localhost:8882/health || systemctl restart omni
+    ```
+  </Tab>
+</Tabs>
+
+### Scaling Considerations
+
+**Single Server Limits**:
+- ~100 WhatsApp instances
+- ~1000 messages/minute
+- Limited by Evolution API
+
+**Scaling Beyond**:
+```mermaid
+graph TB
+    LB[Load Balancer] --> OMNI1[OMNI Server 1]
+    LB --> OMNI2[OMNI Server 2]
+    LB --> OMNI3[OMNI Server 3]
+    OMNI1 --> EVO1[Evolution API 1]
+    OMNI2 --> EVO2[Evolution API 2]
+    OMNI3 --> EVO3[Evolution API 3]
+    OMNI1 --> DB[(PostgreSQL)]
+    OMNI2 --> DB
+    OMNI3 --> DB
+```
+
+---
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Use Strong API Keys">
+    ```bash
+    # Generate cryptographically secure keys
+    openssl rand -hex 32
+    ```
+
+    Never use default or simple keys in production!
+  </Step>
+
+  <Step title="Restrict API Access">
+    ```env
+    # In .env - bind to localhost if behind reverse proxy
+    AUTOMAGIK_OMNI_API_HOST=127.0.0.1
+    ```
+
+    Use firewall rules:
+    ```bash
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    sudo ufw deny 8882/tcp  # Block direct access
+    sudo ufw enable
+    ```
+  </Step>
+
+  <Step title="Enable HTTPS Only">
+    All webhook URLs must use HTTPS in production for security.
+  </Step>
+
+  <Step title="Implement Access Control">
+    Use whitelist/blacklist (coming Q4 2025) or implement at agent level.
+  </Step>
+
+  <Step title="Regular Updates">
+    ```bash
+    # Update OMNI
+    git pull
+    make install
+
+    # Update Evolution API
+    cd resources/evolution-api
+    git pull
+    npm install
+
+    # Restart services
+    pm2 restart all
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Discord Setup" icon="discord" href="/omni/channels/discord-setup">
+    Add Discord to your multi-channel strategy
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/messaging">
+    Explore all messaging endpoints
+  </Card>
+
+  <Card title="Agent Integration" icon="robot" href="/omni/quickstart#agent-integration">
+    Connect your AI agent to WhatsApp
+  </Card>
+
+  <Card title="Traces & Analytics" icon="chart-line" href="/omni/api/traces">
+    Monitor message flows and performance
+  </Card>
+</CardGroup>

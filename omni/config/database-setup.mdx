@@ -1,0 +1,751 @@
+---
+title: "Database Setup"
+description: "Configure SQLite or PostgreSQL for Automagik OMNI"
+icon: "database"
+---
+
+## Overview
+
+Automagik OMNI supports two database engines:
+
+- **SQLite**: Perfect for development, testing, and small deployments
+- **PostgreSQL**: Recommended for production, high-concurrency, and scale
+
+The system automatically creates tables and runs migrations on first startup.
+
+---
+
+## SQLite Setup (Development)
+
+### Quick Start
+
+SQLite requires **zero configuration** - just start OMNI and it works!
+
+```bash .env
+# SQLite database path (auto-created)
+AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH="./data/automagik-omni.db"
+```
+
+<Steps>
+  <Step title="Set Database Path">
+    ```bash
+    # In your .env file
+    AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH="./data/automagik-omni.db"
+    ```
+  </Step>
+
+  <Step title="Start OMNI">
+    ```bash
+    pm2 start ecosystem.config.js
+    # Database file is created automatically
+    ```
+  </Step>
+
+  <Step title="Verify Database">
+    ```bash
+    # Check database file exists
+    ls -lh ./data/automagik-omni.db
+
+    # Inspect with SQLite CLI
+    sqlite3 ./data/automagik-omni.db ".tables"
+    ```
+  </Step>
+</Steps>
+
+### SQLite Features
+
+<CardGroup cols={2}>
+  <Card title="Zero Setup" icon="bolt">
+    No database server needed - just a file
+  </Card>
+
+  <Card title="Portable" icon="box">
+    Copy the `.db` file to move your entire database
+  </Card>
+
+  <Card title="Fast" icon="gauge-high">
+    Excellent performance for small to medium workloads
+  </Card>
+
+  <Card title="Simple Backups" icon="floppy-disk">
+    Just copy the database file
+  </Card>
+</CardGroup>
+
+### When to Use SQLite
+
+<Tabs>
+  <Tab title="✅ Perfect For">
+    - **Development** and testing
+    - **Small deployments** (< 10 concurrent users)
+    - **Edge deployments** (IoT, embedded systems)
+    - **Single-instance** applications
+    - **Prototyping** and demos
+    - **Local AI agent** testing
+  </Tab>
+
+  <Tab title="❌ Not Ideal For">
+    - **High concurrency** (> 10 simultaneous writes)
+    - **Distributed systems** (multiple servers)
+    - **Large datasets** (> 1GB for optimal performance)
+    - **Multi-tenant SaaS** at scale
+    - **Production** high-traffic applications
+    - **Horizontal scaling** scenarios
+  </Tab>
+</Tabs>
+
+### SQLite Management
+
+```bash
+# Open SQLite database
+sqlite3 ./data/automagik-omni.db
+
+# Common commands
+.tables              # List all tables
+.schema instances    # Show table schema
+SELECT * FROM instances;  # Query data
+
+# Backup database
+cp ./data/automagik-omni.db ./backups/omni-$(date +%Y%m%d).db
+
+# Optimize database
+sqlite3 ./data/automagik-omni.db "VACUUM;"
+```
+
+---
+
+## PostgreSQL Setup (Production)
+
+### Installation
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Install PostgreSQL
+    sudo apt update
+    sudo apt install postgresql postgresql-contrib
+
+    # Start service
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
+
+    # Verify installation
+    psql --version
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Install via Homebrew
+    brew install postgresql@15
+
+    # Start service
+    brew services start postgresql@15
+
+    # Verify installation
+    psql --version
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    ```bash
+    # Run PostgreSQL in Docker
+    docker run -d \
+      --name omni-postgres \
+      -e POSTGRES_USER=omni_user \
+      -e POSTGRES_PASSWORD=secure_password \
+      -e POSTGRES_DB=automagik_omni \
+      -p 5432:5432 \
+      -v omni_data:/var/lib/postgresql/data \
+      postgres:15-alpine
+
+    # Verify
+    docker ps | grep omni-postgres
+    ```
+  </Tab>
+
+  <Tab title="Cloud (AWS RDS)">
+    ```bash
+    # Create RDS PostgreSQL instance via AWS CLI
+    aws rds create-db-instance \
+      --db-instance-identifier omni-prod \
+      --db-instance-class db.t3.micro \
+      --engine postgres \
+      --master-username omni_admin \
+      --master-user-password 'your-secure-password' \
+      --allocated-storage 20 \
+      --publicly-accessible \
+      --backup-retention-period 7
+
+    # Get endpoint
+    aws rds describe-db-instances \
+      --db-instance-identifier omni-prod \
+      --query 'DBInstances[0].Endpoint.Address'
+    ```
+  </Tab>
+</Tabs>
+
+### Database Creation
+
+<Steps>
+  <Step title="Connect to PostgreSQL">
+    ```bash
+    # Connect as postgres user
+    sudo -u postgres psql
+
+    # Or with password
+    psql -U postgres -h localhost
+    ```
+  </Step>
+
+  <Step title="Create Database and User">
+    ```sql
+    -- Create database
+    CREATE DATABASE automagik_omni;
+
+    -- Create dedicated user
+    CREATE USER omni_user WITH PASSWORD 'your-secure-password';
+
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE automagik_omni TO omni_user;
+
+    -- For PostgreSQL 15+, grant schema privileges
+    \c automagik_omni
+    GRANT ALL ON SCHEMA public TO omni_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO omni_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO omni_user;
+
+    -- Exit
+    \q
+    ```
+  </Step>
+
+  <Step title="Configure Connection">
+    ```bash .env
+    # PostgreSQL connection URL
+    AUTOMAGIK_OMNI_DATABASE_URL="postgresql://omni_user:your-secure-password@localhost:5432/automagik_omni"
+    ```
+  </Step>
+
+  <Step title="Start OMNI">
+    ```bash
+    # Tables are created automatically on startup
+    pm2 start ecosystem.config.js
+
+    # Check logs
+    pm2 logs omni-api --lines 50
+    ```
+  </Step>
+</Steps>
+
+### Connection String Format
+
+```
+postgresql://[user]:[password]@[host]:[port]/[database]?[options]
+```
+
+**Examples:**
+
+```bash
+# Local PostgreSQL
+postgresql://omni_user:password@localhost:5432/automagik_omni
+
+# Remote PostgreSQL
+postgresql://omni_user:password@db.example.com:5432/automagik_omni
+
+# With SSL
+postgresql://omni_user:password@db.example.com:5432/automagik_omni?sslmode=require
+
+# Connection pooling
+postgresql://omni_user:password@db.example.com:5432/automagik_omni?pool_size=20&max_overflow=10
+
+# Read replica
+postgresql://omni_user:password@replica.example.com:5432/automagik_omni?target_session_attrs=read-only
+```
+
+### Connection Pool Configuration
+
+For high-traffic production environments:
+
+```bash .env
+# Connection pool settings (append to DATABASE_URL)
+AUTOMAGIK_OMNI_DATABASE_URL="postgresql://user:pass@host:5432/db?\
+pool_size=20&\
+max_overflow=10&\
+pool_timeout=30&\
+pool_recycle=3600"
+```
+
+**Pool Parameters:**
+
+| Parameter | Description | Default | Production |
+|-----------|-------------|---------|------------|
+| `pool_size` | Number of persistent connections | 5 | 20-50 |
+| `max_overflow` | Additional connections when needed | 10 | 20-30 |
+| `pool_timeout` | Wait time for connection (seconds) | 30 | 30 |
+| `pool_recycle` | Recycle connections after (seconds) | 3600 | 3600 |
+
+---
+
+## Database Schema
+
+OMNI automatically creates these tables:
+
+### Core Tables
+
+```sql
+-- Messaging instances (WhatsApp, Discord, etc.)
+instances
+  - id (UUID, primary key)
+  - name (unique)
+  - channel_type (whatsapp, discord)
+  - channel_config (JSON)
+  - agent_config (JSON)
+  - created_at
+  - updated_at
+
+-- Message traces (debugging and analytics)
+traces
+  - id (UUID, primary key)
+  - instance_id (foreign key)
+  - trace_id (UUID, unique)
+  - message_type (incoming, outgoing)
+  - status (received, processing, completed, failed)
+  - payload (JSON)
+  - metadata (JSON)
+  - created_at
+  - completed_at
+
+-- Contacts (unified across channels)
+contacts
+  - id (UUID, primary key)
+  - instance_id (foreign key)
+  - external_id (channel-specific ID)
+  - name
+  - metadata (JSON)
+  - created_at
+  - updated_at
+
+-- Chats (conversations)
+chats
+  - id (UUID, primary key)
+  - instance_id (foreign key)
+  - external_id (channel-specific ID)
+  - chat_type (direct, group, channel)
+  - metadata (JSON)
+  - created_at
+  - updated_at
+```
+
+### Indexes
+
+Automatic indexes for performance:
+
+```sql
+-- Instances
+CREATE INDEX idx_instances_name ON instances(name);
+CREATE INDEX idx_instances_channel_type ON instances(channel_type);
+
+-- Traces
+CREATE INDEX idx_traces_instance_id ON traces(instance_id);
+CREATE INDEX idx_traces_created_at ON traces(created_at);
+CREATE INDEX idx_traces_status ON traces(status);
+
+-- Contacts
+CREATE INDEX idx_contacts_instance_id ON contacts(instance_id);
+CREATE INDEX idx_contacts_external_id ON contacts(external_id);
+
+-- Chats
+CREATE INDEX idx_chats_instance_id ON chats(instance_id);
+CREATE INDEX idx_chats_external_id ON chats(external_id);
+```
+
+---
+
+## Migrations
+
+OMNI uses automatic migrations - no manual steps required.
+
+### Automatic Migration
+
+```bash
+# Migrations run automatically on startup
+pm2 start ecosystem.config.js
+
+# Check logs for migration status
+pm2 logs omni-api | grep migration
+```
+
+### Manual Migration (Advanced)
+
+```bash
+# Run migrations manually with Alembic
+cd /path/to/automagik-omni
+source .venv/bin/activate
+
+# Check current version
+alembic current
+
+# Upgrade to latest
+alembic upgrade head
+
+# Downgrade one version
+alembic downgrade -1
+
+# Show migration history
+alembic history
+```
+
+---
+
+## Backup and Restore
+
+### SQLite Backup
+
+```bash
+# Simple file copy
+cp ./data/automagik-omni.db ./backups/omni-backup-$(date +%Y%m%d-%H%M%S).db
+
+# Compressed backup
+tar -czf omni-backup-$(date +%Y%m%d).tar.gz ./data/automagik-omni.db
+
+# Automated daily backups
+echo "0 2 * * * cp /path/to/data/automagik-omni.db /path/to/backups/omni-\$(date +\%Y\%m\%d).db" | crontab -
+```
+
+### PostgreSQL Backup
+
+```bash
+# Full database dump
+pg_dump -U omni_user -h localhost automagik_omni > omni-backup-$(date +%Y%m%d).sql
+
+# Compressed backup
+pg_dump -U omni_user -h localhost automagik_omni | gzip > omni-backup-$(date +%Y%m%d).sql.gz
+
+# Backup specific tables only
+pg_dump -U omni_user -h localhost -t instances -t traces automagik_omni > omni-partial.sql
+
+# Custom format (faster restore)
+pg_dump -U omni_user -h localhost -Fc automagik_omni > omni-backup.dump
+```
+
+### Restore from Backup
+
+<Tabs>
+  <Tab title="SQLite">
+    ```bash
+    # Stop OMNI
+    pm2 stop omni-api
+
+    # Restore database file
+    cp ./backups/omni-backup-20250104.db ./data/automagik-omni.db
+
+    # Start OMNI
+    pm2 start omni-api
+    ```
+  </Tab>
+
+  <Tab title="PostgreSQL (SQL)">
+    ```bash
+    # Stop OMNI
+    pm2 stop omni-api
+
+    # Drop and recreate database
+    dropdb -U omni_user automagik_omni
+    createdb -U omni_user automagik_omni
+
+    # Restore from SQL dump
+    psql -U omni_user -h localhost automagik_omni < omni-backup-20250104.sql
+
+    # Start OMNI
+    pm2 start omni-api
+    ```
+  </Tab>
+
+  <Tab title="PostgreSQL (Custom)">
+    ```bash
+    # Stop OMNI
+    pm2 stop omni-api
+
+    # Restore with pg_restore (parallel, faster)
+    pg_restore -U omni_user -h localhost -d automagik_omni -j 4 omni-backup.dump
+
+    # Start OMNI
+    pm2 start omni-api
+    ```
+  </Tab>
+</Tabs>
+
+### Automated Backup Script
+
+```bash backup-omni.sh
+#!/bin/bash
+# Automated OMNI backup script
+
+BACKUP_DIR="/var/backups/omni"
+RETENTION_DAYS=30
+DATE=$(date +%Y%m%d-%H%M%S)
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# PostgreSQL backup
+pg_dump -U omni_user -h localhost automagik_omni | gzip > "$BACKUP_DIR/omni-$DATE.sql.gz"
+
+# Delete old backups
+find $BACKUP_DIR -name "omni-*.sql.gz" -mtime +$RETENTION_DAYS -delete
+
+# Log result
+echo "[$DATE] Backup completed: omni-$DATE.sql.gz" >> /var/log/omni-backup.log
+```
+
+**Schedule with cron:**
+
+```bash
+# Daily backup at 2 AM
+0 2 * * * /path/to/backup-omni.sh
+```
+
+---
+
+## Performance Tuning
+
+### PostgreSQL Optimization
+
+```sql
+-- Update PostgreSQL config (/etc/postgresql/15/main/postgresql.conf)
+
+-- Memory settings
+shared_buffers = 256MB              # 25% of RAM
+effective_cache_size = 1GB          # 50-75% of RAM
+work_mem = 16MB                     # Per operation
+maintenance_work_mem = 128MB        # For VACUUM, CREATE INDEX
+
+-- Connection settings
+max_connections = 100
+idle_in_transaction_session_timeout = 300000  # 5 minutes
+
+-- Query planning
+random_page_cost = 1.1              # For SSD
+effective_io_concurrency = 200      # For SSD
+
+-- WAL settings
+wal_buffers = 16MB
+checkpoint_completion_target = 0.9
+
+-- Restart PostgreSQL after changes
+sudo systemctl restart postgresql
+```
+
+### Indexing Strategy
+
+```sql
+-- Add custom indexes for your query patterns
+
+-- Traces by instance and time range (common query)
+CREATE INDEX idx_traces_instance_time ON traces(instance_id, created_at DESC);
+
+-- Traces by status and instance
+CREATE INDEX idx_traces_status_instance ON traces(status, instance_id);
+
+-- Contacts by name search
+CREATE INDEX idx_contacts_name_trgm ON contacts USING gin(name gin_trgm_ops);
+```
+
+### Maintenance Tasks
+
+```bash
+# Regular maintenance script
+#!/bin/bash
+
+# Analyze tables for query optimization
+psql -U omni_user -d automagik_omni -c "ANALYZE;"
+
+# Vacuum to reclaim space
+psql -U omni_user -d automagik_omni -c "VACUUM;"
+
+# Reindex for performance
+psql -U omni_user -d automagik_omni -c "REINDEX DATABASE automagik_omni;"
+```
+
+**Schedule maintenance:**
+
+```bash
+# Weekly maintenance on Sunday at 3 AM
+0 3 * * 0 /path/to/maintenance.sh
+```
+
+---
+
+## Monitoring
+
+### Database Health Checks
+
+```bash
+# PostgreSQL connection test
+psql $AUTOMAGIK_OMNI_DATABASE_URL -c "SELECT 1"
+
+# Check database size
+psql $AUTOMAGIK_OMNI_DATABASE_URL -c "\
+  SELECT pg_size_pretty(pg_database_size('automagik_omni'));"
+
+# Check table sizes
+psql $AUTOMAGIK_OMNI_DATABASE_URL -c "\
+  SELECT schemaname, tablename,
+         pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+  FROM pg_tables
+  WHERE schemaname = 'public'
+  ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;"
+
+# Active connections
+psql $AUTOMAGIK_OMNI_DATABASE_URL -c "\
+  SELECT count(*) FROM pg_stat_activity WHERE datname = 'automagik_omni';"
+```
+
+### Performance Monitoring
+
+```sql
+-- Slow queries
+SELECT pid, now() - query_start as duration, query
+FROM pg_stat_activity
+WHERE state = 'active'
+  AND now() - query_start > interval '5 seconds'
+ORDER BY duration DESC;
+
+-- Table bloat
+SELECT schemaname, tablename,
+       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as total_size,
+       n_live_tup, n_dead_tup
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 1000
+ORDER BY n_dead_tup DESC;
+
+-- Index usage
+SELECT schemaname, tablename, indexname, idx_scan
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to PostgreSQL">
+    **Symptoms**: Connection refused or timeout errors
+
+    **Solutions**:
+    ```bash
+    # Check PostgreSQL is running
+    sudo systemctl status postgresql
+
+    # Check PostgreSQL is listening
+    sudo netstat -tlnp | grep 5432
+
+    # Test connection
+    psql -U omni_user -h localhost -d automagik_omni
+
+    # Check pg_hba.conf for authentication rules
+    sudo nano /etc/postgresql/15/main/pg_hba.conf
+    # Add: host all all 127.0.0.1/32 md5
+
+    # Restart PostgreSQL
+    sudo systemctl restart postgresql
+    ```
+  </Accordion>
+
+  <Accordion title="Migration failed">
+    **Symptoms**: Tables not created or schema errors
+
+    **Solutions**:
+    ```bash
+    # Check migration status
+    pm2 logs omni-api | grep migration
+
+    # Manual migration
+    cd /path/to/automagik-omni
+    source .venv/bin/activate
+    alembic upgrade head
+
+    # Reset and recreate (CAUTION: deletes data!)
+    psql -U omni_user -c "DROP DATABASE automagik_omni;"
+    psql -U omni_user -c "CREATE DATABASE automagik_omni;"
+    pm2 restart omni-api
+    ```
+  </Accordion>
+
+  <Accordion title="Database performance degradation">
+    **Symptoms**: Slow queries, high CPU usage
+
+    **Solutions**:
+    ```bash
+    # Run VACUUM to reclaim space
+    psql $AUTOMAGIK_OMNI_DATABASE_URL -c "VACUUM ANALYZE;"
+
+    # Check for missing indexes
+    # See slow query log in PostgreSQL
+
+    # Optimize PostgreSQL config (see Performance Tuning section)
+
+    # Consider upgrading hardware or scaling
+    ```
+  </Accordion>
+
+  <Accordion title="SQLite database locked">
+    **Symptoms**: Database is locked errors
+
+    **Solutions**:
+    ```bash
+    # SQLite doesn't handle high concurrency well
+    # Consider upgrading to PostgreSQL
+
+    # Temporary fix: restart OMNI
+    pm2 restart omni-api
+
+    # Check for zombie processes
+    ps aux | grep uvicorn
+    ```
+  </Accordion>
+
+  <Accordion title="Out of disk space">
+    **Symptoms**: Cannot write to database
+
+    **Solutions**:
+    ```bash
+    # Check disk usage
+    df -h
+
+    # Clean old trace data
+    curl -X POST http://localhost:8882/api/v1/traces/cleanup \
+      -H "x-api-key: your-key" \
+      -H "Content-Type: application/json" \
+      -d '{"days_old": 30, "dry_run": false}'
+
+    # For PostgreSQL, vacuum full (reclaim space)
+    psql $AUTOMAGIK_OMNI_DATABASE_URL -c "VACUUM FULL;"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Security Best Practices" icon="shield" href="/omni/config/security-best-practices">
+    Secure your database and deployment
+  </Card>
+
+  <Card title="Deployment Options" icon="rocket" href="/omni/config/deployment-options">
+    Deploy OMNI to production
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/omni/config/environment-variables">
+    Complete configuration reference
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Start using the OMNI API
+  </Card>
+</CardGroup>

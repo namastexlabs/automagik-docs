@@ -1,0 +1,706 @@
+---
+title: "Multi-Platform Agents"
+description: "Deploy the same AI agent across WhatsApp, Discord, Slack, and more"
+icon: "layer-group"
+---
+
+## Overview
+
+Deploy a single AI agent across multiple messaging platforms with unified user context, consistent behavior, and centralized management. Your users can interact with the same agent on their preferred platform while maintaining conversation continuity.
+
+```mermaid
+graph TB
+    A[Unified AI Agent] --> B[OMNI Hub]
+    B --> C[WhatsApp Instance]
+    B --> D[Discord Instance]
+    B --> E[Slack Instance]
+    C --> F[User on WhatsApp]
+    D --> G[User on Discord]
+    E --> H[User on Slack]
+
+    style A fill:#00D9FF,stroke:#0099CC
+```
+
+---
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Omnichannel Support" icon="headset">
+    Same support bot on WhatsApp, Discord, and web chat
+  </Card>
+
+  <Card title="Community Management" icon="users">
+    Deploy community bot across Discord, Slack, and Telegram simultaneously
+  </Card>
+
+  <Card title="Enterprise Assistant" icon="briefcase">
+    Internal assistant accessible via Slack, Teams, and WhatsApp
+  </Card>
+
+  <Card title="Gaming Bot" icon="gamepad">
+    Game stats and updates on Discord, WhatsApp, and in-game chat
+  </Card>
+
+  <Card title="Learning Platform" icon="graduation-cap">
+    Educational bot across Discord study groups and WhatsApp tutoring
+  </Card>
+
+  <Card title="Event Bot" icon="calendar">
+    Conference bot on Discord, Slack, and WhatsApp for attendees
+  </Card>
+</CardGroup>
+
+---
+
+## Architecture
+
+### Single Agent, Multiple Channels
+
+```
+┌─────────────────────────────────────┐
+│      Unified AI Agent Backend       │
+│   (Automagik Hive or Custom API)    │
+└──────────────┬──────────────────────┘
+               │
+        ┌──────▼──────┐
+        │  OMNI  HUB  │
+        └──────┬──────┘
+               │
+    ┏━━━━━━━━━━┻━━━━━━━━━━┓
+    ▼          ▼           ▼
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│WhatsApp │ │ Discord │ │  Slack  │
+│Instance │ │Instance │ │Instance │
+└─────────┘ └─────────┘ └─────────┘
+```
+
+**Key Features:**
+- **Single codebase** for agent logic
+- **Unified user database** across platforms
+- **Cross-platform context** sharing
+- **Consistent responses** regardless of channel
+- **Centralized analytics** and monitoring
+
+---
+
+## Implementation
+
+### Step 1: Deploy Unified AI Agent
+
+```python agent_server.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+
+app = FastAPI()
+
+class Message(BaseModel):
+    message: str
+    user_id: str
+    platform: str  # 'whatsapp', 'discord', 'slack'
+    context: dict = {}
+
+class Response(BaseModel):
+    response: str
+    context_updated: dict = {}
+
+# Unified user context store
+user_contexts = {}
+
+@app.post("/chat", response_model=Response)
+async def chat(msg: Message):
+    # Get or create user context (unified across platforms)
+    user_key = f"{msg.platform}:{msg.user_id}"
+
+    if user_key not in user_contexts:
+        user_contexts[user_key] = {
+            "name": None,
+            "preferences": {},
+            "history": []
+        }
+
+    context = user_contexts[user_key]
+
+    # Add message to history
+    context["history"].append({
+        "role": "user",
+        "content": msg.message,
+        "platform": msg.platform
+    })
+
+    # Process with AI (example with OpenAI)
+    import openai
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": f"""
+You are a helpful assistant available on multiple platforms.
+Current platform: {msg.platform}
+User context: {context}
+Maintain consistent behavior across all platforms.
+            """},
+            *[{"role": m["role"], "content": m["content"]}
+              for m in context["history"][-10:]]  # Last 10 messages
+        ]
+    )
+
+    assistant_message = response.choices[0].message.content
+
+    # Update context
+    context["history"].append({
+        "role": "assistant",
+        "content": assistant_message,
+        "platform": msg.platform
+    })
+
+    return Response(
+        response=assistant_message,
+        context_updated=context
+    )
+
+# Start server
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8886)
+```
+
+### Step 2: Create Instances for Each Platform
+
+<Tabs>
+  <Tab title="WhatsApp">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -H "x-api-key: your-omni-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "support-whatsapp",
+        "channel_type": "whatsapp",
+        "evolution_url": "http://localhost:18082",
+        "evolution_key": "your-evolution-key",
+        "agent_api_url": "http://localhost:8886/chat",
+        "agent_api_key": "your-agent-key"
+      }'
+
+    # Get QR code
+    curl http://localhost:8882/api/v1/instances/support-whatsapp/qr \
+      -H "x-api-key: your-omni-key"
+    ```
+  </Tab>
+
+  <Tab title="Discord">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -H "x-api-key: your-omni-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "support-discord",
+        "channel_type": "discord",
+        "discord_token": "your-discord-bot-token",
+        "agent_api_url": "http://localhost:8886/chat",
+        "agent_api_key": "your-agent-key"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Slack (Coming Q4 2025)">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -H "x-api-key: your-omni-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "support-slack",
+        "channel_type": "slack",
+        "slack_token": "your-slack-bot-token",
+        "agent_api_url": "http://localhost:8886/chat",
+        "agent_api_key": "your-agent-key"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Step 3: Unified User Management
+
+```python user_manager.py
+from sqlalchemy import create_engine, Column, String, JSON, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+
+Base = declarative_base()
+
+class UnifiedUser(Base):
+    __tablename__ = 'unified_users'
+
+    user_id = Column(String, primary_key=True)  # Unified ID
+    whatsapp_id = Column(String, nullable=True)
+    discord_id = Column(String, nullable=True)
+    slack_id = Column(String, nullable=True)
+    name = Column(String)
+    email = Column(String, nullable=True)
+    preferences = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Database setup
+engine = create_engine('postgresql://user:pass@localhost/omni_users')
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+
+def get_or_create_user(platform: str, platform_user_id: str) -> UnifiedUser:
+    session = Session()
+
+    # Try to find existing user by platform ID
+    field_map = {
+        'whatsapp': 'whatsapp_id',
+        'discord': 'discord_id',
+        'slack': 'slack_id'
+    }
+
+    user = session.query(UnifiedUser).filter(
+        getattr(UnifiedUser, field_map[platform]) == platform_user_id
+    ).first()
+
+    if not user:
+        # Create new unified user
+        user = UnifiedUser(
+            user_id=f"unified_{datetime.utcnow().timestamp()}",
+            **{field_map[platform]: platform_user_id}
+        )
+        session.add(user)
+        session.commit()
+
+    return user
+
+def link_accounts(user_id: str, platform: str, platform_user_id: str):
+    session = Session()
+    user = session.query(UnifiedUser).filter_by(user_id=user_id).first()
+
+    if user:
+        field_map = {
+            'whatsapp': 'whatsapp_id',
+            'discord': 'discord_id',
+            'slack': 'slack_id'
+        }
+        setattr(user, field_map[platform], platform_user_id)
+        session.commit()
+```
+
+---
+
+## Advanced Features
+
+### Cross-Platform Context Sharing
+
+```python
+# Maintain conversation context across platforms
+
+class ConversationManager:
+    def __init__(self):
+        self.conversations = {}  # user_id -> conversation history
+
+    def get_context(self, user_id: str, platform: str) -> dict:
+        """Get user's conversation history across ALL platforms"""
+        if user_id not in self.conversations:
+            self.conversations[user_id] = {
+                "messages": [],
+                "metadata": {
+                    "platforms_used": [],
+                    "last_platform": None,
+                    "last_interaction": None
+                }
+            }
+
+        ctx = self.conversations[user_id]
+
+        # Track platform usage
+        if platform not in ctx["metadata"]["platforms_used"]:
+            ctx["metadata"]["platforms_used"].append(platform)
+
+        return ctx
+
+    def add_message(self, user_id: str, platform: str, role: str, content: str):
+        ctx = self.get_context(user_id, platform)
+        ctx["messages"].append({
+            "role": role,
+            "content": content,
+            "platform": platform,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        ctx["metadata"]["last_platform"] = platform
+        ctx["metadata"]["last_interaction"] = datetime.utcnow().isoformat()
+
+# Usage
+conv_manager = ConversationManager()
+
+@app.post("/chat")
+async def chat(msg: Message):
+    # Get unified user
+    user = get_or_create_user(msg.platform, msg.user_id)
+
+    # Get cross-platform context
+    context = conv_manager.get_context(user.user_id, msg.platform)
+
+    # Add user message
+    conv_manager.add_message(user.user_id, msg.platform, "user", msg.message)
+
+    # Generate response with full context
+    response = generate_response(context)
+
+    # Add assistant message
+    conv_manager.add_message(user.user_id, msg.platform, "assistant", response)
+
+    return {"response": response}
+```
+
+### Platform-Specific Adaptations
+
+```python
+# Adapt responses for different platforms
+
+class PlatformAdapter:
+    @staticmethod
+    def adapt_response(response: str, platform: str) -> dict:
+        """Adapt response formatting for specific platform"""
+
+        if platform == "whatsapp":
+            return {
+                "text": response,
+                "format": "markdown",  # WhatsApp supports basic markdown
+                "max_length": 4096
+            }
+
+        elif platform == "discord":
+            return {
+                "text": response,
+                "embed": True,  # Discord supports rich embeds
+                "max_length": 2000,
+                "color": 0x00D9FF  # Brand color
+            }
+
+        elif platform == "slack":
+            return {
+                "text": response,
+                "blocks": True,  # Slack Block Kit
+                "max_length": 3000
+            }
+
+        return {"text": response}
+
+    @staticmethod
+    def format_list(items: list, platform: str) -> str:
+        """Format lists based on platform"""
+
+        if platform == "whatsapp":
+            # Use emojis and simple formatting
+            return "\n".join([f"• {item}" for item in items])
+
+        elif platform == "discord":
+            # Use Discord markdown
+            return "\n".join([f"**{i+1}.** {item}" for i, item in enumerate(items)])
+
+        elif platform == "slack":
+            # Use Slack mrkdwn
+            return "\n".join([f"• *{item}*" for item in items])
+
+        return "\n".join(items)
+
+# Usage
+@app.post("/chat")
+async def chat(msg: Message):
+    # Generate response
+    raw_response = generate_response(msg.message)
+
+    # Adapt for platform
+    adapted = PlatformAdapter.adapt_response(raw_response, msg.platform)
+
+    return {"response": adapted["text"]}
+```
+
+### Unified Analytics
+
+```python
+# Track metrics across all platforms
+
+from prometheus_client import Counter, Histogram, Gauge
+
+# Metrics
+messages_total = Counter('agent_messages_total', 'Total messages', ['platform', 'direction'])
+response_time = Histogram('agent_response_seconds', 'Response time', ['platform'])
+active_users = Gauge('agent_active_users', 'Active users', ['platform'])
+platform_distribution = Counter('agent_platform_usage', 'Platform usage')
+
+@app.post("/chat")
+async def chat(msg: Message):
+    start_time = time.time()
+
+    # Track incoming message
+    messages_total.labels(platform=msg.platform, direction='incoming').inc()
+    platform_distribution.labels(platform=msg.platform).inc()
+
+    # Update active users
+    active_users.labels(platform=msg.platform).set(len(get_active_users(msg.platform)))
+
+    # Generate response
+    response = generate_response(msg.message)
+
+    # Track outgoing message
+    messages_total.labels(platform=msg.platform, direction='outgoing').inc()
+
+    # Track response time
+    response_time.labels(platform=msg.platform).observe(time.time() - start_time)
+
+    return {"response": response}
+```
+
+---
+
+## Real-World Example: Support Bot
+
+### Complete Multi-Platform Support Bot
+
+```python complete_support_bot.py
+from fastapi import FastAPI
+from pydantic import BaseModel
+import openai
+from typing import Optional, List
+import redis
+import json
+
+app = FastAPI()
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+class SupportRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    user_name: Optional[str] = None
+    context: dict = {}
+
+class SupportResponse(BaseModel):
+    response: str
+    escalate: bool = False
+    ticket_id: Optional[str] = None
+
+# Knowledge base (in production, use vector database)
+KNOWLEDGE_BASE = {
+    "hours": "We're open Monday-Friday 9AM-6PM EST",
+    "shipping": "Shipping takes 3-5 business days within the US",
+    "returns": "Returns accepted within 30 days with receipt",
+    "support": "For technical support, email support@example.com"
+}
+
+def search_knowledge_base(query: str) -> Optional[str]:
+    """Simple keyword search (replace with vector search in production)"""
+    query_lower = query.lower()
+
+    for key, value in KNOWLEDGE_BASE.items():
+        if key in query_lower:
+            return value
+
+    return None
+
+def get_conversation_history(user_id: str, platform: str) -> List[dict]:
+    """Get user's conversation history across platforms"""
+    key = f"conv:{user_id}"
+    history = redis_client.get(key)
+
+    if history:
+        return json.loads(history)
+
+    return []
+
+def save_message(user_id: str, platform: str, role: str, content: str):
+    """Save message to conversation history"""
+    key = f"conv:{user_id}"
+    history = get_conversation_history(user_id, platform)
+
+    history.append({
+        "role": role,
+        "content": content,
+        "platform": platform,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+    # Keep last 50 messages
+    history = history[-50:]
+
+    redis_client.setex(key, 86400, json.dumps(history))  # 24h TTL
+
+@app.post("/chat", response_model=SupportResponse)
+async def handle_support_request(req: SupportRequest):
+    # Get conversation history
+    history = get_conversation_history(req.user_id, req.platform)
+
+    # Save user message
+    save_message(req.user_id, req.platform, "user", req.message)
+
+    # Check knowledge base first
+    kb_answer = search_knowledge_base(req.message)
+
+    if kb_answer:
+        response = f"📚 {kb_answer}\n\nDoes this answer your question?"
+        save_message(req.user_id, req.platform, "assistant", response)
+
+        return SupportResponse(response=response)
+
+    # Check sentiment for escalation
+    sentiment = analyze_sentiment(req.message)
+
+    if sentiment["label"] == "NEGATIVE" and sentiment["score"] > 0.8:
+        ticket_id = create_ticket(req.user_id, req.message, req.platform)
+
+        response = f"I understand you're frustrated. I've created ticket #{ticket_id} and a human agent will reach out within 1 hour. Is there anything else I can help with in the meantime?"
+
+        save_message(req.user_id, req.platform, "assistant", response)
+
+        return SupportResponse(
+            response=response,
+            escalate=True,
+            ticket_id=ticket_id
+        )
+
+    # Generate AI response
+    messages = [
+        {"role": "system", "content": """
+You are a helpful customer support assistant available on multiple platforms (WhatsApp, Discord, Slack).
+
+Guidelines:
+- Be friendly and professional
+- Keep responses concise
+- Adapt tone to platform (casual for Discord, professional for Slack)
+- If you can't help, offer to escalate
+- Reference previous conversation when relevant
+        """}
+    ]
+
+    # Add conversation history
+    messages.extend([
+        {"role": m["role"], "content": m["content"]}
+        for m in history[-10:]  # Last 10 messages
+    ])
+
+    # Add current message
+    messages.append({"role": "user", "content": req.message})
+
+    # Generate response
+    completion = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=messages,
+        max_tokens=300,
+        temperature=0.7
+    )
+
+    response = completion.choices[0].message.content
+
+    # Platform-specific formatting
+    if req.platform == "discord":
+        response = f"👋 {req.user_name or 'there'}! {response}"
+    elif req.platform == "whatsapp":
+        response = f"Hi {req.user_name or 'there'}! {response}"
+
+    # Save assistant message
+    save_message(req.user_id, req.platform, "assistant", response)
+
+    return SupportResponse(response=response)
+
+def create_ticket(user_id: str, message: str, platform: str) -> str:
+    """Create support ticket (integrate with your ticketing system)"""
+    import uuid
+    ticket_id = str(uuid.uuid4())[:8]
+
+    # In production, create ticket in Zendesk, Intercom, etc.
+    print(f"Created ticket {ticket_id} for {user_id} on {platform}: {message}")
+
+    return ticket_id
+
+def analyze_sentiment(message: str) -> dict:
+    """Analyze message sentiment"""
+    from transformers import pipeline
+    analyzer = pipeline("sentiment-analysis")
+    return analyzer(message)[0]
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8886)
+```
+
+---
+
+## Testing Multi-Platform Setup
+
+```bash
+# Test WhatsApp
+curl -X POST http://localhost:8882/api/v1/instances/support-whatsapp/send-text \
+  -H "x-api-key: your-key" \
+  -d '{"phone": "+1234567890", "message": "What are your business hours?"}'
+
+# Test Discord (via Discord app)
+# User: @SupportBot what are your business hours?
+
+# Verify same response across platforms
+curl http://localhost:8882/api/v1/traces?instance_name=support-whatsapp \
+  -H "x-api-key: your-key"
+
+curl http://localhost:8882/api/v1/traces?instance_name=support-discord \
+  -H "x-api-key: your-key"
+```
+
+---
+
+## Monitoring
+
+### Unified Dashboard
+
+```javascript
+// Example: Real-time multi-platform dashboard
+
+const io = require('socket.io')(3000);
+
+// Emit metrics every second
+setInterval(async () => {
+  const metrics = {
+    whatsapp: await getInstanceMetrics('support-whatsapp'),
+    discord: await getInstanceMetrics('support-discord'),
+    slack: await getInstanceMetrics('support-slack'),
+    total: {
+      messages: 0,
+      active_users: 0,
+      response_time: 0
+    }
+  };
+
+  // Calculate totals
+  Object.values(metrics).forEach(m => {
+    if (m.messages) {
+      metrics.total.messages += m.messages;
+      metrics.total.active_users += m.active_users;
+    }
+  });
+
+  io.emit('metrics', metrics);
+}, 1000);
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Team Collaboration" icon="users" href="/omni/workflows/team-collaboration">
+    Internal team communication workflows
+  </Card>
+
+  <Card title="Marketing Automation" icon="bullhorn" href="/omni/workflows/marketing-automation">
+    Multi-platform marketing campaigns
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Complete API documentation
+  </Card>
+
+  <Card title="Security Best Practices" icon="shield" href="/omni/config/security-best-practices">
+    Secure your deployment
+  </Card>
+</CardGroup>

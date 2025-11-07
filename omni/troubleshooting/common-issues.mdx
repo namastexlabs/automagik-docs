@@ -1,0 +1,675 @@
+---
+title: "Common Issues"
+description: "Solutions to frequently encountered problems with Automagik OMNI"
+icon: "circle-exclamation"
+---
+
+## Installation Issues
+
+### Dependencies Not Installing
+
+**Problem**: `uv` or `pnpm` commands fail during installation
+
+<AccordionGroup>
+  <Accordion title="Python Dependencies (uv)">
+    **Symptom**: `uv: command not found` or package installation fails
+
+    **Cause**: Missing or outdated uv package manager
+
+    **Solution**:
+    ```bash
+    # Install uv (recommended method)
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Or use pip
+    pip install uv
+
+    # Verify installation
+    uv --version
+
+    # Install OMNI dependencies
+    cd automagik-omni
+    make install
+    ```
+
+    **Prevention**: Keep uv updated with `uv self update`
+  </Accordion>
+
+  <Accordion title="Evolution API Dependencies (pnpm/npm)">
+    **Symptom**: Evolution API fails to install or start
+
+    **Cause**: Missing Node.js or package manager
+
+    **Solution**:
+    ```bash
+    # Check Node.js version (need 20+)
+    node --version
+
+    # Install Node.js 20+ if needed
+    # Ubuntu/Debian:
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # macOS:
+    brew install node@20
+
+    # Install pnpm globally
+    npm install -g pnpm
+
+    # Install Evolution API dependencies
+    cd resources/evolution-api
+    pnpm install
+    ```
+
+    **Prevention**: Use Node Version Manager (nvm) to manage Node.js versions
+  </Accordion>
+
+  <Accordion title="Discord Dependencies (Optional)">
+    **Symptom**: Discord integration fails to install
+
+    **Cause**: Missing optional Discord.py dependencies
+
+    **Solution**:
+    ```bash
+    # Install Discord dependencies separately
+    cd automagik-omni
+    make install-discord
+
+    # Or manually
+    uv pip install "discord.py>=2.3.0" aiohttp
+
+    # Verify
+    python -c "import discord; print(discord.__version__)"
+    ```
+
+    **Prevention**: Discord is optional - skip if you don't need Discord integration
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Permission Denied Errors
+
+**Problem**: `EACCES` or permission errors during installation or runtime
+
+<Tabs>
+  <Tab title="Linux/macOS">
+    ```bash
+    # Fix data directory permissions
+    mkdir -p data logs
+    chmod 755 data logs
+
+    # Fix Evolution API permissions
+    chmod -R 755 resources/evolution-api
+
+    # If running as service, ensure correct ownership
+    sudo chown -R $USER:$USER /home/cezar/automagik/automagik-omni
+
+    # For systemd service
+    sudo chmod 644 /etc/systemd/system/automagik-omni.service
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Run PowerShell as Administrator
+
+    # Fix directory permissions
+    icacls data /grant Users:F /T
+    icacls logs /grant Users:F /T
+
+    # Or run the entire installation as Administrator
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Git Submodule Issues
+
+**Problem**: Evolution API submodule not initialized or empty
+
+**Symptom**: `resources/evolution-api/` directory is empty
+
+**Solution**:
+
+```bash
+# Initialize and update submodules
+git submodule update --init --recursive
+
+# If still failing, manually clone
+rm -rf resources/evolution-api
+git clone https://github.com/EvolutionAPI/evolution-api.git resources/evolution-api
+
+# Verify
+ls -la resources/evolution-api/package.json
+```
+
+---
+
+## Configuration Errors
+
+### Missing API Keys
+
+**Problem**: Server fails to start with "API key required" error
+
+**Symptom**:
+```
+ValueError: AUTOMAGIK_OMNI_API_KEY must be set
+```
+
+**Solution**:
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Generate secure API keys
+# Linux/macOS:
+echo "AUTOMAGIK_OMNI_API_KEY=$(openssl rand -hex 32)" >> .env
+echo "EVOLUTION_API_KEY=$(openssl rand -hex 32)" >> .env
+
+# Windows (PowerShell):
+$apiKey = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | % {[char]$_})
+Add-Content .env "AUTOMAGIK_OMNI_API_KEY=$apiKey"
+
+# Edit .env to set other required values
+nano .env
+```
+
+**Required Keys**:
+- `AUTOMAGIK_OMNI_API_KEY` - OMNI API authentication
+- `EVOLUTION_API_KEY` - Evolution API authentication (for WhatsApp)
+
+**Prevention**: Never commit real API keys to git. Use `.env` files locally.
+
+---
+
+### Invalid Database Configuration
+
+**Problem**: Database connection fails or corrupted
+
+<AccordionGroup>
+  <Accordion title="SQLite Database Locked">
+    **Symptom**: `database is locked` errors
+
+    **Cause**: Multiple processes accessing SQLite database
+
+    **Solution**:
+    ```bash
+    # Stop all OMNI processes
+    pm2 stop all
+    # Or
+    pkill -f automagik-omni
+
+    # Remove lock files
+    rm -f data/automagik-omni.db-shm
+    rm -f data/automagik-omni.db-wal
+
+    # Restart
+    make dev
+    ```
+  </Accordion>
+
+  <Accordion title="Database Corrupted">
+    **Symptom**: `PRAGMA integrity_check` fails or query errors
+
+    **Cause**: Improper shutdown or disk issues
+
+    **Solution**:
+    ```bash
+    # Backup existing database
+    cp data/automagik-omni.db data/automagik-omni.db.backup
+
+    # Check integrity
+    sqlite3 data/automagik-omni.db "PRAGMA integrity_check;"
+
+    # If corrupted, restore from backup or reinitialize
+    rm data/automagik-omni.db
+    make db-init
+
+    # You'll need to recreate instances
+    ```
+  </Accordion>
+
+  <Accordion title="PostgreSQL Connection Failed">
+    **Symptom**: `could not connect to server` errors
+
+    **Cause**: PostgreSQL not running or wrong credentials
+
+    **Solution**:
+    ```bash
+    # Check PostgreSQL status
+    sudo systemctl status postgresql
+
+    # Verify connection string in .env
+    # Format: postgresql://user:password@host:port/database
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://omni:password@localhost:5432/automagik_omni
+
+    # Test connection
+    psql postgresql://omni:password@localhost:5432/automagik_omni -c "SELECT 1;"
+
+    # Create database if needed
+    createdb -U postgres automagik_omni
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Environment Variable Not Recognized
+
+**Problem**: Changes to `.env` file don't take effect
+
+**Solution**:
+
+```bash
+# Ensure .env file is in project root
+ls -la .env
+
+# Restart all services to reload environment
+pm2 restart all
+
+# For development
+# Stop (Ctrl+C) and restart
+make dev-all
+
+# Verify environment variables are loaded
+python -c "from src.config import get_settings; print(get_settings().api_key)"
+
+# If using systemd, reload service
+sudo systemctl daemon-reload
+sudo systemctl restart automagik-omni
+```
+
+---
+
+## Service Startup Problems
+
+### Port Already in Use
+
+**Problem**: `Address already in use` when starting services
+
+**Symptom**:
+```
+Error: listen EADDRINUSE: address already in use :::8882
+Error: listen EADDRINUSE: address already in use :::18082
+```
+
+**Solution**:
+
+<Tabs>
+  <Tab title="Find and Kill Process">
+    ```bash
+    # Linux/macOS - Find process using port
+    lsof -i :8882
+    lsof -i :18082
+
+    # Kill the process
+    kill -9 <PID>
+
+    # Or kill all OMNI processes
+    pkill -f "automagik-omni"
+    pkill -f "evolution-api"
+
+    # Windows
+    netstat -ano | findstr :8882
+    taskkill /PID <PID> /F
+    ```
+  </Tab>
+
+  <Tab title="Use Different Ports">
+    ```bash
+    # Edit .env to use different ports
+    AUTOMAGIK_OMNI_API_PORT=8883
+    EVOLUTION_API_PORT=18083
+
+    # Or specify at runtime
+    make dev PORT=8883
+    ```
+  </Tab>
+
+  <Tab title="Clean PM2 Processes">
+    ```bash
+    # Delete all PM2 processes
+    pm2 delete all
+
+    # Clean PM2 cache
+    pm2 flush
+    pm2 cleardump
+
+    # Restart fresh
+    pm2 start ecosystem.config.js
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Services Start But Immediately Crash
+
+**Problem**: PM2 shows services as "errored" or constantly restarting
+
+**Diagnostic Steps**:
+
+```mermaid
+flowchart TD
+    A[Service Crashes] --> B{Check Logs}
+    B --> C[pm2 logs omni-api]
+    B --> D[pm2 logs evolution-api]
+    C --> E{Error Type?}
+    D --> E
+    E --> F[Missing Dependencies]
+    E --> G[Configuration Error]
+    E --> H[Port Conflict]
+    E --> I[Database Error]
+    F --> J[Run: make install]
+    G --> K[Check .env file]
+    H --> L[Change ports]
+    I --> M[Run: make db-init]
+```
+
+**Common Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check PM2 Logs">
+    ```bash
+    # View all logs
+    pm2 logs
+
+    # View specific service logs
+    pm2 logs omni-api
+    pm2 logs evolution-api
+
+    # View error logs only
+    pm2 logs --err
+
+    # Clear logs and restart
+    pm2 flush
+    pm2 restart all
+    ```
+  </Accordion>
+
+  <Accordion title="Test Services Manually">
+    ```bash
+    # Test OMNI API manually
+    cd /home/cezar/automagik/automagik-omni
+    uv run python -m src.api.app
+
+    # Test Evolution API manually
+    cd resources/evolution-api
+    pnpm start:dev
+
+    # Look for specific error messages
+    ```
+  </Accordion>
+
+  <Accordion title="Verify Dependencies">
+    ```bash
+    # Check Python dependencies
+    uv pip list | grep fastapi
+    uv pip list | grep sqlalchemy
+
+    # Reinstall if needed
+    make install
+
+    # Check Evolution API dependencies
+    cd resources/evolution-api
+    pnpm list
+
+    # Reinstall if needed
+    pnpm install --force
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Health Check Fails
+
+**Problem**: `/health` endpoint returns error or times out
+
+**Symptom**:
+```bash
+curl http://localhost:8882/health
+# Returns: 502 Bad Gateway or timeout
+```
+
+**Solution**:
+
+```bash
+# Check if service is actually running
+pm2 status
+curl http://localhost:8882/health -v
+
+# Check backend connectivity
+# Verify database connection
+sqlite3 data/automagik-omni.db "SELECT 1;"
+
+# Check Evolution API health (for WhatsApp)
+curl http://localhost:18082 -v
+
+# Restart services in order
+pm2 restart evolution-api
+sleep 5
+pm2 restart omni-api
+
+# Check logs for errors
+pm2 logs --lines 50
+```
+
+---
+
+## Message Sending Failures
+
+### "Instance Not Found" Error
+
+**Problem**: API returns 404 when sending messages
+
+**Symptom**:
+```json
+{
+  "detail": "Instance 'my-bot' not found"
+}
+```
+
+**Solution**:
+
+```bash
+# List all instances
+curl -H "x-api-key: YOUR_API_KEY" \
+  http://localhost:8882/api/v1/instances
+
+# Create instance if missing
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-bot",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_api_key": "YOUR_EVOLUTION_KEY",
+    "agent_api_url": "http://localhost:8886",
+    "default_agent": "assistant"
+  }'
+
+# Verify instance created
+curl -H "x-api-key: YOUR_API_KEY" \
+  http://localhost:8882/api/v1/instances/my-bot
+```
+
+---
+
+### Authentication Failures
+
+**Problem**: Messages fail with "Unauthorized" or API key errors
+
+**Solution**:
+
+<AccordionGroup>
+  <Accordion title="Verify API Key">
+    ```bash
+    # Check OMNI API key
+    echo $AUTOMAGIK_OMNI_API_KEY
+    # Or
+    grep AUTOMAGIK_OMNI_API_KEY .env
+
+    # Test with correct key
+    curl -H "x-api-key: YOUR_KEY_HERE" \
+      http://localhost:8882/api/v1/instances
+
+    # Should return 200 with instance list
+    ```
+  </Accordion>
+
+  <Accordion title="Verify Evolution API Key">
+    ```bash
+    # Check Evolution API key
+    grep EVOLUTION_API_KEY .env
+
+    # Test Evolution API directly
+    curl -H "apikey: YOUR_EVOLUTION_KEY" \
+      http://localhost:18082/instance/fetchInstances
+
+    # Update instance with correct key if needed
+    curl -X PATCH http://localhost:8882/api/v1/instances/my-bot \
+      -H "x-api-key: YOUR_OMNI_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"evolution_api_key": "CORRECT_EVOLUTION_KEY"}'
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Performance Issues
+
+### Slow Message Delivery
+
+**Problem**: Messages take 10+ seconds to send
+
+**Diagnostic**:
+
+```bash
+# Check trace system for performance metrics
+curl -H "x-api-key: YOUR_KEY" \
+  "http://localhost:8882/api/v1/traces?limit=10" | jq
+
+# Look for:
+# - High processing_time_ms
+# - High agent_response_time_ms
+# - Failed traces
+
+# Check system resources
+top
+df -h
+free -m
+```
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Agent API Timeout">
+    **Cause**: AI agent taking too long to respond
+
+    **Solution**:
+    ```bash
+    # Increase agent timeout in instance config
+    curl -X PATCH http://localhost:8882/api/v1/instances/my-bot \
+      -H "x-api-key: YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"agent_timeout": 120}'
+
+    # Or optimize your agent's response time
+    # - Use streaming responses
+    # - Reduce context length
+    # - Use faster LLM models
+    ```
+  </Accordion>
+
+  <Accordion title="Database Performance">
+    **Cause**: SQLite performance limits or lock contention
+
+    **Solution**:
+    ```bash
+    # Migrate to PostgreSQL for production
+    # 1. Install PostgreSQL
+    sudo apt install postgresql postgresql-contrib
+
+    # 2. Create database
+    sudo -u postgres createdb automagik_omni
+
+    # 3. Update .env
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://postgres@localhost/automagik_omni
+
+    # 4. Migrate data (if needed)
+    # Export from SQLite, import to PostgreSQL
+
+    # 5. Restart services
+    pm2 restart all
+    ```
+  </Accordion>
+
+  <Accordion title="Network Latency">
+    **Cause**: Slow network to Evolution API or Agent API
+
+    **Solution**:
+    ```bash
+    # Test network latency
+    time curl http://localhost:18082/instance/fetchInstances
+    time curl http://localhost:8886/health
+
+    # If remote services, ensure low-latency connection
+    # - Use same VPC/network
+    # - Enable HTTP/2
+    # - Use connection pooling
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### High Memory Usage
+
+**Problem**: OMNI consuming excessive memory (1GB+)
+
+**Solution**:
+
+```bash
+# Check memory usage
+ps aux | grep "automagik-omni\|evolution-api"
+
+# Clean up old traces
+curl -X POST http://localhost:8882/api/v1/traces/cleanup \
+  -H "x-api-key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"days_old": 7, "dry_run": false}'
+
+# Restart services to free memory
+pm2 restart all
+
+# Configure trace retention in .env
+echo "AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=7" >> .env
+
+# Disable tracing if not needed (not recommended)
+echo "AUTOMAGIK_OMNI_ENABLE_TRACING=false" >> .env
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Connection Errors" icon="wifi" href="/omni/troubleshooting/connection-errors">
+    Debug WhatsApp and Discord connectivity issues
+  </Card>
+  <Card title="Webhook Debugging" icon="webhook" href="/omni/troubleshooting/webhook-debugging">
+    Troubleshoot webhook and message flow
+  </Card>
+  <Card title="FAQ" icon="question" href="/omni/troubleshooting/faq">
+    Frequently asked questions
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help from the community
+  </Card>
+</CardGroup>

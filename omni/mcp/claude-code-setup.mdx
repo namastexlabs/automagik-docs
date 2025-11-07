@@ -1,0 +1,759 @@
+---
+title: "Claude Code Setup"
+description: "Configure MCP for Claude Desktop and Claude Code CLI"
+icon: "brain"
+---
+
+## Claude Code MCP Setup
+
+Configure OMNI as an MCP server for Claude Code in 3 minutes. Control your entire messaging infrastructure from inside Claude.
+
+<Info>
+Works with both **Claude Desktop** and **Claude Code CLI**. Same configuration for both.
+</Info>
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install OMNI">
+    ```bash
+    pip install automagik-omni
+    ```
+
+    Or if using uv:
+    ```bash
+    uv pip install automagik-omni
+    ```
+  </Step>
+
+  <Step title="Ensure OMNI is Running">
+    ```bash
+    # Start OMNI API server
+    make dev  # or your preferred method
+
+    # Verify it's running
+    curl http://localhost:8882/health
+    # Should return: {"status":"healthy"}
+    ```
+  </Step>
+
+  <Step title="Get Your API Key">
+    Your OMNI API key is in `.env` file:
+    ```bash
+    cat .env | grep AUTOMAGIK_OMNI_API_KEY
+    ```
+
+    Copy the value after `AUTOMAGIK_OMNI_API_KEY=`
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Step 1: Locate Configuration File
+
+Claude Code MCP configuration is stored at:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Claude/claude_desktop_config.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    open -a "TextEdit" ~/Library/Application\ Support/Claude/claude_desktop_config.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Claude\claude_desktop_config.json
+    ```
+
+    **Quick edit**:
+    ```cmd
+    notepad %APPDATA%\Claude\claude_desktop_config.json
+    ```
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Claude/claude_desktop_config.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    nano ~/.config/Claude/claude_desktop_config.json
+    ```
+  </Tab>
+</Tabs>
+
+### Step 2: Add OMNI Configuration
+
+Add this to your configuration file:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Replace `your-api-key-here`** with your actual API key from the `.env` file.
+
+<Tip>
+If you already have other MCP servers configured, just add the `"omni"` entry inside the existing `"mcpServers"` object.
+</Tip>
+
+### Step 3: Configuration Options
+
+**Standard Setup (Localhost)**:
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Remote Server Setup**:
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.yourcompany.com",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Custom Port Setup**:
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8000",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Step 4: Restart Claude Code
+
+**Important**: Fully quit and restart Claude Code for changes to take effect.
+
+- **macOS**: `Cmd + Q` to quit, then reopen
+- **Windows/Linux**: Close all windows, then reopen
+- **Claude Code CLI**: Just run `claude` again in a new terminal
+
+---
+
+## Testing Your Setup
+
+### Verify MCP Connection
+
+<Steps>
+  <Step title="Ask About Available Tools">
+    In Claude Code, type:
+    ```
+    What MCP tools do you have access to?
+    ```
+
+    Claude should list OMNI tools:
+    - manage_instances
+    - send_message
+    - manage_traces
+    - manage_profiles
+    - manage_chats
+    - manage_contacts
+  </Step>
+
+  <Step title="Test Instance Listing">
+    ```
+    List all my OMNI messaging instances
+    ```
+
+    Claude should query OMNI and show your instances (if any exist).
+  </Step>
+
+  <Step title="Test Message Sending">
+    ```
+    Send a test message to +[your-phone-number] saying "Hello from Claude!"
+    ```
+
+    Claude should:
+    1. Ask which instance to use (if you have multiple)
+    2. Send the message via OMNI
+    3. Confirm delivery
+  </Step>
+</Steps>
+
+---
+
+## Available MCP Tools
+
+Claude can now use these OMNI tools:
+
+### 1. manage_instances
+
+**What it does**: Complete instance lifecycle management
+
+| Operation | Example Command |
+|-----------|----------------|
+| `list` | "Show all my messaging instances" |
+| `get` | "Get details for sales-bot instance" |
+| `create` | "Create a WhatsApp instance called support-bot" |
+| `update` | "Update sales-bot to use new agent URL" |
+| `delete` | "Delete the old-bot instance" |
+| `status` | "Check if my WhatsApp is connected" |
+| `qr` | "Show me QR code for sales-bot" |
+| `restart` | "Restart the support-bot connection" |
+| `logout` | "Logout the marketing-bot instance" |
+
+### 2. send_message
+
+**What it does**: Send any type of message to any channel
+
+| Message Type | Example Command |
+|--------------|----------------|
+| `text` | "Send 'Meeting at 3pm' to +44123456789" |
+| `media` | "Send this image URL to John on WhatsApp" |
+| `audio` | "Send voice note to customer support number" |
+| `sticker` | "Send a sticker to +44123456789" |
+| `contact` | "Share contact card for John to +44987654321" |
+| `reaction` | "React with 👍 to message xyz123" |
+
+### 3. manage_traces
+
+**What it does**: Message history and analytics
+
+| Operation | Example Command |
+|-----------|----------------|
+| `list` | "Show recent message traces" |
+| `get` | "Get details for trace xyz123" |
+| `analytics` | "Generate message analytics for this week" |
+| `by_phone` | "Show all messages to +44123456789" |
+| `cleanup` | "Clean up traces older than 30 days" |
+
+### 4. manage_profiles
+
+**What it does**: User profile operations
+
+| Operation | Example Command |
+|-----------|----------------|
+| `fetch` | "Get profile for +44123456789" |
+| `update_picture` | "Update my bot profile picture to this URL" |
+
+### 5. manage_chats
+
+**What it does**: Chat/conversation management
+
+| Operation | Example Command |
+|-----------|----------------|
+| `list` | "List all chats for sales-bot" |
+| `get` | "Get chat details for chat_xyz123" |
+
+### 6. manage_contacts
+
+**What it does**: Contact management
+
+| Operation | Example Command |
+|-----------|----------------|
+| `list` | "List all contacts for sales-bot" |
+| `get` | "Get contact info for +44123456789" |
+
+---
+
+## Usage Examples
+
+### Example 1: Quick Message
+
+```
+You: "Send a WhatsApp message to +44123456789 saying 'Your order has shipped!'"
+
+Claude executes:
+→ Uses send_message MCP tool
+→ Selects default instance or asks which one to use
+→ Sends message via OMNI API
+
+Claude: "Message sent successfully to +44123456789 via sales-bot instance.
+         Delivered at 14:23."
+```
+
+### Example 2: Setup New Instance
+
+```
+You: "Create a new WhatsApp instance called london-office that connects
+     to the agent at https://london.agents.company.com"
+
+Claude executes:
+→ Uses manage_instances(operation="create")
+→ Creates instance with specified config
+
+Claude: "Created WhatsApp instance 'london-office' successfully.
+
+         To connect WhatsApp:
+         1. Get QR code with: 'Show QR for london-office'
+         2. Scan with WhatsApp app
+         3. Start receiving messages
+
+         Agent URL: https://london.agents.company.com
+         Status: Created, waiting for QR scan"
+```
+
+### Example 3: Debug Failed Message
+
+```
+You: "Why didn't John at +44123456789 receive my message from this morning?"
+
+Claude executes:
+→ Uses manage_traces(operation="by_phone", phone="+44123456789")
+→ Finds recent trace with failure
+→ Uses manage_traces(operation="get_payloads") for details
+
+Claude: "I found the message you sent at 09:15 this morning.
+
+         Status: Failed
+         Reason: Agent timeout after 30 seconds
+
+         The agent at https://sales.agents.company.com didn't respond
+         in time. This usually means:
+         1. Agent server is overloaded
+         2. Network connectivity issue
+         3. Agent crashed
+
+         Recommendation: Check agent server health and logs.
+         Would you like me to retry sending the message?"
+```
+
+### Example 4: Analytics Report
+
+```
+You: "Generate a weekly message report for all instances.
+     Show total messages, success rate, and any issues."
+
+Claude executes:
+→ Uses manage_instances(operation="list")
+→ Uses manage_traces(operation="analytics") for each instance
+→ Analyzes data
+
+Claude: "📊 Weekly Messaging Report (Nov 1-7, 2025)
+
+         **Overall**
+         Total Messages: 3,247
+         Success Rate: 97.3%
+         Average Response Time: 1.8s
+
+         **By Instance**
+         1. sales-bot (WhatsApp)
+            - Messages: 1,523
+            - Success: 98.1%
+            - Peak hour: 2pm-3pm (234 messages)
+
+         2. support-bot (Discord)
+            - Messages: 1,102
+            - Success: 96.4%
+            - Peak hour: 10am-11am (189 messages)
+
+         3. marketing-bot (WhatsApp)
+            - Messages: 622
+            - Success: 97.9%
+            - Peak hour: 9am-10am (98 messages)
+
+         **Issues Found**
+         - 87 failed messages (2.7% of total)
+         - Top failure reason: Agent timeout (45 occurrences)
+         - Recommendation: Scale agent infrastructure
+
+         Would you like details on any specific instance or issue?"
+```
+
+### Example 5: Bulk Operations
+
+```
+You: "Send 'Happy holidays!' to all customers who messaged us this week"
+
+Claude executes:
+→ Uses manage_traces(operation="analytics") to get active users
+→ For each unique phone number:
+    send_message(message_type="text", message="Happy holidays!")
+
+Claude: "Sending holiday greetings to 47 customers...
+
+         Progress:
+         ✅ Sent to 45 customers
+         ⏭️ Skipped 2 (opted out of promotions)
+
+         Total reach: 45 customers
+         Estimated delivery time: 3-5 minutes
+
+         I'm monitoring delivery status. Would you like a final report?"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP server not found">
+    **Error**: `Could not connect to MCP server 'omni'`
+
+    **Solutions**:
+    1. Verify automagik-omni is installed:
+       ```bash
+       pip show automagik-omni
+       # or
+       uv pip list | grep automagik-omni
+       ```
+
+    2. Check configuration syntax (valid JSON, no trailing commas)
+
+    3. Ensure `"command": "uvx"` (not `"uv"` or `"python"`)
+
+    4. Try manual MCP server start to see errors:
+       ```bash
+       uvx --from automagik-omni mcp-server-omni
+       ```
+
+    5. Restart Claude Code completely (quit and reopen)
+  </Accordion>
+
+  <Accordion title="Connection refused to OMNI API">
+    **Error**: `Connection error: http://localhost:8882`
+
+    **Solutions**:
+    1. Verify OMNI is running:
+       ```bash
+       curl http://localhost:8882/health
+       ```
+
+    2. Check OMNI_URL matches your setup:
+       - Default: `http://localhost:8882`
+       - Custom port: `http://localhost:YOUR_PORT`
+
+    3. Check firewall isn't blocking localhost connections
+
+    4. Verify OMNI is bound to correct interface:
+       ```bash
+       # In .env file:
+       AUTOMAGIK_OMNI_API_HOST=0.0.0.0
+       AUTOMAGIK_OMNI_API_PORT=8882
+       ```
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    **Error**: `401 Unauthorized` or `Invalid API key`
+
+    **Solutions**:
+    1. Verify OMNI_API_KEY matches `.env` file:
+       ```bash
+       cat .env | grep AUTOMAGIK_OMNI_API_KEY
+       ```
+
+    2. Check for extra spaces or quotes in config:
+       ```json
+       "OMNI_API_KEY": "key123"  ✅ Correct
+       "OMNI_API_KEY": " key123 "  ❌ Extra spaces
+       "OMNI_API_KEY": "\"key123\""  ❌ Escaped quotes
+       ```
+
+    3. Ensure API key hasn't been changed in OMNI
+
+    4. Try regenerating API key in `.env` and update config
+  </Accordion>
+
+  <Accordion title="Claude doesn't see OMNI tools">
+    **Symptom**: Claude acts like MCP tools don't exist
+
+    **Solutions**:
+    1. Ask Claude directly: "What MCP servers do you have?"
+       → Should list "omni" among others
+
+    2. If not listed:
+       - Check config file location is correct for your OS
+       - Verify JSON syntax is valid (use jsonlint.com)
+       - Ensure file is saved after editing
+       - Restart Claude Code
+
+    3. Check Claude Code console for errors:
+       - **macOS**: Help → Toggle Developer Tools
+       - Look for MCP-related errors in console
+  </Accordion>
+
+  <Accordion title="Messages not being sent">
+    **Symptom**: Claude confirms send but message doesn't arrive
+
+    **Solutions**:
+    1. Check instance status:
+       ```
+       "What's the connection status of my WhatsApp instance?"
+       ```
+
+    2. Verify phone number format:
+       - Must include country code: `+44123456789` ✅
+       - Without country code: `0123456789` ❌
+
+    3. Check message traces:
+       ```
+       "Show me traces for the last message I sent"
+       ```
+
+    4. Verify instance is connected:
+       ```
+       "Get QR code for my-instance"
+       ```
+       Scan to reconnect if needed
+  </Accordion>
+
+  <Accordion title="Slow responses">
+    **Symptom**: Claude takes a long time to respond to OMNI commands
+
+    **Possible causes**:
+    1. OMNI server is slow (check server logs)
+    2. Network latency (if using remote OMNI)
+    3. Large dataset queries (analytics on millions of traces)
+
+    **Solutions**:
+    - Use more specific queries: "Show last 10 traces" instead of "Show all traces"
+    - Check OMNI server performance: `curl http://localhost:8882/health`
+    - For analytics, specify date ranges: "Analytics for yesterday"
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Configuration
+
+### Multiple OMNI Environments
+
+Configure different OMNI servers for dev/staging/production:
+
+```json
+{
+  "mcpServers": {
+    "omni-dev": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "dev-key-here"
+      }
+    },
+    "omni-prod": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.company.com",
+        "OMNI_API_KEY": "prod-key-here"
+      }
+    }
+  }
+}
+```
+
+**Usage**:
+```
+"List instances on omni-dev"
+"Send message via omni-prod"
+```
+
+### Environment Variable Loading
+
+Use shell environment variables for security:
+
+```bash
+# In your shell profile (~/.zshrc or ~/.bashrc)
+export OMNI_DEV_API_KEY="your-dev-key"
+export OMNI_PROD_API_KEY="your-prod-key"
+```
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "${OMNI_DEV_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Tip>
+Restart terminal and Claude Code after adding environment variables.
+</Tip>
+
+---
+
+## Best Practices
+
+### Natural Language Commands
+
+<Tip>
+**Use conversational language** - don't try to call tools directly. Claude understands intent.
+
+✅ Good: "Send a message to customer +44123456789"
+❌ Bad: "use send_message with phone=+44123456789"
+</Tip>
+
+### Be Specific
+
+```
+✅ "Send 'Order confirmed' to +44123456789 via sales-bot"
+❌ "Send a message"
+
+✅ "Show failed messages from yesterday"
+❌ "Show messages"
+
+✅ "Create WhatsApp instance named london-office with agent at https://..."
+❌ "Create instance"
+```
+
+### Iterate and Refine
+
+```
+You: "Show message analytics"
+Claude: "For which time period?"
+
+You: "Last 7 days"
+Claude: [Shows analytics]
+
+You: "Now break it down by instance"
+Claude: [Shows per-instance breakdown]
+```
+
+### Save Common Operations
+
+Create a personal prompt library:
+
+```markdown
+## OMNI Quick Commands
+
+### Daily Status Check
+"Show me:
+1. All instance connection statuses
+2. Failed messages from today
+3. Total messages sent today"
+
+### Weekly Report
+"Generate weekly report for all instances including:
+- Total messages
+- Success rate
+- Top 5 recipients
+- Any issues or failures"
+
+### Customer Message History
+"Show all messages to/from +44[customer-number] in the last 30 days"
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Overview" icon="book" href="/omni/mcp/overview">
+    Learn more about MCP integration with OMNI
+  </Card>
+
+  <Card title="MCP Architecture" icon="microchip" href="/omni/concepts/mcp-architecture">
+    Understand how MCP works under the hood
+  </Card>
+
+  <Card title="REST API Reference" icon="code" href="/omni/api/rest">
+    For programmatic integrations
+  </Card>
+
+  <Card title="Message Tracing" icon="chart-line" href="/omni/concepts/message-tracing">
+    Deep dive into debugging with traces
+  </Card>
+</CardGroup>
+
+---
+
+## Configuration File Examples
+
+### Minimal Configuration
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Full Configuration with Multiple Services
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    },
+    "forge": {
+      "command": "npx",
+      "args": ["automagik-forge", "--mcp"],
+      "env": {
+        "PROJECT_ID": "your-project-id"
+      }
+    }
+  }
+}
+```
+
+---
+
+<Card title="You're Ready!" icon="party-horn">
+**OMNI is now controllable from Claude Code via natural language.**
+
+Try it out:
+- "List my instances"
+- "Send a test message"
+- "Show me today's analytics"
+
+No code, no API docs - just conversation. Welcome to AI-native messaging infrastructure.
+</Card>

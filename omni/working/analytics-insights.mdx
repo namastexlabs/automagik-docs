@@ -1,0 +1,977 @@
+---
+title: "Analytics & Insights"
+description: "Analyze message patterns, performance metrics, and user behavior"
+icon: "chart-bar"
+---
+
+## Overview
+
+Automagik OMNI's analytics system transforms trace data into actionable insights. Monitor message volume, track success rates, analyze response times, and understand user engagement patterns across all your messaging instances.
+
+---
+
+## Getting Analytics Summary
+
+### Basic Analytics Query
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get analytics for last 7 days
+    curl "http://localhost:8882/api/v1/traces/analytics/summary?days=7" \
+      -H "x-api-key: your-omni-api-key"
+
+    # With specific date range
+    curl "http://localhost:8882/api/v1/traces/analytics/summary?start_date=2025-11-01T00:00:00Z&end_date=2025-11-04T23:59:59Z" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    import requests
+    from datetime import datetime, timedelta
+
+    # Analytics for last 7 days
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces/analytics/summary",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={"days": 7}
+    )
+
+    analytics = response.json()
+
+    print(f"📊 Analytics Summary (Last 7 Days)")
+    print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"Total Messages: {analytics['total_messages']}")
+    print(f"Success Rate: {analytics['success_rate']:.2%}")
+    print(f"Avg Response Time: {analytics['avg_response_time_ms']}ms")
+    print(f"\nBy Status:")
+    for status, count in analytics['by_status'].items():
+        print(f"  {status}: {count}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/traces/analytics/summary?days=7',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const analytics = await response.json();
+
+    console.log('📊 Analytics Summary (Last 7 Days)');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`Total Messages: ${analytics.total_messages}`);
+    console.log(`Success Rate: ${(analytics.success_rate * 100).toFixed(2)}%`);
+    console.log(`Avg Response Time: ${analytics.avg_response_time_ms}ms`);
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "period": {
+    "start": "2025-10-28T00:00:00Z",
+    "end": "2025-11-04T23:59:59Z",
+    "days": 7
+  },
+  "total_messages": 1543,
+  "success_rate": 0.94,
+  "avg_response_time_ms": 1250,
+  "by_status": {
+    "completed": 1450,
+    "failed": 93,
+    "processing": 0,
+    "received": 0
+  },
+  "by_instance": {
+    "support-bot": 892,
+    "sales-bot": 651
+  },
+  "by_message_type": {
+    "text": 1200,
+    "image": 250,
+    "video": 50,
+    "audio": 30,
+    "document": 13
+  },
+  "by_day": [
+    {"date": "2025-10-28", "count": 210},
+    {"date": "2025-10-29", "count": 225},
+    {"date": "2025-10-30", "count": 198},
+    {"date": "2025-10-31", "count": 240},
+    {"date": "2025-11-01", "count": 235},
+    {"date": "2025-11-02", "count": 220},
+    {"date": "2025-11-03", "count": 215}
+  ],
+  "peak_hour": 14,
+  "slowest_day": "2025-10-30"
+}
+```
+
+---
+
+## Message Volume Analysis
+
+### Daily Message Trends
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timedelta
+
+    def plot_daily_trends(instance_name=None, days=30):
+        """Generate daily message volume chart"""
+        params = {"days": days}
+        if instance_name:
+            params["instance_name"] = instance_name
+
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces/analytics/summary",
+            headers={"x-api-key": "your-omni-api-key"},
+            params=params
+        )
+
+        analytics = response.json()
+        daily_data = analytics["by_day"]
+
+        # Extract dates and counts
+        dates = [item["date"] for item in daily_data]
+        counts = [item["count"] for item in daily_data]
+
+        # Create plot
+        plt.figure(figsize=(12, 6))
+        plt.plot(dates, counts, marker='o', linewidth=2)
+        plt.xlabel('Date')
+        plt.ylabel('Message Count')
+        plt.title(f'Daily Message Volume - Last {days} Days')
+        plt.xticks(rotation=45)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig('daily_trends.png')
+        print("✅ Chart saved to daily_trends.png")
+
+    plot_daily_trends(days=30)
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getDailyTrends(instanceName = null, days = 30) {
+      const params = new URLSearchParams({ days });
+      if (instanceName) {
+        params.append('instance_name', instanceName);
+      }
+
+      const response = await fetch(
+        `http://localhost:8882/api/v1/traces/analytics/summary?${params}`,
+        { headers: { 'x-api-key': 'your-omni-api-key' } }
+      );
+
+      const analytics = await response.json();
+
+      // Calculate statistics
+      const counts = analytics.by_day.map(d => d.count);
+      const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+      const max = Math.max(...counts);
+      const min = Math.min(...counts);
+
+      console.log('📈 Daily Trends');
+      console.log(`Average: ${avg.toFixed(0)} msgs/day`);
+      console.log(`Peak: ${max} messages`);
+      console.log(`Low: ${min} messages`);
+
+      return analytics.by_day;
+    }
+
+    await getDailyTrends('support-bot', 30);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Hourly Distribution
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_hourly_patterns(instance_name=None, days=7):
+        """Analyze message patterns by hour of day"""
+        # Fetch traces
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        params = {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "limit": 5000
+        }
+        if instance_name:
+            params["instance_name"] = instance_name
+
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params=params
+        )
+
+        traces = response.json()["traces"]
+
+        # Count by hour
+        hourly_counts = {}
+        for trace in traces:
+            hour = datetime.fromisoformat(
+                trace["created_at"].replace('Z', '+00:00')
+            ).hour
+            hourly_counts[hour] = hourly_counts.get(hour, 0) + 1
+
+        # Display results
+        print("⏰ Hourly Message Distribution")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        for hour in range(24):
+            count = hourly_counts.get(hour, 0)
+            bar = "█" * (count // 10)
+            print(f"{hour:02d}:00 | {bar} {count}")
+
+        # Find peak hour
+        peak_hour = max(hourly_counts, key=hourly_counts.get)
+        print(f"\n🔥 Peak Hour: {peak_hour:02d}:00 ({hourly_counts[peak_hour]} messages)")
+
+    analyze_hourly_patterns("support-bot", days=7)
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Success & Failure Analysis
+
+### Success Rate by Instance
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_success_rates():
+        """Calculate success rates for all instances"""
+        # Get analytics
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces/analytics/summary",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={"days": 7}
+        )
+
+        analytics = response.json()
+
+        print("📊 Success Rates by Instance")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        for instance, count in analytics["by_instance"].items():
+            # Get instance-specific stats
+            inst_response = requests.get(
+                "http://localhost:8882/api/v1/traces/analytics/summary",
+                headers={"x-api-key": "your-omni-api-key"},
+                params={
+                    "days": 7,
+                    "instance_name": instance
+                }
+            )
+
+            inst_analytics = inst_response.json()
+            success_rate = inst_analytics["success_rate"]
+
+            status = "✅" if success_rate > 0.95 else "⚠️" if success_rate > 0.90 else "❌"
+
+            print(f"{status} {instance}")
+            print(f"   Messages: {count}")
+            print(f"   Success Rate: {success_rate:.2%}")
+            print(f"   Failed: {inst_analytics['by_status'].get('failed', 0)}")
+            print()
+
+    analyze_success_rates()
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function analyzeSuccessRates() {
+      const response = await fetch(
+        'http://localhost:8882/api/v1/traces/analytics/summary?days=7',
+        { headers: { 'x-api-key': 'your-omni-api-key' } }
+      );
+
+      const analytics = await response.json();
+
+      console.log('📊 Success Rates by Instance');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      for (const [instance, count] of Object.entries(analytics.by_instance)) {
+        // Get instance-specific stats
+        const instResponse = await fetch(
+          `http://localhost:8882/api/v1/traces/analytics/summary?days=7&instance_name=${instance}`,
+          { headers: { 'x-api-key': 'your-omni-api-key' } }
+        );
+
+        const instAnalytics = await instResponse.json();
+        const successRate = instAnalytics.success_rate;
+
+        const status = successRate > 0.95 ? '✅' :
+                      successRate > 0.90 ? '⚠️' : '❌';
+
+        console.log(`${status} ${instance}`);
+        console.log(`   Messages: ${count}`);
+        console.log(`   Success Rate: ${(successRate * 100).toFixed(2)}%`);
+        console.log(`   Failed: ${instAnalytics.by_status.failed || 0}\n`);
+      }
+    }
+
+    await analyzeSuccessRates();
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Failure Analysis
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_failures(days=7):
+        """Analyze failed messages and identify patterns"""
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        # Get failed traces
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={
+                "trace_status": "failed",
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "limit": 500
+            }
+        )
+
+        failed_traces = response.json()["traces"]
+
+        if not failed_traces:
+            print("✅ No failures in the last 7 days!")
+            return
+
+        print(f"❌ Failure Analysis ({len(failed_traces)} failures)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        # Group by instance
+        by_instance = {}
+        by_message_type = {}
+        by_hour = {}
+
+        for trace in failed_traces:
+            # By instance
+            instance = trace["instance_name"]
+            by_instance[instance] = by_instance.get(instance, 0) + 1
+
+            # By message type
+            msg_type = trace["message_type"]
+            by_message_type[msg_type] = by_message_type.get(msg_type, 0) + 1
+
+            # By hour
+            hour = datetime.fromisoformat(
+                trace["created_at"].replace('Z', '+00:00')
+            ).hour
+            by_hour[hour] = by_hour.get(hour, 0) + 1
+
+        print("\n📍 Failures by Instance:")
+        for instance, count in sorted(
+            by_instance.items(),
+            key=lambda x: x[1],
+            reverse=True
+        ):
+            print(f"  {instance}: {count}")
+
+        print("\n📝 Failures by Message Type:")
+        for msg_type, count in sorted(
+            by_message_type.items(),
+            key=lambda x: x[1],
+            reverse=True
+        ):
+            print(f"  {msg_type}: {count}")
+
+        print("\n⏰ Failures by Hour:")
+        for hour in sorted(by_hour.keys()):
+            bar = "█" * by_hour[hour]
+            print(f"  {hour:02d}:00 | {bar} {by_hour[hour]}")
+
+    analyze_failures(days=7)
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Response Time Metrics
+
+### Average Response Time
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_response_times(instance_name=None, days=7):
+        """Analyze message processing times"""
+        params = {"days": days}
+        if instance_name:
+            params["instance_name"] = instance_name
+
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces/analytics/summary",
+            headers={"x-api-key": "your-omni-api-key"},
+            params=params
+        )
+
+        analytics = response.json()
+        avg_time = analytics["avg_response_time_ms"]
+
+        # Fetch individual traces for percentile analysis
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        traces_response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={
+                "start_date": start_date.isoformat(),
+                "trace_status": "completed",
+                "limit": 1000
+            }
+        )
+
+        traces = traces_response.json()["traces"]
+        times = [
+            t.get("processing_time_ms", 0)
+            for t in traces
+            if t.get("processing_time_ms")
+        ]
+
+        if not times:
+            print("No timing data available")
+            return
+
+        times.sort()
+
+        print("⚡ Response Time Analysis")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"Average: {avg_time}ms")
+        print(f"Median (P50): {times[len(times)//2]}ms")
+        print(f"P95: {times[int(len(times)*0.95)]}ms")
+        print(f"P99: {times[int(len(times)*0.99)]}ms")
+        print(f"Fastest: {min(times)}ms")
+        print(f"Slowest: {max(times)}ms")
+
+        # Performance grade
+        if avg_time < 1000:
+            grade = "🟢 Excellent"
+        elif avg_time < 2000:
+            grade = "🟡 Good"
+        elif avg_time < 5000:
+            grade = "🟠 Fair"
+        else:
+            grade = "🔴 Needs Improvement"
+
+        print(f"\nGrade: {grade}")
+
+    analyze_response_times("support-bot", days=7)
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function analyzeResponseTimes(instanceName = null, days = 7) {
+      const params = new URLSearchParams({ days });
+      if (instanceName) {
+        params.append('instance_name', instanceName);
+      }
+
+      const response = await fetch(
+        `http://localhost:8882/api/v1/traces/analytics/summary?${params}`,
+        { headers: { 'x-api-key': 'your-omni-api-key' } }
+      );
+
+      const analytics = await response.json();
+      const avgTime = analytics.avg_response_time_ms;
+
+      console.log('⚡ Response Time Analysis');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`Average: ${avgTime}ms`);
+
+      // Performance grade
+      let grade;
+      if (avgTime < 1000) {
+        grade = '🟢 Excellent';
+      } else if (avgTime < 2000) {
+        grade = '🟡 Good';
+      } else if (avgTime < 5000) {
+        grade = '🟠 Fair';
+      } else {
+        grade = '🔴 Needs Improvement';
+      }
+
+      console.log(`Grade: ${grade}`);
+    }
+
+    await analyzeResponseTimes('support-bot', 7);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## User Activity Patterns
+
+### Active Users by Phone
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_active_users(instance_name, days=30):
+        """Analyze user activity patterns"""
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={
+                "instance_name": instance_name,
+                "start_date": start_date.isoformat(),
+                "limit": 5000
+            }
+        )
+
+        traces = response.json()["traces"]
+
+        # Count messages per user
+        user_activity = {}
+        for trace in traces:
+            phone = trace["phone"]
+            if phone not in user_activity:
+                user_activity[phone] = {
+                    "messages": 0,
+                    "first_seen": trace["created_at"],
+                    "last_seen": trace["created_at"]
+                }
+
+            user_activity[phone]["messages"] += 1
+            user_activity[phone]["last_seen"] = trace["created_at"]
+
+        # Sort by message count
+        sorted_users = sorted(
+            user_activity.items(),
+            key=lambda x: x[1]["messages"],
+            reverse=True
+        )
+
+        print(f"👥 User Activity Report ({instance_name})")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"Total Users: {len(user_activity)}")
+        print(f"Total Messages: {len(traces)}")
+        print(f"Avg Messages/User: {len(traces)/len(user_activity):.1f}")
+        print("\n🔥 Top 10 Most Active Users:")
+
+        for i, (phone, data) in enumerate(sorted_users[:10], 1):
+            # Mask phone number for privacy
+            masked_phone = phone[:4] + "****" + phone[-4:]
+            print(f"{i:2d}. {masked_phone}: {data['messages']} messages")
+
+        # Segmentation
+        power_users = sum(1 for u in user_activity.values() if u["messages"] > 50)
+        regular_users = sum(1 for u in user_activity.values() if 10 < u["messages"] <= 50)
+        occasional_users = sum(1 for u in user_activity.values() if u["messages"] <= 10)
+
+        print(f"\n📊 User Segmentation:")
+        print(f"  Power Users (50+ msgs): {power_users}")
+        print(f"  Regular Users (11-50 msgs): {regular_users}")
+        print(f"  Occasional Users (1-10 msgs): {occasional_users}")
+
+    analyze_active_users("support-bot", days=30)
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Channel-Specific Analytics
+
+### Compare Platforms
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def compare_platforms(days=30):
+        """Compare performance across WhatsApp, Discord, etc."""
+        # Get all instances
+        instances_response = requests.get(
+            "http://localhost:8882/api/v1/instances",
+            headers={"x-api-key": "your-omni-api-key"}
+        )
+
+        instances = instances_response.json()["instances"]
+
+        # Group by channel type
+        by_channel = {}
+
+        for instance in instances:
+            channel = instance["channel_type"]
+
+            # Get analytics for this instance
+            analytics_response = requests.get(
+                "http://localhost:8882/api/v1/traces/analytics/summary",
+                headers={"x-api-key": "your-omni-api-key"},
+                params={
+                    "instance_name": instance["name"],
+                    "days": days
+                }
+            )
+
+            analytics = analytics_response.json()
+
+            if channel not in by_channel:
+                by_channel[channel] = {
+                    "instances": 0,
+                    "total_messages": 0,
+                    "total_success": 0,
+                    "total_failed": 0,
+                    "avg_response_times": []
+                }
+
+            by_channel[channel]["instances"] += 1
+            by_channel[channel]["total_messages"] += analytics["total_messages"]
+            by_channel[channel]["total_success"] += analytics["by_status"].get("completed", 0)
+            by_channel[channel]["total_failed"] += analytics["by_status"].get("failed", 0)
+            by_channel[channel]["avg_response_times"].append(
+                analytics["avg_response_time_ms"]
+            )
+
+        print("🌐 Platform Comparison")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        for channel, data in by_channel.items():
+            success_rate = data["total_success"] / data["total_messages"] if data["total_messages"] > 0 else 0
+            avg_response = sum(data["avg_response_times"]) / len(data["avg_response_times"]) if data["avg_response_times"] else 0
+
+            print(f"\n{channel.upper()}")
+            print(f"  Instances: {data['instances']}")
+            print(f"  Messages: {data['total_messages']}")
+            print(f"  Success Rate: {success_rate:.2%}")
+            print(f"  Avg Response Time: {avg_response:.0f}ms")
+            print(f"  Failed: {data['total_failed']}")
+
+    compare_platforms(days=30)
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Custom Analytics Queries
+
+### Build Custom Reports
+
+```python
+class OMNIAnalytics:
+    def __init__(self, omni_url, api_key):
+        self.omni_url = omni_url
+        self.api_key = api_key
+
+    def _fetch_traces(self, **kwargs):
+        """Fetch traces with filters"""
+        response = requests.get(
+            f"{self.omni_url}/api/v1/traces",
+            headers={"x-api-key": self.api_key},
+            params=kwargs
+        )
+        return response.json()["traces"]
+
+    def _fetch_analytics(self, **kwargs):
+        """Fetch analytics summary"""
+        response = requests.get(
+            f"{self.omni_url}/api/v1/traces/analytics/summary",
+            headers={"x-api-key": self.api_key},
+            params=kwargs
+        )
+        return response.json()
+
+    def daily_report(self, instance_name=None):
+        """Generate daily activity report"""
+        analytics = self._fetch_analytics(days=1, instance_name=instance_name)
+
+        report = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "total_messages": analytics["total_messages"],
+            "success_rate": analytics["success_rate"],
+            "by_message_type": analytics["by_message_type"],
+            "avg_response_time": analytics["avg_response_time_ms"],
+            "peak_hour": analytics.get("peak_hour", "N/A")
+        }
+
+        return report
+
+    def weekly_summary(self, instance_name=None):
+        """Generate weekly summary report"""
+        analytics = self._fetch_analytics(days=7, instance_name=instance_name)
+
+        # Calculate trends
+        daily_data = analytics["by_day"]
+        first_half = sum(d["count"] for d in daily_data[:3])
+        second_half = sum(d["count"] for d in daily_data[-4:])
+        trend = "📈 Increasing" if second_half > first_half else "📉 Decreasing"
+
+        report = {
+            "period": f"{daily_data[0]['date']} to {daily_data[-1]['date']}",
+            "total_messages": analytics["total_messages"],
+            "daily_average": analytics["total_messages"] / 7,
+            "success_rate": analytics["success_rate"],
+            "trend": trend,
+            "busiest_day": max(daily_data, key=lambda x: x["count"])["date"],
+            "avg_response_time": analytics["avg_response_time_ms"]
+        }
+
+        return report
+
+    def engagement_metrics(self, instance_name, days=30):
+        """Calculate user engagement metrics"""
+        traces = self._fetch_traces(
+            instance_name=instance_name,
+            start_date=(datetime.now() - timedelta(days=days)).isoformat(),
+            limit=5000
+        )
+
+        unique_users = set(t["phone"] for t in traces)
+        user_messages = {}
+
+        for trace in traces:
+            phone = trace["phone"]
+            user_messages[phone] = user_messages.get(phone, 0) + 1
+
+        # Calculate metrics
+        total_users = len(unique_users)
+        active_users = sum(1 for count in user_messages.values() if count > 5)
+        retention_rate = active_users / total_users if total_users > 0 else 0
+
+        return {
+            "total_users": total_users,
+            "active_users": active_users,
+            "retention_rate": retention_rate,
+            "avg_messages_per_user": len(traces) / total_users if total_users > 0 else 0,
+            "messages_per_active_user": len(traces) / active_users if active_users > 0 else 0
+        }
+
+# Usage
+analytics = OMNIAnalytics("http://localhost:8882", "your-omni-api-key")
+
+# Daily report
+daily = analytics.daily_report("support-bot")
+print("📊 Daily Report:")
+print(f"  Messages: {daily['total_messages']}")
+print(f"  Success Rate: {daily['success_rate']:.2%}")
+
+# Weekly summary
+weekly = analytics.weekly_summary("support-bot")
+print("\n📅 Weekly Summary:")
+print(f"  Total: {weekly['total_messages']}")
+print(f"  Daily Avg: {weekly['daily_average']:.0f}")
+print(f"  Trend: {weekly['trend']}")
+
+# Engagement
+engagement = analytics.engagement_metrics("support-bot", days=30)
+print("\n👥 Engagement Metrics:")
+print(f"  Total Users: {engagement['total_users']}")
+print(f"  Active Users: {engagement['active_users']}")
+print(f"  Retention: {engagement['retention_rate']:.2%}")
+```
+
+---
+
+## Cleanup Old Traces
+
+### Manage Trace Retention
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Dry run: preview what will be deleted
+    curl -X POST "http://localhost:8882/api/v1/traces/cleanup" \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "days_old": 90,
+        "dry_run": true
+      }'
+
+    # Actually delete traces older than 90 days
+    curl -X POST "http://localhost:8882/api/v1/traces/cleanup" \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "days_old": 90,
+        "dry_run": false
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Preview cleanup
+    response = requests.post(
+        "http://localhost:8882/api/v1/traces/cleanup",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "days_old": 90,
+            "dry_run": True
+        }
+    )
+
+    preview = response.json()
+    print(f"Would delete {preview['traces_to_delete']} traces")
+    print(f"Storage freed: {preview['storage_freed_mb']}MB")
+
+    # Confirm and execute
+    if input("Proceed? (yes/no): ").lower() == "yes":
+        response = requests.post(
+            "http://localhost:8882/api/v1/traces/cleanup",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": "your-omni-api-key"
+            },
+            json={
+                "days_old": 90,
+                "dry_run": False
+            }
+        )
+        result = response.json()
+        print(f"✅ Deleted {result['deleted_count']} traces")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Preview cleanup
+    let response = await fetch(
+      'http://localhost:8882/api/v1/traces/cleanup',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          days_old: 90,
+          dry_run: true
+        })
+      }
+    );
+
+    const preview = await response.json();
+    console.log(`Would delete ${preview.traces_to_delete} traces`);
+
+    // Execute cleanup
+    response = await fetch(
+      'http://localhost:8882/api/v1/traces/cleanup',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          days_old: 90,
+          dry_run: false
+        })
+      }
+    );
+
+    const result = await response.json();
+    console.log(`✅ Deleted ${result.deleted_count} traces`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Analytics show zero messages">
+    **Problem**: Analytics returns no data or zeros
+
+    **Solutions**:
+    1. Verify date range includes actual activity
+    2. Check instance name spelling
+    3. Ensure traces exist for the period
+    4. Try removing all filters
+  </Accordion>
+
+  <Accordion title="Response time metrics unavailable">
+    **Problem**: Timing data missing from analytics
+
+    **Solutions**:
+    1. Older traces may not have timing data
+    2. Check if processing_time_ms is recorded
+    3. Query recent traces only
+    4. Verify instance is recording metrics
+  </Accordion>
+
+  <Accordion title="Cleanup operation fails">
+    **Problem**: Trace cleanup returns error
+
+    **Solutions**:
+    1. Start with dry_run: true to preview
+    2. Check database permissions
+    3. Try smaller retention period first
+    4. Ensure no active operations during cleanup
+  </Accordion>
+
+  <Accordion title="Analytics queries are slow">
+    **Problem**: Analytics endpoints timeout or lag
+
+    **Solutions**:
+    1. Reduce date range (query fewer days)
+    2. Add specific instance filters
+    3. Limit result set size
+    4. Run analytics during off-peak hours
+    5. Consider caching analytics results
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Traces" icon="chart-line" href="/omni/working/viewing-traces">
+    Query individual traces for detailed analysis
+  </Card>
+
+  <Card title="Manage Instances" icon="server" href="/omni/working/managing-instances">
+    Configure instances for optimal performance
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/working/sending-messages">
+    Send messages and track their analytics
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/traces">
+    Complete traces API documentation
+  </Card>
+</CardGroup>

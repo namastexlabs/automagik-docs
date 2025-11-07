@@ -1,0 +1,704 @@
+---
+title: "Chat Management"
+description: "Manage conversations and message history across platforms"
+icon: "comments"
+---
+
+## Overview
+
+Access and manage conversations across all messaging platforms through a unified interface. The Omni Chats API provides consistent chat data regardless of the underlying channel (WhatsApp, Discord, etc.).
+
+<Note>
+Chat endpoints are available NOW via the `/api/v1/omni/{instance_name}/chats` path.
+</Note>
+
+---
+
+## List Chats
+
+Retrieve all active chats for an instance with filtering and pagination.
+
+**Endpoint**: `GET /api/v1/omni/{instance_name}/chats`
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (1-based)
+</ParamField>
+
+<ParamField query="page_size" type="integer" default="50">
+  Items per page (max: 500)
+</ParamField>
+
+<ParamField query="chat_type_filter" type="string">
+  Filter by chat type: `direct`, `group`, `channel`, `thread`
+</ParamField>
+
+<ParamField query="archived" type="boolean">
+  Filter by archived status
+</ParamField>
+
+<ParamField query="channel_type" type="string">
+  Filter by channel type (`whatsapp`, `discord`)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/my-whatsapp/chats?page=1&page_size=50" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8882/api/v1/omni/my-whatsapp/chats",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"page": 1, "page_size": 50, "chat_type_filter": "group"}
+)
+
+data = response.json()
+for chat in data["chats"]:
+    print(f"{chat['chat_name']}: {chat['unread_count']} unread")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/omni/my-whatsapp/chats?page=1&page_size=50',
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const data = await response.json();
+console.log(data.chats);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "chats": [
+    {
+      "chat_id": "5511999999999@s.whatsapp.net",
+      "chat_type": "direct",
+      "chat_name": "John Doe",
+      "participant_phone": "+5511999999999",
+      "profile_picture_url": "https://pps.whatsapp.net/...",
+      "unread_count": 3,
+      "is_pinned": false,
+      "is_archived": false,
+      "is_muted": false,
+      "last_message_timestamp": "2025-11-04T10:30:00Z",
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "metadata": {
+        "last_message_preview": "Thanks for the update!"
+      }
+    },
+    {
+      "chat_id": "123456789@g.us",
+      "chat_type": "group",
+      "chat_name": "Team Discussion",
+      "profile_picture_url": "https://pps.whatsapp.net/...",
+      "participant_count": 15,
+      "unread_count": 0,
+      "is_pinned": true,
+      "is_archived": false,
+      "is_muted": false,
+      "last_message_timestamp": "2025-11-04T09:00:00Z",
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "metadata": {
+        "last_message_preview": "Meeting at 3pm"
+      }
+    }
+  ],
+  "total_count": 45,
+  "page": 1,
+  "page_size": 50,
+  "has_more": false,
+  "instance_name": "my-whatsapp",
+  "channel_type": "whatsapp",
+  "partial_errors": []
+}
+```
+
+---
+
+## Get Chat by ID
+
+Retrieve detailed information about a specific chat.
+
+**Endpoint**: `GET /api/v1/omni/{instance_name}/chats/{chat_id}`
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField path="chat_id" type="string" required>
+  Chat identifier (e.g., `5511999999999@s.whatsapp.net` for WhatsApp direct, `123456789@g.us` for group, Discord channel ID for Discord)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/my-whatsapp/chats/5511999999999@s.whatsapp.net" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+chat_id = "5511999999999@s.whatsapp.net"
+response = requests.get(
+    f"http://localhost:8882/api/v1/omni/my-whatsapp/chats/{chat_id}",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+chat = response.json()
+print(f"Chat: {chat['chat_name']}")
+print(f"Unread: {chat['unread_count']}")
+```
+
+```javascript JavaScript
+const chatId = '5511999999999@s.whatsapp.net';
+const response = await fetch(
+  `http://localhost:8882/api/v1/omni/my-whatsapp/chats/${encodeURIComponent(chatId)}`,
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const chat = await response.json();
+console.log(chat);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "chat_id": "5511999999999@s.whatsapp.net",
+  "chat_type": "direct",
+  "chat_name": "John Doe",
+  "participant_phone": "+5511999999999",
+  "profile_picture_url": "https://pps.whatsapp.net/...",
+  "unread_count": 3,
+  "is_pinned": false,
+  "is_archived": false,
+  "is_muted": false,
+  "last_message_timestamp": "2025-11-04T10:30:00Z",
+  "channel_type": "whatsapp",
+  "instance_name": "my-whatsapp",
+  "metadata": {
+    "last_message_preview": "Thanks for the update!"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Chat '5511999999999@s.whatsapp.net' not found in instance 'my-whatsapp'"
+}
+```
+
+---
+
+## Get Chat Messages
+
+Retrieve message history for a specific chat with pagination.
+
+**Endpoint**: `GET /api/v1/omni/{instance_name}/chats/{chat_id}/messages`
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField path="chat_id" type="string" required>
+  Chat identifier
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (1-based)
+</ParamField>
+
+<ParamField query="page_size" type="integer" default="50">
+  Items per page (max: 200)
+</ParamField>
+
+<ParamField query="before_message_id" type="string">
+  Message ID to fetch messages before (cursor pagination)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/my-whatsapp/chats/5511999999999@s.whatsapp.net/messages?page=1&page_size=50" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+chat_id = "5511999999999@s.whatsapp.net"
+response = requests.get(
+    f"http://localhost:8882/api/v1/omni/my-whatsapp/chats/{chat_id}/messages",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"page": 1, "page_size": 50}
+)
+
+data = response.json()
+for message in data["messages"]:
+    print(f"{message['sender_name']}: {message['content_text']}")
+```
+
+```javascript JavaScript
+const chatId = '5511999999999@s.whatsapp.net';
+const response = await fetch(
+  `http://localhost:8882/api/v1/omni/my-whatsapp/chats/${encodeURIComponent(chatId)}/messages?page=1&page_size=50`,
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const data = await response.json();
+console.log(data.messages);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "messages": [
+    {
+      "message_id": "msg_abc123",
+      "chat_id": "5511999999999@s.whatsapp.net",
+      "sender_id": "5511999999999@s.whatsapp.net",
+      "sender_name": "John Doe",
+      "content_text": "Hello! How are you?",
+      "message_type": "text",
+      "timestamp": "2025-11-04T10:30:00Z",
+      "is_from_me": false,
+      "has_media": false,
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "metadata": {
+        "quoted_message_id": null,
+        "reactions": []
+      }
+    },
+    {
+      "message_id": "msg_xyz789",
+      "chat_id": "5511999999999@s.whatsapp.net",
+      "sender_id": "me",
+      "sender_name": "Me",
+      "content_text": "I'm doing great, thanks!",
+      "message_type": "text",
+      "timestamp": "2025-11-04T10:31:00Z",
+      "is_from_me": true,
+      "has_media": false,
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "metadata": {}
+    },
+    {
+      "message_id": "msg_def456",
+      "chat_id": "5511999999999@s.whatsapp.net",
+      "sender_id": "5511999999999@s.whatsapp.net",
+      "sender_name": "John Doe",
+      "content_text": "Check this out!",
+      "message_type": "image",
+      "timestamp": "2025-11-04T10:32:00Z",
+      "is_from_me": false,
+      "has_media": true,
+      "media_url": "https://...",
+      "media_mime_type": "image/jpeg",
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "metadata": {
+        "media_size": 245678
+      }
+    }
+  ],
+  "total_count": 1234,
+  "page": 1,
+  "page_size": 50,
+  "has_more": true,
+  "instance_name": "my-whatsapp",
+  "chat_id": "5511999999999@s.whatsapp.net",
+  "channel_type": "whatsapp",
+  "partial_errors": []
+}
+```
+
+---
+
+### Archive Chat
+
+Archive a chat to hide it from main chat list.
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/archive
+```
+
+**Response**:
+```json
+{
+  "message": "Chat archived successfully"
+}
+```
+
+### Unarchive Chat
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/unarchive
+```
+
+---
+
+### Pin Chat
+
+Pin a chat to the top of the chat list.
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/pin
+```
+
+### Unpin Chat
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/unpin
+```
+
+---
+
+### Mute Chat
+
+Mute notifications for a chat.
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/mute
+```
+
+**Request**:
+```json
+{
+  "duration": "1h"
+}
+```
+
+Duration options: `30m`, `1h`, `8h`, `1d`, `1w`, `forever`
+
+### Unmute Chat
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/unmute
+```
+
+---
+
+### Mark as Read
+
+Mark all messages in a chat as read.
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/mark-read
+```
+
+### Mark as Unread
+
+```bash
+POST /api/v1/{instance_name}/chats/{chat_id}/mark-unread
+```
+
+---
+
+### Delete Chat
+
+Delete a chat and its message history.
+
+```bash
+DELETE /api/v1/{instance_name}/chats/{chat_id}
+```
+
+**Query Parameters**:
+- `delete_for_me`: Delete only for yourself (default: true)
+- `delete_for_everyone`: Delete for all participants (requires permissions)
+
+---
+
+## Group Chats
+
+### Get Group Info
+
+```bash
+GET /api/v1/{instance_name}/chats/{chat_id}/group-info
+```
+
+**Response**:
+```json
+{
+  "id": "chat_xyz789",
+  "name": "Team Discussion",
+  "description": "Team communication channel",
+  "jid": "123456789@g.us",
+  "owner": "+5511999999999",
+  "created_at": "2025-09-15T00:00:00Z",
+  "participants": [
+    {
+      "jid": "5511999999999@s.whatsapp.net",
+      "name": "John Doe",
+      "phone": "+5511999999999",
+      "is_admin": true,
+      "joined_at": "2025-09-15T00:00:00Z"
+    },
+    {
+      "jid": "5511888888888@s.whatsapp.net",
+      "name": "Jane Smith",
+      "phone": "+5511888888888",
+      "is_admin": false,
+      "joined_at": "2025-09-16T00:00:00Z"
+    }
+  ],
+  "settings": {
+    "send_messages": "all",
+    "edit_group_info": "admins",
+    "announce_mode": false
+  }
+}
+```
+
+### List Group Participants
+
+```bash
+GET /api/v1/{instance_name}/chats/{chat_id}/participants
+```
+
+---
+
+## Chat Search
+
+### Search Messages
+
+Search across all chats for specific content.
+
+```bash
+POST /api/v1/{instance_name}/chats/search
+```
+
+**Request**:
+```json
+{
+  "query": "meeting",
+  "chat_type": "group",
+  "date_from": "2025-11-01T00:00:00Z",
+  "date_to": "2025-11-04T23:59:59Z",
+  "from_contact": "+5511999999999",
+  "has_media": true,
+  "limit": 50
+}
+```
+
+**Response**:
+```json
+{
+  "results": [
+    {
+      "message_id": "msg_abc123",
+      "chat_id": "chat_xyz789",
+      "chat_name": "Team Discussion",
+      "text": "Meeting at 3pm tomorrow",
+      "from": "+5511999999999",
+      "timestamp": "2025-11-03T15:00:00Z",
+      "context": {
+        "before": "Let's schedule a...",
+        "after": "...in the main conference room"
+      }
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+## Use Cases
+
+### Chat Analytics Dashboard
+
+```python
+def get_chat_analytics(instance):
+    """Get analytics for all chats."""
+    chats = omni.list_chats(instance=instance, limit=1000)
+
+    analytics = {
+        "total_chats": len(chats),
+        "active_chats": sum(1 for c in chats if not c["archived"]),
+        "unread_total": sum(c["unread_count"] for c in chats),
+        "group_chats": sum(1 for c in chats if c["type"] == "group"),
+        "direct_chats": sum(1 for c in chats if c["type"] == "direct"),
+        "most_active": sorted(
+            chats,
+            key=lambda c: c.get("message_count", 0),
+            reverse=True
+        )[:10]
+    }
+
+    return analytics
+```
+
+### Automated Chat Organization
+
+```python
+from datetime import datetime, timedelta
+
+def organize_old_chats(instance):
+    """Archive chats with no activity in 30 days."""
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+
+    chats = omni.list_chats(instance=instance)
+
+    for chat in chats:
+        last_activity = datetime.fromisoformat(chat["last_activity"])
+
+        if last_activity < thirty_days_ago:
+            # Archive inactive chats
+            omni.archive_chat(
+                instance=instance,
+                chat_id=chat["id"]
+            )
+            print(f"Archived: {chat['name']}")
+```
+
+### Message History Export
+
+```python
+def export_chat_history(instance, chat_id, format="json"):
+    """Export complete chat history."""
+    all_messages = []
+    before = None
+
+    # Fetch all messages in batches
+    while True:
+        messages = omni.get_chat_messages(
+            instance=instance,
+            chat_id=chat_id,
+            limit=1000,
+            before=before
+        )
+
+        if not messages["messages"]:
+            break
+
+        all_messages.extend(messages["messages"])
+        before = messages["messages"][-1]["timestamp"]
+
+        if not messages["has_more"]:
+            break
+
+    # Export to file
+    if format == "json":
+        with open(f"chat_{chat_id}.json", "w") as f:
+            json.dump(all_messages, f, indent=2)
+    elif format == "txt":
+        with open(f"chat_{chat_id}.txt", "w") as f:
+            for msg in all_messages:
+                timestamp = msg["timestamp"]
+                sender = msg.get("from", "Me")
+                text = msg.get("text", "[Media]")
+                f.write(f"[{timestamp}] {sender}: {text}\n")
+
+    return len(all_messages)
+```
+
+### Smart Notifications
+
+```python
+def check_priority_messages(instance):
+    """Check for priority messages that need immediate attention."""
+    chats = omni.list_chats(
+        instance=instance,
+        unread_only=True
+    )
+
+    priority_keywords = ["urgent", "asap", "emergency", "important"]
+
+    for chat in chats:
+        messages = omni.get_chat_messages(
+            instance=instance,
+            chat_id=chat["id"],
+            limit=chat["unread_count"]
+        )
+
+        for msg in messages["messages"]:
+            text = msg.get("text", "").lower()
+
+            if any(keyword in text for keyword in priority_keywords):
+                # Send priority notification
+                send_priority_alert(
+                    chat=chat["name"],
+                    message=msg["text"],
+                    from_phone=msg["from"]
+                )
+```
+
+---
+
+## Future Features
+
+<Info>
+Additional chat management features coming in **Q4 2025**:
+
+- Chat organization (archive, pin, mute operations)
+- Group chat management and participant operations
+- Message search across all chats
+- Chat analytics and statistics
+- Export chat history
+- Bulk chat operations
+- Chat labels and categories
+- Smart filters and sorting
+
+Current endpoints (available NOW):
+- `GET /api/v1/omni/{instance}/chats` - List chats
+- `GET /api/v1/omni/{instance}/chats/{chat_id}` - Get chat by ID
+- `GET /api/v1/omni/{instance}/chats/{chat_id}/messages` - Get chat messages
+
+Join our [Discord](https://discord.gg/xcW8c7fF3R) for updates!
+</Info>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track individual messages (available now)
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages to chats
+  </Card>
+
+  <Card title="Contact Management" icon="address-book" href="/omni/api/contacts">
+    Manage contacts
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

@@ -1,0 +1,631 @@
+---
+title: "Send Messages"
+description: "Send messages across WhatsApp, Discord, and other channels"
+icon: "paper-plane"
+openapi: "POST /{instance_name}/send-text"
+---
+
+## Overview
+
+Send messages through any configured OMNI instance. Supports text, media, audio, reactions, and more across all channels.
+
+<Note>
+All message endpoints require an active instance. Check [Instance Management](/omni/api/instances) to create and connect instances.
+</Note>
+
+---
+
+## Send Text Message
+
+Send a text message to a recipient. Supports mentions, quoted replies, and automatic message splitting.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to send from
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Phone number with country code (WhatsApp: `+5511999999999`) or Discord channel ID
+</ParamField>
+
+<ParamField body="user_id" type="string">
+  Internal user ID (UUID) - resolves to phone number automatically
+</ParamField>
+
+<ParamField body="text" type="string" required>
+  Message text content
+</ParamField>
+
+<ParamField body="quoted_message_id" type="string">
+  ID of message to quote/reply to
+</ParamField>
+
+<ParamField body="auto_parse_mentions" type="boolean" default="true">
+  Automatically detect and convert @phone mentions
+</ParamField>
+
+<ParamField body="mentioned" type="array">
+  Explicit list of phone numbers to mention (overrides auto-parsing)
+</ParamField>
+
+<ParamField body="mentions_everyone" type="boolean" default="false">
+  Mention everyone in group chat
+</ParamField>
+
+<ParamField body="split_message" type="boolean">
+  Override instance's auto-split setting for this message
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-text \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "text": "Hello from OMNI! 👋"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/send-text",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "text": "Hello from OMNI! 👋"
+    }
+)
+
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/my-whatsapp/send-text',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      phone_number: '+5511999999999',
+      text: 'Hello from OMNI! 👋'
+    })
+  }
+);
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "status": "sent",
+  "message_id": "3EB0ABC123..."
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Either user_id or phone_number must be provided"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Instance 'my-whatsapp' not found"
+}
+```
+
+```json 503 Service Unavailable
+{
+  "detail": "Instance 'my-whatsapp' is not connected"
+}
+```
+
+### With Mentions
+
+```bash
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-text \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "text": "Hey @5511888888888, check this out!",
+    "auto_parse_mentions": true
+  }'
+```
+
+### Discord Message
+
+```bash
+curl -X POST http://localhost:8882/api/v1/discord-bot/send-text \
+  -H "Content-Type: application/json" \
+  -H "x-api-key": YOUR_API_KEY" \
+  -d '{
+    "phone_number": "1234567890123456789",
+    "text": "Hello Discord! 🎮"
+  }'
+```
+
+---
+
+## Send Media Message
+
+Send images, videos, documents, or other media files.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to send from
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Recipient phone number or channel ID
+</ParamField>
+
+<ParamField body="user_id" type="string">
+  Internal user ID (alternative to phone_number)
+</ParamField>
+
+<ParamField body="media_type" type="string" required>
+  Media type: `image`, `video`, `document`
+</ParamField>
+
+<ParamField body="media_url" type="string">
+  URL to media file (mutually exclusive with media_base64)
+</ParamField>
+
+<ParamField body="media_base64" type="string">
+  Base64 encoded media data (mutually exclusive with media_url)
+</ParamField>
+
+<ParamField body="mime_type" type="string" required>
+  MIME type (e.g., `image/jpeg`, `video/mp4`, `application/pdf`)
+</ParamField>
+
+<ParamField body="caption" type="string">
+  Media caption/description
+</ParamField>
+
+<ParamField body="filename" type="string">
+  Filename for documents
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL - Image
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-media \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "media_type": "image",
+    "media_url": "https://example.com/image.jpg",
+    "mime_type": "image/jpeg",
+    "caption": "Check out this image!"
+  }'
+```
+
+```bash cURL - Document
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-media \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "media_type": "document",
+    "media_url": "https://example.com/report.pdf",
+    "mime_type": "application/pdf",
+    "filename": "monthly-report.pdf",
+    "caption": "Here is the monthly report"
+  }'
+```
+
+```python Python - Video
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/send-media",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "media_type": "video",
+        "media_url": "https://example.com/video.mp4",
+        "mime_type": "video/mp4",
+        "caption": "Watch this!"
+    }
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "status": "sent"
+}
+```
+
+---
+
+## Send Audio Message
+
+Send audio files or voice notes.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Recipient phone number or channel ID
+</ParamField>
+
+<ParamField body="audio_url" type="string">
+  URL to audio file
+</ParamField>
+
+<ParamField body="audio_base64" type="string">
+  Base64 encoded audio data
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-audio \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "audio_url": "https://example.com/voice-note.ogg"
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/send-audio",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "audio_url": "https://example.com/audio.mp3"
+    }
+)
+```
+
+</CodeGroup>
+
+---
+
+## Send Sticker
+
+Send stickers to recipients.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Recipient phone number
+</ParamField>
+
+<ParamField body="sticker_url" type="string">
+  URL to sticker file
+</ParamField>
+
+<ParamField body="sticker_base64" type="string">
+  Base64 encoded sticker data
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-sticker \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "sticker_url": "https://example.com/sticker.webp"
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Send Contact Card
+
+Send contact cards with vCard information.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Recipient phone number
+</ParamField>
+
+<ParamField body="contacts" type="array" required>
+  Array of contact information objects
+</ParamField>
+
+### Contact Object
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `full_name` | string | Yes | Contact's full name |
+| `phone_number` | string | No | Contact's phone number |
+| `email` | string | No | Contact's email |
+| `organization` | string | No | Contact's organization |
+| `url` | string | No | Contact's website |
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-contact \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "contacts": [
+      {
+        "full_name": "John Doe",
+        "phone_number": "+5511888888888",
+        "email": "john@example.com",
+        "organization": "ACME Corp"
+      }
+    ]
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/send-contact",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "contacts": [
+            {
+                "full_name": "Jane Smith",
+                "phone_number": "+5511777777777",
+                "email": "jane@example.com"
+            }
+        ]
+    }
+)
+```
+
+</CodeGroup>
+
+---
+
+## Send Reaction
+
+React to a message with an emoji.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Recipient phone number or channel ID
+</ParamField>
+
+<ParamField body="message_id" type="string" required>
+  ID of the message to react to
+</ParamField>
+
+<ParamField body="reaction" type="string" required>
+  Emoji reaction (e.g., `👍`, `❤️`, `🔥`)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-reaction \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "message_id": "3EB0ABC123...",
+    "reaction": "👍"
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/send-reaction",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "message_id": "message-id-here",
+        "reaction": "❤️"
+    }
+)
+```
+
+</CodeGroup>
+
+---
+
+## Message Splitting
+
+OMNI automatically splits long messages based on platform limits and configuration.
+
+### WhatsApp
+
+- **Soft limit**: Split on `\n\n` if `enable_auto_split: true`
+- **Hard limit**: No WhatsApp hard limit (but readability matters)
+- **Control**: Can be disabled per-instance or per-message
+
+```bash
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-text \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "text": "First paragraph\n\nSecond paragraph\n\nThird paragraph",
+    "split_message": true
+  }'
+```
+
+This sends as 3 separate messages.
+
+### Discord
+
+- **Hard limit**: 2000 characters (enforced by Discord)
+- **Soft limit**: Prefers `\n\n` split points if `enable_auto_split: true`
+- **Fallback**: Hard split at 2000 chars if no `\n\n` found
+
+---
+
+## Phone Number Formats
+
+### WhatsApp
+
+<Tabs>
+  <Tab title="Valid Formats">
+    ```
+    ✅ +5511999999999
+    ✅ +1234567890
+    ✅ +55 11 99999-9999
+    ```
+  </Tab>
+
+  <Tab title="Invalid Formats">
+    ```
+    ❌ 5511999999999 (missing +)
+    ❌ (11) 99999-9999 (no country code)
+    ❌ 11999999999 (no country code)
+    ```
+  </Tab>
+</Tabs>
+
+### Discord
+
+Discord uses snowflake IDs (15-21 digits):
+
+```
+✅ 1234567890123456789 (channel ID)
+✅ 9876543210987654321 (user ID)
+❌ abc123 (not numeric)
+❌ 123 (too short)
+```
+
+---
+
+## Use Cases
+
+### Send Bulk Messages
+
+```python
+recipients = ["+5511999999999", "+5511888888888", "+5511777777777"]
+
+for phone in recipients:
+    omni.send_text(
+        instance="my-whatsapp",
+        phone_number=phone,
+        text="Important announcement!"
+    )
+    time.sleep(2)  # Rate limiting
+```
+
+### Send Rich Media
+
+```python
+# Send image with caption
+omni.send_media(
+    instance="my-whatsapp",
+    phone_number="+5511999999999",
+    media_type="image",
+    media_url="https://example.com/product.jpg",
+    mime_type="image/jpeg",
+    caption="Check out our new product! 🎉"
+)
+```
+
+### Reply to Messages
+
+```python
+# Quote a previous message
+omni.send_text(
+    instance="my-whatsapp",
+    phone_number="+5511999999999",
+    text="Thanks for your message!",
+    quoted_message_id="previous-message-id"
+)
+```
+
+---
+
+## Rate Limiting
+
+Be mindful of platform-specific rate limits:
+
+| Platform | Recommended Limit | Notes |
+|----------|-------------------|-------|
+| WhatsApp | ~1 msg/second | Avoid being flagged as spam |
+| Discord | ~5 msg/second per channel | Discord API limit |
+| Slack | ~1 msg/second | Coming soon |
+
+### Best Practice
+
+```python
+import time
+
+for recipient in recipients:
+    send_message(recipient, text)
+    time.sleep(1)  # Wait 1 second between messages
+```
+
+---
+
+## Error Handling
+
+```python
+try:
+    result = omni.send_text(
+        instance="my-whatsapp",
+        phone_number="+5511999999999",
+        text="Hello!"
+    )
+
+    if not result["success"]:
+        print(f"Failed to send: {result.get('error')}")
+
+except HTTPException as e:
+    if e.status_code == 503:
+        # Instance disconnected
+        qr = omni.get_qr_code("my-whatsapp")
+        print("Scan QR code to reconnect")
+    elif e.status_code == 400:
+        # Invalid phone number
+        print("Check phone number format")
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Configure messaging instances
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track and debug messages
+  </Card>
+
+  <Card title="Profile Management" icon="user" href="/omni/api/profiles">
+    Manage user profiles
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

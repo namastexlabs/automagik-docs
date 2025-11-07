@@ -1,0 +1,1241 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Automagik OMNI"
+icon: "question"
+---
+
+## Setup and Installation
+
+<AccordionGroup>
+  <Accordion title="What are the minimum system requirements?">
+    **Hardware**:
+    - CPU: 2+ cores recommended
+    - RAM: 2GB minimum, 4GB+ recommended
+    - Storage: 1GB for application, 5GB+ for logs/database
+    - Network: Stable internet connection
+
+    **Software**:
+    - Python 3.12+ (3.11 supported but 3.12+ recommended)
+    - Node.js 20+ (for Evolution API - WhatsApp)
+    - PostgreSQL 13+ (optional, SQLite works for development)
+    - Git (for installation)
+
+    **Operating Systems**:
+    - Linux (Ubuntu 20.04+, Debian 11+, RHEL 8+)
+    - macOS 11+ (Big Sur and later)
+    - Windows 10/11 with WSL2
+  </Accordion>
+
+  <Accordion title="Do I need Docker to run OMNI?">
+    **No, Docker is not required.**
+
+    Automagik OMNI can run directly on your system using:
+    - Python virtual environment (via `uv`)
+    - PM2 process manager
+    - systemd service (Linux)
+
+    Docker is **optional** and can be used if you prefer containerized deployments, but the default installation uses native processes for:
+    - Easier debugging
+    - Better performance
+    - Simpler development workflow
+    - No Docker overhead
+
+    Evolution API (WhatsApp) also runs natively without Docker using SQLite database.
+  </Accordion>
+
+  <Accordion title="Can I use pip instead of uv?">
+    **Yes, but uv is recommended.**
+
+    Using pip:
+    ```bash
+    # Create virtual environment
+    python -m venv venv
+    source venv/bin/activate
+
+    # Install dependencies
+    pip install -r requirements.txt
+
+    # Run application
+    python -m src.api.app
+    ```
+
+    Why uv is better:
+    - **10-100x faster** than pip
+    - Automatic virtual environment management
+    - Better dependency resolution
+    - Built-in caching
+    - Single tool for all Python package operations
+
+    Install uv:
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  </Accordion>
+
+  <Accordion title="How do I upgrade to the latest version?">
+    ```bash
+    # Stop services
+    pm2 stop all
+
+    # Backup database
+    cp data/automagik-omni.db data/automagik-omni.db.backup
+
+    # Pull latest code
+    git pull origin main
+
+    # Update submodules (Evolution API)
+    git submodule update --remote
+
+    # Update dependencies
+    make install
+
+    # Restart services
+    pm2 restart all
+
+    # Verify version
+    curl http://localhost:8882/health | jq
+    ```
+
+    **Important**: Always backup your database before upgrading!
+  </Accordion>
+
+  <Accordion title="Where are configuration files located?">
+    **Main configuration**:
+    - `.env` - Environment variables (API keys, ports, database)
+    - `ecosystem.config.js` - PM2 process configuration
+    - `data/automagik-omni.db` - SQLite database (if using SQLite)
+
+    **Evolution API configuration** (WhatsApp):
+    - `resources/evolution-api/.env` - Evolution API settings
+    - `resources/evolution-api/instances/` - WhatsApp session data
+
+    **Logs**:
+    - `logs/` - Application logs (if file logging enabled)
+    - PM2 logs: `~/.pm2/logs/`
+
+    **See also**: [Configuration Reference](/omni/config/environment-variables)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Features and Capabilities
+
+<AccordionGroup>
+  <Accordion title="What messaging platforms are supported?">
+    **Currently Supported (Production)**:
+    - ✅ **WhatsApp** - Full support via Evolution API
+      - Text messages, media, audio, stickers, reactions
+      - Group messages, presence indicators
+      - QR code authentication
+    - ✅ **Discord** - Full support via Discord.py
+      - Text, embeds, attachments
+      - Multi-server, threads, voice infrastructure
+      - Bot + IPC architecture
+
+    **Coming Soon**:
+    - 🔄 **Slack** - Q4 2025
+    - 🔄 **WhatsApp Business API** - Q4 2025
+    - 📅 **Instagram Direct** - Q1 2026
+    - 📅 **Telegram** - Q1 2026
+    - 📅 **Microsoft Teams** - Q1 2026
+
+    [View Full Roadmap](https://github.com/orgs/namastexlabs/projects/9)
+  </Accordion>
+
+  <Accordion title="Can I use OMNI with any AI agent?">
+    **Yes!** OMNI works with any agent that accepts HTTP requests.
+
+    **Compatible Agents**:
+    1. **Automagik Hive** (recommended) - First-class integration with SSE streaming
+    2. **OpenAI-compatible APIs** - ChatGPT, GPT-4, etc.
+    3. **Anthropic Claude** - Via API
+    4. **Custom HTTP agents** - Any service that accepts POST requests
+
+    **Required API Contract**:
+    ```json
+    POST /your-agent-endpoint
+    {
+      "message": "User message",
+      "user_id": "platform:user_id",
+      "platform": "whatsapp|discord",
+      "context": {...}
+    }
+
+    Response:
+    {
+      "response": "Agent reply"
+    }
+    ```
+
+    **Streaming Support** (Server-Sent Events):
+    - Automagik Hive: ✅ Full support
+    - Custom agents: ✅ Supported if agent implements SSE
+
+    [Learn more: Custom Agents](/omni/advanced/custom-agents)
+  </Accordion>
+
+  <Accordion title="Does OMNI support group messages?">
+    **Yes, for WhatsApp and Discord.**
+
+    **WhatsApp Groups**:
+    - Receive messages from group chats
+    - Respond to group messages
+    - Mention specific users
+    - Handle group events (member added/removed)
+
+    Example:
+    ```bash
+    # Send to WhatsApp group
+    curl -X POST http://localhost:8882/api/v1/instances/my-bot/send-text \
+      -H "x-api-key: YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "phone": "1234567890-1234567890@g.us",
+        "message": "@User123 Hello from OMNI!"
+      }'
+    ```
+
+    **Discord Channels**:
+    - Respond in any channel bot has access to
+    - Handle threads
+    - Multiple servers simultaneously
+
+    **Limitations**:
+    - Be careful with rate limiting in active groups
+    - Consider implementing mention-only responses
+    - Monitor message volume
+  </Accordion>
+
+  <Accordion title="Can I send media files (images, videos, documents)?">
+    **Yes, all media types are supported.**
+
+    **Supported Media**:
+    - Images (JPEG, PNG, GIF, WebP)
+    - Videos (MP4, MOV, AVI)
+    - Audio (MP3, WAV, OGG, voice notes)
+    - Documents (PDF, DOCX, XLSX, etc.)
+    - Stickers (WebP format for WhatsApp)
+
+    **Requirements**:
+    - Media must be accessible via public URL
+    - Size limits:
+      - WhatsApp images: 16MB
+      - WhatsApp videos/docs: 64MB
+      - Discord: 8MB (non-Nitro), 50MB (Nitro servers)
+
+    Example:
+    ```bash
+    # Send image
+    curl -X POST http://localhost:8882/api/v1/instances/my-bot/send-media \
+      -H "x-api-key: YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "phone": "+1234567890",
+        "media_url": "https://example.com/image.jpg",
+        "media_type": "image",
+        "caption": "Check out this image!"
+      }'
+    ```
+
+    [Media Guide](/omni/workflows/sending-messages#media-messages)
+  </Accordion>
+
+  <Accordion title="Does OMNI support voice messages?">
+    **Yes, audio and voice notes are supported.**
+
+    **WhatsApp**:
+    - Send audio files as voice notes
+    - Automatic format conversion
+    - PTT (Push-to-Talk) style playback
+
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/my-bot/send-audio \
+      -H "x-api-key: YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "phone": "+1234567890",
+        "audio_url": "https://example.com/voice.mp3"
+      }'
+    ```
+
+    **Discord**:
+    - Audio file attachments supported
+    - Voice channel infrastructure (for future features)
+
+    **Audio-to-Text**:
+    - Not built-in, but you can integrate:
+      - OpenAI Whisper API
+      - Google Speech-to-Text
+      - Custom transcription service
+  </Accordion>
+
+  <Accordion title="Is there a web dashboard or UI?">
+    **Not currently, but planned for future releases.**
+
+    **Current Management**:
+    - REST API for all operations
+    - MCP tools for Claude/Cursor integration
+    - CLI tools for instance management
+
+    **Coming in 2026**:
+    - Web dashboard for instance management
+    - Real-time message monitoring
+    - Analytics and reporting UI
+    - Configuration management interface
+
+    **Current Workarounds**:
+    - Use API clients (Postman, Insomnia, curl)
+    - MCP tools in Claude Code/Cursor
+    - Build custom dashboards using OMNI API
+    - Use Swagger docs: `http://localhost:8882/docs`
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Multi-Tenancy
+
+<AccordionGroup>
+  <Accordion title="What is multi-tenancy in OMNI?">
+    **Multi-tenancy allows running multiple independent instances** from a single OMNI deployment.
+
+    **Use Cases**:
+    - Different WhatsApp numbers for different clients
+    - Separate bots for sales, support, marketing
+    - Testing vs production environments
+    - Multiple Discord bots from one server
+    - Per-customer isolated instances
+
+    **Features**:
+    - Complete data isolation between instances
+    - Independent configurations (API keys, agents)
+    - Separate webhook endpoints
+    - Individual trace/analytics per instance
+
+    Example:
+    ```bash
+    # Create multiple instances
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -d '{"name": "sales-bot", ...}'
+
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -d '{"name": "support-bot", ...}'
+
+    # Each has unique webhook
+    # /webhook/evolution/sales-bot
+    # /webhook/evolution/support-bot
+    ```
+
+    [Multi-Tenancy Guide](/omni/concepts/multi-tenancy)
+  </Accordion>
+
+  <Accordion title="How many instances can I run?">
+    **Technically unlimited**, but practical limits depend on resources.
+
+    **Tested Scale**:
+    - Single server: 100+ instances tested
+    - Each instance: Handles 100-1000 messages/hour
+    - Total throughput: 10,000+ messages/hour
+
+    **Resource Requirements per Instance**:
+    - Memory: ~50MB (WhatsApp), ~100MB (Discord)
+    - CPU: Minimal when idle, spikes during message processing
+    - Storage: ~10MB database + logs
+
+    **Scaling Recommendations**:
+    - **1-10 instances**: Single server, SQLite database
+    - **10-50 instances**: Single server, PostgreSQL
+    - **50-100 instances**: Dedicated server, PostgreSQL, connection pooling
+    - **100+ instances**: Multiple servers, load balancer, PostgreSQL cluster
+
+    [Scaling Guide](/omni/advanced/scaling-production)
+  </Accordion>
+
+  <Accordion title="Can instances share the same AI agent?">
+    **Yes!** Multiple instances can use the same agent API.
+
+    **Common Pattern**:
+    ```bash
+    # All instances point to same agent
+    # Instance 1: sales-bot
+    {
+      "agent_api_url": "http://localhost:8886",
+      "default_agent": "sales-agent"
+    }
+
+    # Instance 2: support-bot
+    {
+      "agent_api_url": "http://localhost:8886",
+      "default_agent": "support-agent"
+    }
+
+    # Same agent API, different agent names
+    # Agent can route based on instance or agent name
+    ```
+
+    **Benefits**:
+    - Centralized agent management
+    - Shared knowledge base
+    - Easier updates
+    - Cost optimization (single API deployment)
+
+    **Considerations**:
+    - Agent must handle concurrent requests
+    - Implement per-instance context if needed
+    - Monitor agent API load
+  </Accordion>
+
+  <Accordion title="How do I migrate from single to multi-tenant?">
+    **OMNI is multi-tenant by default** since v0.2.0.
+
+    **If upgrading from v0.1.0**:
+    1. Backup database: `cp data/automagik-omni.db data/backup.db`
+    2. Pull latest: `git pull origin main`
+    3. Install: `make install`
+    4. Restart: `pm2 restart all`
+    5. Default instance auto-created from `.env`
+    6. Create additional instances via API
+
+    **No breaking changes** - existing setup continues to work!
+
+    **Legacy webhook** still works:
+    - `/webhook/evolution` → Routes to default instance
+    - New webhook: `/webhook/evolution/{instance}` → Routes to specific instance
+
+    [Migration Guide](/omni/installation#upgrading)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Performance and Scaling
+
+<AccordionGroup>
+  <Accordion title="What is the message throughput capacity?">
+    **Tested Performance**:
+
+    **Single Instance**:
+    - **Incoming**: 100-200 messages/minute
+    - **Outgoing**: 60 messages/minute (WhatsApp best practice)
+    - **Concurrent users**: 100-500 active conversations
+
+    **OMNI Server (100 instances)**:
+    - **Total throughput**: 10,000+ messages/hour
+    - **Peak load**: 500 messages/minute
+    - **Response time**: < 2 seconds (average)
+
+    **Bottlenecks**:
+    1. **AI Agent** - Slowest component (1-3 seconds)
+    2. **Database** - SQLite limits at 50+ instances
+    3. **Network** - Evolution API connection latency
+
+    **Optimization**:
+    - Use PostgreSQL for 50+ instances
+    - Implement response caching
+    - Use faster AI models
+    - Enable message batching
+
+    [Performance Tuning](/omni/advanced/scaling-production#performance-optimization)
+  </Accordion>
+
+  <Accordion title="Should I use SQLite or PostgreSQL?">
+    **Use SQLite for**:
+    - Development and testing
+    - 1-10 instances
+    - Small deployments (< 1000 messages/day)
+    - Single server setups
+    - Quick prototyping
+
+    **Use PostgreSQL for**:
+    - Production deployments
+    - 10+ instances
+    - High message volume (> 5000/day)
+    - Multi-server setups
+    - Better concurrency handling
+    - Advanced analytics
+
+    **Migration from SQLite to PostgreSQL**:
+    ```bash
+    # 1. Export SQLite data
+    sqlite3 data/automagik-omni.db .dump > backup.sql
+
+    # 2. Create PostgreSQL database
+    createdb automagik_omni
+
+    # 3. Update .env
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://user:pass@localhost/automagik_omni
+
+    # 4. Import data (manual mapping needed)
+    # Or recreate instances via API
+
+    # 5. Restart
+    pm2 restart all
+    ```
+
+    [Database Guide](/omni/config/database)
+  </Accordion>
+
+  <Accordion title="How do I reduce response latency?">
+    **Common Causes of Slow Responses**:
+
+    1. **Slow AI Agent** (most common)
+       - Use faster models (Sonnet 4.5 vs GPT-4)
+       - Reduce context length
+       - Implement streaming (Automagik Hive)
+       - Cache common responses
+
+    2. **Network Latency**
+       - Host services in same data center
+       - Use low-latency cloud regions
+       - Enable HTTP/2
+
+    3. **Database Queries**
+       - Migrate to PostgreSQL
+       - Add database indexes
+       - Enable connection pooling
+
+    4. **Processing Overhead**
+       - Disable tracing (if not needed)
+       - Optimize webhook handling
+       - Use message batching
+
+    **Quick Wins**:
+    ```bash
+    # Increase agent timeout
+    curl -X PATCH http://localhost:8882/api/v1/instances/my-bot \
+      -d '{"agent_timeout": 120}'
+
+    # Disable sensitive data in traces (reduces size)
+    echo "AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false" >> .env
+
+    # Use connection pooling (PostgreSQL)
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://user:pass@localhost/db?pool_size=20
+    ```
+
+    [Performance Guide](/omni/advanced/scaling-production#latency-optimization)
+  </Accordion>
+
+  <Accordion title="Does OMNI support horizontal scaling?">
+    **Yes, OMNI can scale horizontally** across multiple servers.
+
+    **Architecture**:
+    ```
+    Load Balancer
+         ↓
+    ┌────┴────┬────────┬────────┐
+    │ OMNI 1  │ OMNI 2 │ OMNI 3 │ (API servers)
+    └────┬────┴───┬────┴───┬────┘
+         └────────┴────────┘
+                  ↓
+         PostgreSQL Cluster
+    ```
+
+    **Requirements**:
+    - Shared PostgreSQL database
+    - Stateless API design (already implemented)
+    - Load balancer (nginx, HAProxy)
+    - Shared file storage (for media - optional)
+
+    **Configuration**:
+    ```bash
+    # Each OMNI server uses same database
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://load-balancer.db/omni
+
+    # Load balancer distributes webhook traffic
+    # nginx example:
+    upstream omni_servers {
+        server omni1.internal:8882;
+        server omni2.internal:8882;
+        server omni3.internal:8882;
+    }
+    ```
+
+    **Limitations**:
+    - Discord IPC sockets require sticky sessions
+    - WhatsApp instances tied to specific Evolution API
+
+    [Scaling Architecture](/omni/advanced/scaling-production#horizontal-scaling)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security and Privacy
+
+<AccordionGroup>
+  <Accordion title="How secure is OMNI?">
+    **Security Features**:
+
+    **Authentication**:
+    - ✅ API key authentication (required)
+    - ✅ Per-instance API key storage (encrypted in DB)
+    - ✅ Evolution API key validation
+
+    **Network Security**:
+    - ✅ CORS controls
+    - ✅ HTTPS support (via reverse proxy)
+    - ✅ Local IPC sockets (Discord)
+    - ⚠️ Webhook signature verification (not yet implemented)
+
+    **Data Security**:
+    - ✅ Database encryption at rest (OS-level)
+    - ✅ Sensitive data exclusion from logs
+    - ✅ Configurable trace retention
+    - ⚠️ End-to-end encryption (depends on channel)
+
+    **Best Practices**:
+    ```bash
+    # Use strong API keys
+    openssl rand -hex 32
+
+    # Enable HTTPS with reverse proxy
+    # Use Let's Encrypt
+
+    # Restrict CORS origins
+    AUTOMAGIK_OMNI_CORS_ORIGINS=https://yourdomain.com
+
+    # Don't log sensitive data
+    AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+
+    # Regular security updates
+    git pull origin main
+    make install
+    ```
+
+    [Security Guide](/omni/advanced/security)
+  </Accordion>
+
+  <Accordion title="Are messages stored or logged?">
+    **Yes, in the trace system** (can be disabled).
+
+    **What's Stored**:
+    - Message metadata (timestamp, phone, instance)
+    - Message content (incoming and outgoing)
+    - Agent requests and responses
+    - Processing metrics
+    - Error logs
+
+    **Storage Duration**:
+    - Default: 30 days
+    - Configurable: `AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS`
+    - Manual cleanup available
+
+    **Disable Tracing**:
+    ```bash
+    # Completely disable (not recommended)
+    AUTOMAGIK_OMNI_ENABLE_TRACING=false
+
+    # Or reduce retention
+    AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=7
+
+    # Exclude sensitive data
+    AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+    ```
+
+    **Privacy Considerations**:
+    - Messages contain user data
+    - Ensure compliance with GDPR/CCPA
+    - Implement data deletion policies
+    - Secure database access
+    - Consider encryption at rest
+
+    **Cleanup**:
+    ```bash
+    # Delete traces older than 7 days
+    curl -X POST http://localhost:8882/api/v1/traces/cleanup \
+      -d '{"days_old": 7, "dry_run": false}'
+    ```
+  </Accordion>
+
+  <Accordion title="Is OMNI GDPR compliant?">
+    **OMNI provides tools for GDPR compliance**, but you're responsible for proper usage.
+
+    **Data Subject Rights**:
+
+    **Right to Access**:
+    ```bash
+    # Export user data
+    curl http://localhost:8882/api/v1/traces?phone=%2B1234567890
+    ```
+
+    **Right to Erasure**:
+    ```bash
+    # Delete user traces (not yet implemented - coming soon)
+    # Workaround: direct database deletion
+    sqlite3 data/automagik-omni.db \
+      "DELETE FROM traces WHERE phone='+1234567890';"
+    ```
+
+    **Data Minimization**:
+    ```bash
+    # Reduce retention period
+    AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=7
+
+    # Exclude unnecessary data
+    AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+    ```
+
+    **Your Responsibilities**:
+    - ✅ Obtain user consent for data processing
+    - ✅ Provide privacy policy
+    - ✅ Implement data deletion on request
+    - ✅ Secure data storage
+    - ✅ Notify users of data collection
+    - ✅ Maintain audit logs
+
+    **Recommendations**:
+    - Use PostgreSQL with encryption at rest
+    - Implement automatic data deletion
+    - Regular security audits
+    - User consent management in your agent
+  </Accordion>
+
+  <Accordion title="Can I use OMNI in production?">
+    **Yes!** OMNI is production-ready since v0.2.0.
+
+    **Production Checklist**:
+
+    **Infrastructure**:
+    - [ ] Use PostgreSQL (not SQLite)
+    - [ ] Set up HTTPS with valid SSL
+    - [ ] Configure firewall rules
+    - [ ] Use reverse proxy (nginx/Caddy)
+    - [ ] Set up monitoring (Prometheus/Grafana)
+
+    **Configuration**:
+    - [ ] Strong API keys (32+ characters)
+    - [ ] Restrict CORS origins
+    - [ ] Configure log levels (INFO or WARNING)
+    - [ ] Set reasonable trace retention
+    - [ ] Environment: `ENVIRONMENT=production`
+
+    **Scaling**:
+    - [ ] PM2 or systemd for process management
+    - [ ] Database backups configured
+    - [ ] Connection pooling enabled
+    - [ ] Health checks implemented
+    - [ ] Auto-restart on failure
+
+    **Security**:
+    - [ ] Disable DEBUG logging
+    - [ ] Exclude sensitive data from traces
+    - [ ] Regular security updates
+    - [ ] Access control configured
+    - [ ] Audit logging enabled
+
+    **Monitoring**:
+    - [ ] Uptime monitoring
+    - [ ] Error alerting
+    - [ ] Performance metrics
+    - [ ] Database monitoring
+    - [ ] Webhook failure alerts
+
+    [Production Deployment Guide](/omni/advanced/scaling-production)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Integration
+
+<AccordionGroup>
+  <Accordion title="How do I integrate with Automagik Hive?">
+    **Automagik Hive has first-class OMNI integration** with SSE streaming.
+
+    **Setup**:
+    ```bash
+    # 1. Install Automagik Hive
+    git clone https://github.com/namastexlabs/automagik-hive
+    cd automagik-hive
+    make install
+    make dev
+
+    # 2. Create OMNI instance pointing to Hive
+    curl -X POST http://localhost:8882/api/v1/instances \
+      -H "x-api-key: YOUR_OMNI_KEY" \
+      -d '{
+        "name": "hive-bot",
+        "channel_type": "whatsapp",
+        "evolution_url": "http://localhost:18082",
+        "evolution_api_key": "YOUR_EVO_KEY",
+        "agent_api_url": "http://localhost:8886",
+        "agent_api_key": "YOUR_HIVE_KEY",
+        "default_agent": "assistant"
+      }'
+
+    # 3. Configure Evolution webhook
+    curl -X POST http://localhost:18082/webhook/set/hive-bot \
+      -d '{"url": "http://localhost:8882/webhook/evolution/hive-bot"}'
+
+    # 4. Scan QR code and test
+    ```
+
+    **Features**:
+    - ✅ Streaming responses (SSE)
+    - ✅ Multi-agent orchestration
+    - ✅ Tool usage support
+    - ✅ Context management
+    - ✅ Session handling
+
+    [Hive Integration Guide](https://github.com/namastexlabs/automagik-hive)
+  </Accordion>
+
+  <Accordion title="Can I use OMNI with ChatGPT/OpenAI?">
+    **Yes!** You can integrate OpenAI's API.
+
+    **Option 1: Direct Integration** (write custom agent):
+    ```python
+    # simple_openai_agent.py
+    from fastapi import FastAPI
+    from openai import OpenAI
+
+    app = FastAPI()
+    client = OpenAI(api_key="YOUR_OPENAI_KEY")
+
+    @app.post("/chat")
+    async def chat(request: dict):
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "user", "content": request["message"]}
+            ]
+        )
+        return {"response": response.choices[0].message.content}
+
+    # Run: uvicorn simple_openai_agent:app --port 8886
+    ```
+
+    **Option 2: Use Automagik Hive** (recommended):
+    ```bash
+    # Hive supports OpenAI out of the box
+    # Just configure provider in Hive
+    ```
+
+    **Option 3: Use LangChain**:
+    ```python
+    # Build custom agent with LangChain
+    # Expose HTTP endpoint
+    # Point OMNI to your endpoint
+    ```
+
+    [Custom Agent Guide](/omni/advanced/custom-agents)
+  </Accordion>
+
+  <Accordion title="Does OMNI work with MCP (Model Context Protocol)?">
+    **Yes!** OMNI includes MCP server integration.
+
+    **MCP Tools Available**:
+    - `manage_instances` - Create, update, delete instances
+    - `send_message` - Send messages via any instance
+    - `manage_traces` - View message history and analytics
+    - `manage_profiles` - Manage user profiles
+
+    **Setup in Claude Code**:
+    ```json
+    {
+      "mcpServers": {
+        "omni": {
+          "command": "uvx",
+          "args": ["--from", "automagik-omni", "mcp-server-omni"],
+          "env": {
+            "OMNI_URL": "http://localhost:8882",
+            "OMNI_API_KEY": "your-api-key"
+          }
+        }
+      }
+    }
+    ```
+
+    **Usage**:
+    ```
+    "Send a WhatsApp message to +1234567890: Hello from Claude!"
+    "List all my messaging instances"
+    "Show message analytics for the last 24 hours"
+    ```
+
+    [MCP Integration Guide](/omni/working/mcp-tools)
+  </Accordion>
+
+  <Accordion title="Can I use OMNI with n8n or Zapier?">
+    **Yes!** OMNI's REST API works with any automation platform.
+
+    **n8n Integration**:
+    1. Use HTTP Request node
+    2. Method: POST
+    3. URL: `http://your-omni-server:8882/api/v1/instances/my-bot/send-text`
+    4. Headers: `x-api-key: YOUR_KEY`
+    5. Body:
+    ```json
+    {
+      "phone": "{{$json.phone}}",
+      "message": "{{$json.message}}"
+    }
+    ```
+
+    **Zapier Integration**:
+    1. Use "Webhooks by Zapier"
+    2. Action: POST
+    3. URL: Same as above
+    4. Data: Same as above
+    5. Headers: Add x-api-key
+
+    **Make.com (Integromat)**:
+    - Use HTTP module
+    - Same configuration as above
+
+    **Common Workflows**:
+    - Google Sheets → OMNI → WhatsApp
+    - Form submission → OMNI → WhatsApp notification
+    - Calendar event → OMNI → Reminder message
+    - Email → OMNI → WhatsApp alert
+
+    [API Reference](/omni/api/send-message)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why isn't my bot responding to messages?">
+    **Quick Diagnostic**:
+    ```bash
+    # 1. Check services running
+    pm2 status
+
+    # 2. Check health
+    curl http://localhost:8882/health
+
+    # 3. Check instance exists
+    curl -H "x-api-key: YOUR_KEY" \
+      http://localhost:8882/api/v1/instances
+
+    # 4. Check recent traces
+    curl -H "x-api-key: YOUR_KEY" \
+      "http://localhost:8882/api/v1/traces?limit=5"
+
+    # 5. Check logs
+    pm2 logs omni-api --lines 50
+    ```
+
+    **Common Causes**:
+    - [ ] Evolution API not running
+    - [ ] Webhook not configured
+    - [ ] Instance not found
+    - [ ] Agent API not responding
+    - [ ] WhatsApp disconnected
+    - [ ] Incorrect API keys
+
+    [Full Troubleshooting Guide](/omni/troubleshooting/common-issues)
+  </Accordion>
+
+  <Accordion title="Where can I find logs?">
+    **PM2 Logs**:
+    ```bash
+    # All services
+    pm2 logs
+
+    # Specific service
+    pm2 logs omni-api
+    pm2 logs evolution-api
+    pm2 logs automagik-omni-discord
+
+    # Error logs only
+    pm2 logs --err
+
+    # Last 100 lines
+    pm2 logs --lines 100
+
+    # Real-time tail
+    pm2 logs --lines 0
+    ```
+
+    **File Logs** (if configured):
+    ```bash
+    # Application logs
+    tail -f logs/omni.log
+
+    # PM2 logs location
+    ~/.pm2/logs/
+    ```
+
+    **Enable Debug Logging**:
+    ```bash
+    # Edit .env
+    LOG_LEVEL=DEBUG
+
+    # Restart
+    pm2 restart all
+    ```
+
+    **Log Locations**:
+    - PM2: `~/.pm2/logs/`
+    - Application: `logs/` (if file logging enabled)
+    - Evolution API: `resources/evolution-api/logs/`
+  </Accordion>
+
+  <Accordion title="How do I reset everything and start fresh?">
+    **Complete Reset** (⚠️ Deletes all data):
+    ```bash
+    # 1. Stop all services
+    pm2 stop all
+    pm2 delete all
+
+    # 2. Backup database (optional)
+    cp data/automagik-omni.db data/backup-$(date +%Y%m%d).db
+
+    # 3. Remove data
+    rm -rf data/*.db
+    rm -rf logs/*
+    rm -rf /automagik-omni/sockets/*
+
+    # 4. Remove Evolution API sessions
+    rm -rf resources/evolution-api/instances/*
+
+    # 5. Reinstall
+    make install
+
+    # 6. Start fresh
+    pm2 start ecosystem.config.js
+
+    # 7. Recreate instances
+    # Use API or MCP to create instances
+    ```
+
+    **Partial Reset** (keep configuration):
+    ```bash
+    # Just reset database
+    rm data/automagik-omni.db
+    pm2 restart omni-api
+
+    # Re-initialize from .env
+    # Default instance will be created
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Billing and Costs
+
+<AccordionGroup>
+  <Accordion title="Is Automagik OMNI free?">
+    **Yes, OMNI is completely free and open source!**
+
+    **License**: MIT License
+    - ✅ Free for personal use
+    - ✅ Free for commercial use
+    - ✅ No usage limits
+    - ✅ No enterprise fees
+    - ✅ Modify and distribute freely
+
+    **What's Free**:
+    - OMNI platform (100% free)
+    - Evolution API (open source)
+    - Discord integration (free)
+    - All features and channels
+
+    **What You Pay For**:
+    - **AI Agent API** (OpenAI, Anthropic, etc.)
+    - **Server hosting** (if using cloud)
+    - **WhatsApp Business API** (if using official API instead of Evolution)
+    - **SMS/Messaging credits** (for some channels in future)
+
+    **No Vendor Lock-in**:
+    - Self-hosted
+    - Use any AI provider
+    - Switch channels anytime
+  </Accordion>
+
+  <Accordion title="What are the infrastructure costs?">
+    **Typical Monthly Costs**:
+
+    **Small Deployment** (1-5 instances, < 10K messages/month):
+    - VPS: $5-10/month (DigitalOcean, Hetzner)
+    - Database: $0 (SQLite) or $7 (managed PostgreSQL)
+    - AI API: $10-50 (depending on usage)
+    - **Total: $15-70/month**
+
+    **Medium Deployment** (10-50 instances, 100K messages/month):
+    - VPS: $20-40/month (4GB RAM, 2 CPU)
+    - Database: $15-30 (managed PostgreSQL)
+    - AI API: $100-500
+    - **Total: $135-570/month**
+
+    **Large Deployment** (100+ instances, 1M+ messages/month):
+    - Servers: $100-500/month (multiple instances)
+    - Database: $50-200 (PostgreSQL cluster)
+    - AI API: $500-5000+
+    - Load balancer: $10-50
+    - **Total: $660-5750+/month**
+
+    **Cost Optimization**:
+    - Use cheaper AI models (Llama, Mistral)
+    - Implement response caching
+    - Use spot instances (AWS, GCP)
+    - Self-host AI models (reduce API costs 90%)
+  </Accordion>
+
+  <Accordion title="How much does WhatsApp integration cost?">
+    **Option 1: Evolution API + Regular WhatsApp** (what OMNI uses):
+    - **Cost**: FREE
+    - **Setup**: Free phone number
+    - **Limitations**:
+      - Not "official" WhatsApp Business API
+      - Risk of WhatsApp bans if misused
+      - Rate limits apply
+    - **Best for**: Personal use, small businesses, testing
+
+    **Option 2: Official WhatsApp Business API**:
+    - **Cost**: $0.005-0.10 per message (varies by country)
+    - **Setup**: Business verification required
+    - **Benefits**:
+      - Official API, no ban risk
+      - Higher rate limits
+      - Business features (catalog, payments)
+      - Green verified badge
+    - **Best for**: Large businesses, enterprises
+
+    **Example Costs** (Official API):
+    - 1,000 messages/month: $5-100
+    - 10,000 messages/month: $50-1000
+    - 100,000 messages/month: $500-10000
+
+    **OMNI Support**:
+    - ✅ Evolution API (free) - Available now
+    - 🔄 WhatsApp Business API (paid) - Coming Q4 2025
+
+    [WhatsApp Pricing](https://developers.facebook.com/docs/whatsapp/pricing)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Roadmap and Future Features
+
+<AccordionGroup>
+  <Accordion title="What's coming in future releases?">
+    **Q4 2025**:
+    - Slack integration
+    - WhatsApp Business API support
+    - Access control (whitelist/blacklist)
+    - Fallback system for WhatsApp
+    - Enhanced robustness and scaling
+
+    **Q1 2026**:
+    - Instagram Direct integration
+    - Telegram integration
+    - Microsoft Teams integration
+    - Unified user management across platforms
+    - True omnipresence (shared context)
+
+    **Q2-Q4 2026**:
+    - LinkedIn Messages
+    - WeChat support
+    - TikTok DMs
+    - SMS gateway
+    - Web dashboard UI
+    - Advanced analytics
+
+    **Long-term Vision**:
+    - Plugin architecture for any platform
+    - Enterprise features (SSO, audit logs)
+    - Multi-region deployment
+    - AI-powered routing
+    - Voice call support
+
+    [View Full Roadmap](https://github.com/orgs/namastexlabs/projects/9)
+  </Accordion>
+
+  <Accordion title="How can I contribute or request features?">
+    **Ways to Contribute**:
+
+    **1. Code Contributions**:
+    ```bash
+    # Fork repository
+    git clone https://github.com/YOUR_USERNAME/automagik-omni
+    cd automagik-omni
+
+    # Create feature branch
+    git checkout -b feature/amazing-feature
+
+    # Make changes, test, commit
+    make test
+    git commit -m "feat: add amazing feature"
+
+    # Push and create PR
+    git push origin feature/amazing-feature
+    ```
+
+    **2. Feature Requests**:
+    - GitHub Issues: [Create Issue](https://github.com/namastexlabs/automagik-omni/issues/new)
+    - Discord: [Join Discussion](https://discord.gg/xcW8c7fF3R)
+
+    **3. Documentation**:
+    - Fix typos
+    - Add examples
+    - Write tutorials
+    - Translate docs
+
+    **4. Bug Reports**:
+    - Detailed reproduction steps
+    - System information
+    - Logs and error messages
+
+    **5. Community Support**:
+    - Answer questions on Discord
+    - Help troubleshoot issues
+    - Share your use cases
+
+    [Contributing Guide](https://github.com/namastexlabs/automagik-omni/blob/main/CONTRIBUTING.md)
+  </Accordion>
+
+  <Accordion title="Will OMNI support voice calls?">
+    **Not currently, but on the roadmap for 2026+.**
+
+    **Current Status**:
+    - Voice infrastructure in Discord (foundation ready)
+    - WhatsApp voice messages ✅ Supported
+    - Live voice calls ❌ Not yet
+
+    **Planned Support**:
+    - Discord voice channel integration (Q2 2026)
+    - WhatsApp voice calls (Q3 2026)
+    - Telegram voice calls (Q4 2026)
+
+    **Use Cases**:
+    - AI voice assistants
+    - Customer support calls
+    - Voice transcription
+    - Real-time translation
+
+    **Complexity**:
+    - Requires real-time audio streaming
+    - Low-latency AI processing
+    - Voice activity detection
+    - Integration with telephony systems
+
+    Stay tuned! Follow roadmap for updates.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Join our Discord for community support and discussions
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs/automagik-omni/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="DeepWiki Docs" icon="book" href="https://deepwiki.com/namastexlabs/automagik-omni">
+    AI-powered documentation search
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/omni/troubleshooting/common-issues">
+    Common issues and solutions
+  </Card>
+</CardGroup>

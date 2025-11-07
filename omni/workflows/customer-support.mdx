@@ -1,0 +1,689 @@
+---
+title: "Customer Support Workflow"
+description: "Build 24/7 AI-powered customer support with WhatsApp and Discord"
+icon: "headset"
+---
+
+## Overview
+
+Transform your customer support with AI agents that handle inquiries 24/7, escalate complex issues to humans, and maintain context across conversations. This workflow shows you how to build production-ready support automation with Automagik OMNI.
+
+```mermaid
+graph LR
+    A[Customer Message] --> B[OMNI Hub]
+    B --> C{AI Agent}
+    C --> D[Simple Query]
+    C --> E[Complex Issue]
+    D --> F[Automated Response]
+    E --> G[Human Escalation]
+    G --> H[Support Team]
+    F --> I[Customer]
+    H --> I
+```
+
+---
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="FAQ Automation" icon="circle-question">
+    Instantly answer common questions about products, services, shipping, and returns
+  </Card>
+
+  <Card title="Order Status" icon="box">
+    Check order status, tracking numbers, and delivery estimates automatically
+  </Card>
+
+  <Card title="Ticket Creation" icon="ticket">
+    Create support tickets in your system (Zendesk, Intercom, etc.) automatically
+  </Card>
+
+  <Card title="Human Escalation" icon="user-headset">
+    Seamlessly hand off complex issues to human agents with full context
+  </Card>
+
+  <Card title="Multi-Language" icon="language">
+    Support customers in their native language with AI translation
+  </Card>
+
+  <Card title="Sentiment Analysis" icon="face-smile">
+    Detect frustrated customers and prioritize them for human support
+  </Card>
+</CardGroup>
+
+---
+
+## Architecture
+
+### System Components
+
+```
+Customer (WhatsApp/Discord)
+    ↓
+OMNI Hub (Message Router)
+    ↓
+AI Agent (Automagik Hive / Custom)
+    ↓
+┌─────────────┬──────────────┬────────────────┐
+│             │              │                │
+CRM/Ticketing  Knowledge Base  Analytics DB
+(Zendesk)      (Vector DB)    (PostgreSQL)
+```
+
+### Message Flow
+
+<Steps>
+  <Step title="Customer Sends Message">
+    Customer messages via WhatsApp or Discord
+  </Step>
+
+  <Step title="OMNI Routes to AI Agent">
+    OMNI receives webhook, validates, and forwards to configured AI agent
+  </Step>
+
+  <Step title="AI Agent Processes">
+    Agent analyzes intent, searches knowledge base, and generates response
+  </Step>
+
+  <Step title="Response Sent">
+    OMNI receives agent response and sends back to customer
+  </Step>
+
+  <Step title="Context Stored">
+    Full conversation stored in traces for analytics and training
+  </Step>
+</Steps>
+
+---
+
+## Implementation Guide
+
+### Step 1: Setup OMNI and Evolution API
+
+```bash
+# Clone and install
+git clone --recurse-submodules https://github.com/namastexlabs/automagik-omni.git
+cd automagik-omni
+make install
+
+# Configure environment
+cp .env.example .env
+nano .env
+```
+
+```bash .env
+# OMNI Configuration
+AUTOMAGIK_OMNI_API_KEY="your-secure-api-key"
+AUTOMAGIK_OMNI_API_PORT=8882
+AUTOMAGIK_OMNI_DATABASE_URL="postgresql://user:pass@localhost:5432/omni"
+
+# Evolution API (WhatsApp)
+EVOLUTION_API_URL="http://localhost:18082"
+EVOLUTION_API_KEY="your-evolution-key"
+
+# Logging
+LOG_LEVEL="INFO"
+AUTOMAGIK_OMNI_ENABLE_TRACING="true"
+```
+
+```bash
+# Start services
+pm2 start ecosystem.config.js
+
+# Verify health
+curl http://localhost:8882/health
+```
+
+### Step 2: Deploy AI Agent
+
+<Tabs>
+  <Tab title="Automagik Hive (Recommended)">
+    ```bash
+    # Clone Automagik Hive
+    git clone https://github.com/namastexlabs/automagik-hive.git
+    cd automagik-hive
+
+    # Install and configure
+    pip install -e .
+    cp .env.example .env
+    nano .env
+    ```
+
+    ```bash .env
+    # Hive Configuration
+    OPENAI_API_KEY="your-openai-key"
+    ANTHROPIC_API_KEY="your-anthropic-key"
+
+    # Agent settings
+    DEFAULT_MODEL="claude-3-5-sonnet-20241022"
+    ENABLE_STREAMING="true"
+    ```
+
+    ```bash
+    # Start Hive
+    uvicorn hive.api.app:app --host 0.0.0.0 --port 8886
+    ```
+  </Tab>
+
+  <Tab title="Custom Agent (FastAPI)">
+    ```python agent.py
+    from fastapi import FastAPI, HTTPException
+    from pydantic import BaseModel
+    import openai
+
+    app = FastAPI()
+
+    class Message(BaseModel):
+        message: str
+        user_id: str
+        platform: str
+        context: dict = {}
+
+    class Response(BaseModel):
+        response: str
+
+    @app.post("/chat", response_model=Response)
+    async def chat(msg: Message):
+        # Your custom logic here
+        try:
+            # Example: OpenAI chat
+            completion = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful customer support agent."},
+                    {"role": "user", "content": msg.message}
+                ]
+            )
+
+            return Response(response=completion.choices[0].message.content)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    ```
+
+    ```bash
+    # Start agent
+    uvicorn agent:app --host 0.0.0.0 --port 8886
+    ```
+  </Tab>
+
+  <Tab title="LangChain Agent">
+    ```python langchain_agent.py
+    from fastapi import FastAPI
+    from langchain.agents import initialize_agent, AgentType
+    from langchain.chat_models import ChatOpenAI
+    from langchain.tools import Tool
+
+    app = FastAPI()
+
+    # Define tools
+    def search_knowledge_base(query: str) -> str:
+        # Your knowledge base search
+        return "Knowledge base result"
+
+    def check_order_status(order_id: str) -> str:
+        # Your order status check
+        return "Order status"
+
+    tools = [
+        Tool(name="Knowledge Base", func=search_knowledge_base),
+        Tool(name="Order Status", func=check_order_status)
+    ]
+
+    llm = ChatOpenAI(temperature=0, model="gpt-4")
+    agent = initialize_agent(
+        tools,
+        llm,
+        agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION
+    )
+
+    @app.post("/chat")
+    async def chat(message: dict):
+        response = agent.run(message["message"])
+        return {"response": response}
+    ```
+  </Tab>
+</Tabs>
+
+### Step 3: Create Support Instance
+
+```bash
+# Create WhatsApp support instance
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-omni-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "customer-support-bot",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "your-evolution-key",
+    "agent_api_url": "http://localhost:8886/chat",
+    "agent_api_key": "your-agent-api-key",
+    "default_agent": "support-agent"
+  }'
+```
+
+### Step 4: Connect WhatsApp
+
+```bash
+# Get QR code
+curl http://localhost:8882/api/v1/instances/customer-support-bot/qr \
+  -H "x-api-key: your-omni-api-key"
+
+# Scan with WhatsApp
+# Your support number is now live!
+```
+
+### Step 5: Test the Flow
+
+```bash
+# Send test message from any WhatsApp
+# Message: "What are your business hours?"
+
+# AI responds automatically
+# Response: "We're open Monday-Friday 9AM-6PM EST,
+# and Saturday 10AM-4PM. We're closed on Sundays."
+```
+
+---
+
+## Advanced Configuration
+
+### Knowledge Base Integration
+
+Enhance your agent with a vector database for semantic search:
+
+<Tabs>
+  <Tab title="Pinecone">
+    ```python
+    from langchain.vectorstores import Pinecone
+    from langchain.embeddings import OpenAIEmbeddings
+    import pinecone
+
+    # Initialize Pinecone
+    pinecone.init(api_key="your-key", environment="us-west1-gcp")
+    embeddings = OpenAIEmbeddings()
+
+    # Create vector store
+    vectorstore = Pinecone.from_texts(
+        texts=["Your FAQ content", "Product docs", "Support articles"],
+        embeddings=embeddings,
+        index_name="support-kb"
+    )
+
+    # Search in agent
+    def search_kb(query: str) -> str:
+        docs = vectorstore.similarity_search(query, k=3)
+        return "\n".join([doc.page_content for doc in docs])
+    ```
+  </Tab>
+
+  <Tab title="Weaviate">
+    ```python
+    import weaviate
+    from langchain.vectorstores import Weaviate
+    from langchain.embeddings import OpenAIEmbeddings
+
+    # Connect to Weaviate
+    client = weaviate.Client("http://localhost:8080")
+    embeddings = OpenAIEmbeddings()
+
+    # Create vector store
+    vectorstore = Weaviate(
+        client=client,
+        index_name="SupportArticles",
+        text_key="content",
+        embedding=embeddings
+    )
+
+    # Query
+    def search_kb(query: str) -> str:
+        results = vectorstore.similarity_search(query)
+        return results[0].page_content
+    ```
+  </Tab>
+
+  <Tab title="ChromaDB">
+    ```python
+    from langchain.vectorstores import Chroma
+    from langchain.embeddings import OpenAIEmbeddings
+
+    embeddings = OpenAIEmbeddings()
+    vectorstore = Chroma.from_texts(
+        texts=["FAQ 1", "FAQ 2", "FAQ 3"],
+        embeddings=embeddings,
+        persist_directory="./chroma_db"
+    )
+
+    def search_kb(query: str) -> str:
+        docs = vectorstore.similarity_search(query, k=3)
+        return "\n".join([doc.page_content for doc in docs])
+    ```
+  </Tab>
+</Tabs>
+
+### Sentiment Analysis
+
+Detect frustrated customers and escalate automatically:
+
+```python
+from transformers import pipeline
+
+sentiment_analyzer = pipeline("sentiment-analysis",
+                              model="distilbert-base-uncased-finetuned-sst-2-english")
+
+def analyze_sentiment(message: str) -> dict:
+    result = sentiment_analyzer(message)[0]
+    return {
+        "label": result["label"],  # POSITIVE or NEGATIVE
+        "score": result["score"]   # Confidence 0-1
+    }
+
+@app.post("/chat")
+async def chat(msg: Message):
+    sentiment = analyze_sentiment(msg.message)
+
+    # Escalate if negative sentiment
+    if sentiment["label"] == "NEGATIVE" and sentiment["score"] > 0.8:
+        return {
+            "response": "I understand you're frustrated. Let me connect you with a human agent who can better assist you.",
+            "escalate": True,
+            "priority": "high"
+        }
+
+    # Continue with AI response
+    response = agent.run(msg.message)
+    return {"response": response}
+```
+
+### CRM Integration
+
+Automatically create tickets in your CRM:
+
+<Tabs>
+  <Tab title="Zendesk">
+    ```python
+    from zenpy import Zenpy
+
+    zendesk = Zenpy(
+        email="support@company.com",
+        token="your-zendesk-token",
+        subdomain="yourcompany"
+    )
+
+    def create_ticket(user_phone: str, message: str, priority: str = "normal"):
+        ticket = zendesk.tickets.create(
+            subject=f"WhatsApp inquiry from {user_phone}",
+            description=message,
+            priority=priority,
+            tags=["whatsapp", "omni-bot"],
+            requester={"name": user_phone, "email": f"{user_phone}@whatsapp.com"}
+        )
+        return ticket.id
+
+    # In agent when escalation needed
+    ticket_id = create_ticket(msg.user_id, msg.message, priority="high")
+    response = f"I've created ticket #{ticket_id} and a team member will reach out soon."
+    ```
+  </Tab>
+
+  <Tab title="Intercom">
+    ```python
+    import requests
+
+    def create_intercom_conversation(user_phone: str, message: str):
+        url = "https://api.intercom.io/conversations"
+        headers = {
+            "Authorization": "Bearer your-intercom-token",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "from": {
+                "type": "user",
+                "id": user_phone
+            },
+            "body": message
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()["id"]
+    ```
+  </Tab>
+
+  <Tab title="Salesforce">
+    ```python
+    from simple_salesforce import Salesforce
+
+    sf = Salesforce(
+        username="your-username",
+        password="your-password",
+        security_token="your-token"
+    )
+
+    def create_case(user_phone: str, subject: str, description: str):
+        case = sf.Case.create({
+            "Subject": subject,
+            "Description": description,
+            "Origin": "WhatsApp",
+            "Priority": "Medium",
+            "SuppliedPhone": user_phone
+        })
+        return case["id"]
+    ```
+  </Tab>
+</Tabs>
+
+### Multi-Language Support
+
+```python
+from deep_translator import GoogleTranslator
+
+def detect_and_translate(message: str, target_lang: str = "en") -> tuple:
+    # Detect source language
+    detector = GoogleTranslator(source='auto', target='en')
+    detected_lang = detector.detect(message)
+
+    # Translate to English for processing
+    translated = GoogleTranslator(source=detected_lang, target='en').translate(message)
+
+    return translated, detected_lang
+
+def translate_response(response: str, target_lang: str) -> str:
+    if target_lang == "en":
+        return response
+    return GoogleTranslator(source='en', target=target_lang).translate(response)
+
+@app.post("/chat")
+async def chat(msg: Message):
+    # Translate incoming message
+    translated_msg, source_lang = detect_and_translate(msg.message)
+
+    # Process with AI
+    response = agent.run(translated_msg)
+
+    # Translate response back to customer's language
+    final_response = translate_response(response, source_lang)
+
+    return {"response": final_response}
+```
+
+---
+
+## Production Considerations
+
+### Handling High Volume
+
+```python
+# Implement queue for high-traffic scenarios
+
+from celery import Celery
+from redis import Redis
+
+celery_app = Celery('support', broker='redis://localhost:6379/0')
+redis_client = Redis(host='localhost', port=6379, db=1)
+
+@celery_app.task
+def process_message_async(user_id: str, message: str):
+    # Process message in background
+    response = agent.run(message)
+    send_response(user_id, response)
+
+@app.post("/chat")
+async def chat(msg: Message):
+    # Queue message for async processing
+    task = process_message_async.delay(msg.user_id, msg.message)
+
+    # Immediate acknowledgment
+    return {
+        "response": "Thank you! I'm processing your request...",
+        "task_id": task.id
+    }
+```
+
+### Rate Limiting Per User
+
+```python
+from fastapi import HTTPException
+from datetime import datetime, timedelta
+
+user_requests = {}  # In production, use Redis
+
+def check_rate_limit(user_id: str, limit: int = 10, window: int = 60) -> bool:
+    now = datetime.now()
+
+    if user_id not in user_requests:
+        user_requests[user_id] = []
+
+    # Clean old requests
+    user_requests[user_id] = [
+        ts for ts in user_requests[user_id]
+        if now - ts < timedelta(seconds=window)
+    ]
+
+    if len(user_requests[user_id]) >= limit:
+        return False
+
+    user_requests[user_id].append(now)
+    return True
+
+@app.post("/chat")
+async def chat(msg: Message):
+    if not check_rate_limit(msg.user_id, limit=10, window=60):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests. Please wait a moment."
+        )
+
+    # Process message
+    response = agent.run(msg.message)
+    return {"response": response}
+```
+
+### Monitoring and Analytics
+
+```python
+from prometheus_client import Counter, Histogram
+import time
+
+# Metrics
+messages_total = Counter('support_messages_total', 'Total support messages', ['status'])
+response_time = Histogram('support_response_seconds', 'Response time')
+escalations_total = Counter('support_escalations_total', 'Total escalations')
+
+@app.post("/chat")
+async def chat(msg: Message):
+    start_time = time.time()
+
+    try:
+        response = agent.run(msg.message)
+
+        # Check if escalation needed
+        if "escalate" in response:
+            escalations_total.inc()
+
+        messages_total.labels(status='success').inc()
+
+        return {"response": response}
+
+    except Exception as e:
+        messages_total.labels(status='error').inc()
+        raise
+
+    finally:
+        response_time.observe(time.time() - start_time)
+```
+
+---
+
+## Testing
+
+### Unit Tests
+
+```python tests/test_support_agent.py
+import pytest
+from agent import chat, Message
+
+def test_faq_response():
+    msg = Message(
+        message="What are your business hours?",
+        user_id="+1234567890",
+        platform="whatsapp"
+    )
+
+    response = chat(msg)
+    assert "Monday" in response["response"]
+    assert "Friday" in response["response"]
+
+def test_escalation_trigger():
+    msg = Message(
+        message="This is ridiculous! I've been waiting for days!",
+        user_id="+1234567890",
+        platform="whatsapp"
+    )
+
+    response = chat(msg)
+    assert response.get("escalate") == True
+    assert response.get("priority") == "high"
+```
+
+### Integration Tests
+
+```bash
+# Test full flow with OMNI
+curl -X POST http://localhost:8882/api/v1/instances/customer-support-bot/send-text \
+  -H "x-api-key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message": "Test: What are your business hours?"
+  }'
+
+# Check traces
+curl http://localhost:8882/api/v1/traces?instance_name=customer-support-bot \
+  -H "x-api-key: your-key"
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Notifications Workflow" icon="bell" href="/omni/workflows/notifications">
+    Automate order updates and alerts
+  </Card>
+
+  <Card title="Multi-Platform Agents" icon="layer-group" href="/omni/workflows/multi-platform-agents">
+    Deploy same agent across multiple channels
+  </Card>
+
+  <Card title="Team Collaboration" icon="users" href="/omni/workflows/team-collaboration">
+    Internal team communication automation
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Complete API documentation
+  </Card>
+</CardGroup>
+
+---
+
+**Pro Tip**: Start with a narrow use case (e.g., business hours FAQ), measure success, then gradually expand your agent's capabilities based on real customer interactions.

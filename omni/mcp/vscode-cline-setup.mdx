@@ -1,0 +1,800 @@
+---
+title: "VSCode + Cline Setup"
+description: "Configure MCP for VSCode with Cline extension"
+icon: "code"
+---
+
+## VSCode + Cline MCP Setup
+
+Configure OMNI as an MCP server for the Cline extension in VSCode. Control WhatsApp, Discord, and all messaging channels from your code editor.
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Cline Extension">
+    1. Open VSCode
+    2. Go to Extensions (`Cmd/Ctrl + Shift + X`)
+    3. Search for **"Cline"**
+    4. Click **Install**
+    5. Reload VSCode if prompted
+  </Step>
+
+  <Step title="Install OMNI">
+    ```bash
+    pip install automagik-omni
+    ```
+
+    Or with uv:
+    ```bash
+    uv pip install automagik-omni
+    ```
+  </Step>
+
+  <Step title="Verify OMNI is Running">
+    ```bash
+    curl http://localhost:8882/health
+    # Should return: {"status":"healthy"}
+    ```
+  </Step>
+
+  <Step title="Get Your API Key">
+    ```bash
+    cat .env | grep AUTOMAGIK_OMNI_API_KEY
+    ```
+
+    Copy the value after `AUTOMAGIK_OMNI_API_KEY=`
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Option 1: Via Cline Settings UI (Recommended)
+
+<Steps>
+  <Step title="Open Cline Settings">
+    - Press `Cmd/Ctrl + Shift + P`
+    - Type **"Cline: Open Settings"**
+    - Select and press Enter
+  </Step>
+
+  <Step title="Navigate to MCP Servers">
+    Scroll to **"MCP Servers"** section
+  </Step>
+
+  <Step title="Add OMNI Server">
+    Click **"Add Server"** or **"Edit in settings.json"**
+
+    Add:
+    - **Name**: `omni`
+    - **Command**: `uvx`
+    - **Args**: `--from automagik-omni mcp-server-omni`
+    - **Environment Variables**:
+      - `OMNI_URL`: `http://localhost:8882`
+      - `OMNI_API_KEY`: `your-api-key-here`
+  </Step>
+
+  <Step title="Save and Reload">
+    Save settings and reload VSCode window:
+    - `Cmd/Ctrl + Shift + P`
+    - Type **"Developer: Reload Window"**
+  </Step>
+</Steps>
+
+### Option 2: Via JSON Configuration
+
+<Steps>
+  <Step title="Open Settings JSON">
+    - Press `Cmd/Ctrl + Shift + P`
+    - Type **"Preferences: Open Settings (JSON)"**
+    - Press Enter
+  </Step>
+
+  <Step title="Add OMNI Configuration">
+    Add this to your settings:
+
+    ```json
+    {
+      "cline.mcpServers": [
+        {
+          "name": "omni",
+          "command": "uvx",
+          "args": ["--from", "automagik-omni", "mcp-server-omni"],
+          "env": {
+            "OMNI_URL": "http://localhost:8882",
+            "OMNI_API_KEY": "your-api-key-here"
+          }
+        }
+      ]
+    }
+    ```
+
+    **Replace `your-api-key-here`** with your actual API key.
+  </Step>
+
+  <Step title="Reload VSCode">
+    - `Cmd/Ctrl + Shift + P`
+    - **"Developer: Reload Window"**
+  </Step>
+</Steps>
+
+---
+
+## Configuration Options
+
+### Standard Setup (Localhost)
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  ]
+}
+```
+
+### Remote Server Setup
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.yourcompany.com",
+        "OMNI_API_KEY": "your-prod-api-key"
+      }
+    }
+  ]
+}
+```
+
+### Custom Port
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8000",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Testing Your Setup
+
+### Quick Verification
+
+<Steps>
+  <Step title="Open Cline">
+    - Click the Cline icon in the Activity Bar (left sidebar)
+    - Or press `Cmd/Ctrl + Shift + P` → **"Cline: Open"**
+  </Step>
+
+  <Step title="Check MCP Tools">
+    In Cline chat, type:
+    ```
+    What MCP tools do you have?
+    ```
+
+    Response should include OMNI tools:
+    - manage_instances
+    - send_message
+    - manage_traces
+    - manage_profiles
+    - manage_chats
+    - manage_contacts
+  </Step>
+
+  <Step title="Test Instance Listing">
+    ```
+    List all my OMNI messaging instances
+    ```
+
+    Cline should query OMNI and display your instances.
+  </Step>
+
+  <Step title="Test Message Sending">
+    ```
+    Send a test message to +[your-number] saying "Hello from Cline!"
+    ```
+
+    Cline should:
+    1. Use OMNI MCP tools
+    2. Send the message
+    3. Confirm delivery
+  </Step>
+</Steps>
+
+---
+
+## Usage with Cline
+
+### Basic Commands
+
+#### Instance Management
+
+```
+You: "Show me all my messaging instances and their connection status"
+
+Cline:
+→ manage_instances(operation="list", include_status=true)
+
+Cline: "You have 3 messaging instances:
+
+        1. sales-bot (WhatsApp)
+           - Status: Connected
+           - Last activity: 2 minutes ago
+
+        2. support-bot (Discord)
+           - Status: Connected
+           - Last activity: 5 minutes ago
+
+        3. marketing-bot (WhatsApp)
+           - Status: Disconnected
+           - Needs reconnection
+
+        Should I restart marketing-bot?"
+```
+
+#### Sending Messages
+
+```
+You: "Send 'Payment received, thank you!' to +44123456789"
+
+Cline:
+→ send_message(message_type="text", phone="+44123456789", message="...")
+
+Cline: "✅ Message sent successfully via sales-bot
+        Delivered at 14:23
+        Message ID: msg_xyz789"
+```
+
+#### Analytics & Debugging
+
+```
+You: "Show me why messages failed today"
+
+Cline:
+→ manage_traces(operation="list", trace_status="failed")
+→ Analyzes each failure
+
+Cline: "Found 3 failed messages today:
+
+        1. 09:15 - +44123456789
+           Reason: Agent timeout (30s)
+           Instance: sales-bot
+
+        2. 11:30 - +44987654321
+           Reason: Rate limit exceeded
+           Instance: marketing-bot
+
+        3. 14:05 - +44555666777
+           Reason: Invalid phone number
+           Instance: support-bot
+
+        Recommendation: Address agent timeout issue first (most common)"
+```
+
+### Advanced Workflows
+
+#### Multi-Step Setup
+
+```
+You: "Set up a new customer support system:
+     1. Create WhatsApp instance called uk-support
+     2. Point it to https://uk.agents.company.com
+     3. Show me the QR code
+     4. Send test message to +44123456789"
+
+Cline executes:
+→ manage_instances(operation="create", config={
+    name: "uk-support",
+    channel_type: "whatsapp",
+    agent_api_url: "https://uk.agents.company.com"
+  })
+
+→ manage_instances(operation="qr", instance_name="uk-support")
+  [Displays QR code]
+
+→ [After you scan]
+
+→ send_message(
+    instance_name="uk-support",
+    phone="+44123456789",
+    message="Test message from uk-support"
+  )
+
+Cline: "✅ uk-support instance created
+        ✅ QR code displayed (scan with WhatsApp)
+        ✅ Test message sent
+        ✅ System is live!"
+```
+
+#### Automated Reporting
+
+```
+You: "Generate a daily report of messaging activity and save it to daily-report.md"
+
+Cline executes:
+→ manage_instances(operation="list")
+→ For each instance:
+    manage_traces(operation="analytics", start_date="today")
+→ Formats report
+→ Writes to daily-report.md
+
+Cline: "Daily report saved to daily-report.md
+
+        Summary:
+        - 247 messages sent across 3 instances
+        - 98.7% success rate
+        - Average response time: 1.4s
+        - 3 failures (agent timeout)
+
+        Report includes per-instance breakdown and recommendations."
+```
+
+#### Customer Service Automation
+
+```
+You: "For each failed message to customers today, retry sending it"
+
+Cline executes:
+→ manage_traces(operation="list", trace_status="failed")
+→ Filters to today's failures
+→ For each failed message:
+    - Gets original message content
+    - send_message(resend with same content)
+    - Logs result
+
+Cline: "Retried 3 failed messages:
+        ✅ +44123456789 - Successfully resent
+        ✅ +44987654321 - Successfully resent
+        ❌ +44555666777 - Failed again (invalid number)
+
+        2 of 3 customers successfully reached"
+```
+
+---
+
+## Available MCP Tools
+
+### manage_instances
+
+```
+"Create WhatsApp instance called london-support"
+"Show QR code for sales-bot"
+"Check status of all instances"
+"Restart support-bot connection"
+"Delete old-marketing-bot"
+```
+
+### send_message
+
+```
+"Send 'Order confirmed' to +44123456789"
+"Send image at https://... to customer"
+"Send voice message to +44987654321"
+"React with 👍 to message xyz123"
+"Send contact card to +44555666777"
+```
+
+### manage_traces
+
+```
+"Show failed messages from yesterday"
+"Get analytics for last 7 days"
+"Show all messages to +44123456789"
+"Debug why message xyz failed"
+"Clean up traces older than 30 days"
+```
+
+### manage_profiles
+
+```
+"Get profile for +44123456789"
+"Update bot profile picture to this URL"
+```
+
+### manage_chats
+
+```
+"List all chats for sales-bot"
+"Show only group chats"
+"Get details for chat_xyz123"
+```
+
+### manage_contacts
+
+```
+"List all contacts"
+"Search contacts for 'John'"
+"Get contact +44123456789 details"
+```
+
+---
+
+## Integration with VSCode Workflow
+
+### During Development
+
+```python
+# In your Python code:
+customer_phone = "+44123456789"
+
+# In Cline chat:
+"Send order confirmation to the customer_phone variable from my code"
+
+Cline:
+→ Reads customer_phone from your code
+→ Uses value in MCP call
+→ Sends message
+```
+
+### Code-Driven Testing
+
+```python
+# test_notifications.py
+def test_notification():
+    # Ask Cline while coding:
+    # "Send test notification to +44123456789 with current timestamp"
+    pass
+```
+
+```
+Cline in chat:
+→ Generates timestamp
+→ Sends test message
+→ Confirms delivery
+→ You verify in WhatsApp
+```
+
+### Debugging Live Issues
+
+```
+You (investigating production issue):
+"Check if the webhook handler is receiving messages. Show last 10 traces for support-bot"
+
+Cline:
+→ manage_traces(operation="list", instance_name="support-bot", limit=10)
+→ Displays trace details with timestamps
+
+Cline: "Last 10 messages received by support-bot:
+        [trace details...]
+
+        Latest: 2 minutes ago
+        Status: All processing successfully
+        Webhook handler is working correctly"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cline can't find MCP server">
+    **Symptoms**: Cline doesn't recognize OMNI tools
+
+    **Solutions**:
+    1. Verify automagik-omni is installed:
+       ```bash
+       pip show automagik-omni
+       ```
+
+    2. Check Cline output panel for errors:
+       - View → Output
+       - Select "Cline" from dropdown
+       - Look for MCP-related errors
+
+    3. Test MCP server manually:
+       ```bash
+       uvx --from automagik-omni mcp-server-omni
+       ```
+
+    4. Verify settings.json syntax (no trailing commas)
+
+    5. Reload VSCode window
+  </Accordion>
+
+  <Accordion title="Connection refused to OMNI">
+    **Error**: `Connection error: http://localhost:8882`
+
+    **Solutions**:
+    1. Check OMNI is running:
+       ```bash
+       curl http://localhost:8882/health
+       ```
+
+    2. Verify OMNI_URL in config matches server
+
+    3. Check firewall rules
+
+    4. Confirm port matches `.env` file:
+       ```bash
+       grep AUTOMAGIK_OMNI_API_PORT .env
+       ```
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    **Error**: `401 Unauthorized`
+
+    **Solutions**:
+    1. Verify API key:
+       ```bash
+       cat .env | grep AUTOMAGIK_OMNI_API_KEY
+       ```
+
+    2. Check for extra spaces in config:
+       ```json
+       "OMNI_API_KEY": "key123"  ✅ Correct
+       "OMNI_API_KEY": " key123 "  ❌ Extra spaces
+       ```
+
+    3. Regenerate API key if needed
+
+    4. Reload VSCode after fixing
+  </Accordion>
+
+  <Accordion title="Cline doesn't see OMNI tools">
+    **Solutions**:
+    1. Ask Cline: "What MCP tools do you have?"
+       → Should list "omni" tools
+
+    2. Check Cline settings:
+       - `Cmd/Ctrl + ,`
+       - Search "Cline MCP"
+       - Verify configuration
+
+    3. Check VSCode settings.json directly:
+       ```bash
+       code ~/.config/Code/User/settings.json
+       ```
+
+    4. Restart VSCode completely
+  </Accordion>
+
+  <Accordion title="Messages not being sent">
+    **Symptoms**: Cline confirms send but nothing arrives
+
+    **Solutions**:
+    1. Check instance status:
+       ```
+       "What's the status of my WhatsApp instance?"
+       ```
+
+    2. Verify phone format: `+44123456789` ✅ not `0123456789` ❌
+
+    3. Check traces:
+       ```
+       "Show trace for the last message I sent"
+       ```
+
+    4. Reconnect if needed:
+       ```
+       "Show QR code for my-instance"
+       ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Configuration
+
+### Multiple Environments
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni-dev",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "dev-key"
+      }
+    },
+    {
+      "name": "omni-prod",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.company.com",
+        "OMNI_API_KEY": "prod-key"
+      }
+    }
+  ]
+}
+```
+
+**Usage**:
+```
+"List instances on omni-dev"
+"Send message via omni-prod"
+```
+
+### Environment Variables
+
+```bash
+# In ~/.zshrc or ~/.bashrc
+export OMNI_DEV_KEY="your-dev-key"
+export OMNI_PROD_KEY="your-prod-key"
+```
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "${OMNI_DEV_KEY}"
+      }
+    }
+  ]
+}
+```
+
+<Tip>
+Restart VSCode after adding environment variables to shell profile.
+</Tip>
+
+---
+
+## Best Practices
+
+### Natural Language
+
+<Tip>
+Use conversational language. Cline understands intent.
+
+✅ "Send order confirmation to +44123456789"
+❌ "use send_message tool with phone=+44123456789 and type=text"
+</Tip>
+
+### Leverage Code Context
+
+Cline can read your open files:
+
+```python
+# config.py
+SUPPORT_PHONE = "+44123456789"
+SALES_PHONE = "+44987654321"
+
+# In Cline chat:
+"Send 'New order' to SUPPORT_PHONE and 'Sale completed' to SALES_PHONE"
+
+Cline:
+→ Reads variables from config.py
+→ Sends both messages
+```
+
+### Incremental Operations
+
+```
+You: "Show my instances"
+Cline: [Lists instances]
+
+You: "Check status of sales-bot"
+Cline: [Shows status]
+
+You: "Send test message via that instance"
+Cline: [Sends message]
+```
+
+### Save Common Commands
+
+Create a commands file:
+
+```markdown
+<!-- .vscode/omni-commands.md -->
+
+## Daily Commands
+
+### Morning Check
+"Show all instances status and failed messages from overnight"
+
+### Weekly Report
+"Generate weekly analytics for all instances and save to reports/weekly-YYYY-MM-DD.md"
+
+### Customer Follow-up
+"Show all messages to +44[customer] from last 7 days"
+```
+
+---
+
+## Configuration File Location
+
+VSCode stores settings in:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Code/User/settings.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    code ~/Library/Application\ Support/Code/User/settings.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Code\User\settings.json
+    ```
+
+    **Quick edit**:
+    ```cmd
+    code %APPDATA%\Code\User\settings.json
+    ```
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Code/User/settings.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    code ~/.config/Code/User/settings.json
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Overview" icon="book" href="/omni/mcp/overview">
+    Learn about OMNI MCP integration
+  </Card>
+
+  <Card title="MCP Architecture" icon="microchip" href="/omni/concepts/mcp-architecture">
+    Deep dive into how it works
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/mcp-tools">
+    Complete MCP tools documentation
+  </Card>
+
+  <Card title="Message Tracing" icon="chart-line" href="/omni/concepts/message-tracing">
+    Debug with AI assistance
+  </Card>
+</CardGroup>
+
+---
+
+<Card title="All Set!" icon="circle-check">
+**OMNI is now integrated with VSCode via Cline.**
+
+Try these commands in Cline:
+- "List my OMNI instances"
+- "Send a test message to +[your-number]"
+- "Show message analytics from today"
+
+Control your messaging infrastructure without leaving your code editor.
+</Card>

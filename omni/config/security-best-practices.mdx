@@ -1,0 +1,817 @@
+---
+title: "Security Best Practices"
+description: "Harden your Automagik OMNI production deployment"
+icon: "shield"
+---
+
+## Overview
+
+Security is critical for messaging platforms that handle user data and conversations. This guide covers production-grade security practices for Automagik OMNI deployments.
+
+<Warning>
+**Security is not optional!** Follow these practices to protect your users, data, and infrastructure from unauthorized access and attacks.
+</Warning>
+
+---
+
+## API Security
+
+### API Key Management
+
+<Steps>
+  <Step title="Generate Strong Keys">
+    Use cryptographically secure random keys (32+ characters):
+
+    ```bash
+    # Generate secure API key
+    openssl rand -hex 32
+    # Output: f3a4b2c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1
+
+    # Or with Python
+    python3 -c "import secrets; print(secrets.token_hex(32))"
+
+    # Or with Node.js
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    ```
+
+    <Warning>
+    **Never use**:
+    - Dictionary words
+    - Sequential numbers
+    - Default values from documentation
+    - Short keys (< 16 characters)
+    </Warning>
+  </Step>
+
+  <Step title="Secure Storage">
+    ```bash
+    # ❌ NEVER commit API keys to git
+    echo ".env" >> .gitignore
+    echo ".env.*" >> .gitignore
+
+    # ✅ Use environment variables
+    export AUTOMAGIK_OMNI_API_KEY="your-key-here"
+
+    # ✅ Use secret management services
+    # AWS Secrets Manager
+    aws secretsmanager create-secret \
+      --name omni/api-key \
+      --secret-string "your-key-here"
+
+    # Retrieve in production
+    export AUTOMAGIK_OMNI_API_KEY=$(aws secretsmanager get-secret-value \
+      --secret-id omni/api-key \
+      --query SecretString \
+      --output text)
+    ```
+  </Step>
+
+  <Step title="Key Rotation">
+    Rotate API keys every 90 days:
+
+    ```bash
+    # Generate new key
+    NEW_KEY=$(openssl rand -hex 32)
+
+    # Update environment
+    export AUTOMAGIK_OMNI_API_KEY=$NEW_KEY
+
+    # Restart service
+    pm2 restart omni-api
+
+    # Update clients to use new key
+    # Revoke old key after migration period
+    ```
+  </Step>
+
+  <Step title="Multi-Key Support (Advanced)">
+    For zero-downtime rotation, support multiple keys:
+
+    ```bash .env
+    # Primary key (current)
+    AUTOMAGIK_OMNI_API_KEY=new-key-here
+
+    # Secondary keys (being phased out)
+    AUTOMAGIK_OMNI_API_KEY_SECONDARY=old-key-1,old-key-2
+    ```
+  </Step>
+</Steps>
+
+### Rate Limiting
+
+Protect against abuse and DDoS attacks:
+
+```python
+# Recommended rate limits (requests per minute)
+
+# Per API key
+- Global: 1000 req/min
+- Instance operations: 100 req/min
+- Message sending: 60 req/min
+- Trace queries: 200 req/min
+
+# Per IP address
+- Unauthenticated: 10 req/min
+- Health checks: 120 req/min
+```
+
+**Implementation with nginx:**
+
+```nginx
+# /etc/nginx/conf.d/omni-ratelimit.conf
+
+# Define rate limit zones
+limit_req_zone $binary_remote_addr zone=ip_limit:10m rate=10r/m;
+limit_req_zone $http_x_api_key zone=api_key_limit:10m rate=1000r/m;
+
+server {
+    listen 80;
+    server_name api.example.com;
+
+    # Apply rate limits
+    location / {
+        limit_req zone=ip_limit burst=20 nodelay;
+        limit_req zone=api_key_limit burst=50 nodelay;
+
+        proxy_pass http://localhost:8882;
+    }
+
+    # More permissive for health checks
+    location /health {
+        limit_req zone=ip_limit burst=120 nodelay;
+        proxy_pass http://localhost:8882;
+    }
+}
+```
+
+---
+
+## Network Security
+
+### HTTPS/TLS Configuration
+
+<Tabs>
+  <Tab title="Let's Encrypt (Certbot)">
+    ```bash
+    # Install Certbot
+    sudo apt install certbot python3-certbot-nginx
+
+    # Obtain certificate
+    sudo certbot --nginx -d api.example.com
+
+    # Auto-renewal (automatic with systemd)
+    sudo systemctl status certbot.timer
+
+    # Test renewal
+    sudo certbot renew --dry-run
+    ```
+
+    **nginx config:**
+    ```nginx
+    server {
+        listen 443 ssl http2;
+        server_name api.example.com;
+
+        ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+
+        # Strong SSL configuration
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
+        ssl_prefer_server_ciphers on;
+        ssl_session_cache shared:SSL:10m;
+
+        location / {
+            proxy_pass http://localhost:8882;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Self-Signed Certificate">
+    ```bash
+    # Generate self-signed cert (development only)
+    openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+      -keyout /etc/ssl/private/omni-selfsigned.key \
+      -out /etc/ssl/certs/omni-selfsigned.crt \
+      -subj "/CN=api.example.com"
+
+    # nginx config
+    ssl_certificate /etc/ssl/certs/omni-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/omni-selfsigned.key;
+    ```
+
+    <Warning>
+    Self-signed certificates are **NOT secure** for production. Use only for development/testing.
+    </Warning>
+  </Tab>
+
+  <Tab title="AWS Certificate Manager">
+    ```bash
+    # Request certificate via ACM
+    aws acm request-certificate \
+      --domain-name api.example.com \
+      --validation-method DNS
+
+    # Add CNAME records for validation
+
+    # Use with Application Load Balancer
+    aws elbv2 create-load-balancer \
+      --name omni-alb \
+      --subnets subnet-xxx subnet-yyy \
+      --security-groups sg-xxx
+
+    # Add HTTPS listener with certificate
+    aws elbv2 create-listener \
+      --load-balancer-arn arn:aws:elasticloadbalancing:... \
+      --protocol HTTPS \
+      --port 443 \
+      --certificates CertificateArn=arn:aws:acm:...
+    ```
+  </Tab>
+</Tabs>
+
+### Firewall Configuration
+
+```bash
+# UFW (Ubuntu)
+sudo ufw allow 22/tcp      # SSH
+sudo ufw allow 80/tcp      # HTTP (redirect to HTTPS)
+sudo ufw allow 443/tcp     # HTTPS
+sudo ufw deny 8882/tcp     # Block direct access to OMNI
+sudo ufw deny 18082/tcp    # Block direct access to Evolution API
+sudo ufw enable
+
+# iptables
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 8882 -j DROP
+sudo iptables -A INPUT -p tcp --dport 18082 -j DROP
+sudo iptables-save > /etc/iptables/rules.v4
+```
+
+### VPN and Private Networks
+
+For sensitive deployments:
+
+```yaml
+# Recommended architecture
+
+Internet
+  ↓ (HTTPS)
+Load Balancer (Public subnet)
+  ↓ (HTTP)
+OMNI API (Private subnet, no public IP)
+  ↓ (Local)
+Evolution API (Private subnet)
+  ↓ (PostgreSQL)
+Database (Private subnet)
+
+# All internal traffic on private network
+# Only load balancer exposed to internet
+```
+
+---
+
+## Access Control
+
+### IP Whitelisting
+
+```nginx
+# nginx: Restrict API access to known IPs
+
+geo $allowed_ip {
+    default 0;
+
+    # Office IPs
+    203.0.113.10 1;
+    203.0.113.20 1;
+
+    # Partner IPs
+    198.51.100.0/24 1;
+
+    # Cloud services
+    192.0.2.0/24 1;
+}
+
+server {
+    location / {
+        if ($allowed_ip = 0) {
+            return 403;
+        }
+
+        proxy_pass http://localhost:8882;
+    }
+}
+```
+
+### Instance-Level Access Control
+
+Whitelist/blacklist users per instance:
+
+```bash
+# Create instance with access control
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "support-bot",
+    "channel_type": "whatsapp",
+    "access_control": {
+      "mode": "whitelist",
+      "allowed_users": [
+        "+1234567890",
+        "+9876543210"
+      ],
+      "blocked_users": []
+    }
+  }'
+
+# Deny access to blocked users
+curl -X PATCH http://localhost:8882/api/v1/instances/support-bot \
+  -H "x-api-key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "access_control": {
+      "blocked_users": ["+1111111111"]
+    }
+  }'
+```
+
+---
+
+## Data Security
+
+### Encryption at Rest
+
+<Tabs>
+  <Tab title="SQLite">
+    ```bash
+    # SQLite with SQLCipher (encrypted database)
+
+    # Install SQLCipher
+    sudo apt install sqlcipher
+
+    # Create encrypted database
+    sqlcipher ./data/automagik-omni.db
+
+    # Set encryption key
+    sqlite> PRAGMA key = 'your-encryption-password';
+    sqlite> .tables
+    ```
+
+    **In production:**
+    ```bash .env
+    # Store encryption key securely
+    SQLITE_ENCRYPTION_KEY="your-secure-encryption-key"
+    ```
+  </Tab>
+
+  <Tab title="PostgreSQL">
+    ```bash
+    # Enable PostgreSQL transparent data encryption
+
+    # Install pgcrypto extension
+    psql -U omni_user -d automagik_omni -c "CREATE EXTENSION pgcrypto;"
+
+    # Encrypt sensitive columns
+    ALTER TABLE instances
+    ADD COLUMN encrypted_config BYTEA;
+
+    # Encrypt data (application layer)
+    INSERT INTO instances (encrypted_config)
+    VALUES (pgp_sym_encrypt('sensitive-data', 'encryption-key'));
+
+    # Decrypt data
+    SELECT pgp_sym_decrypt(encrypted_config, 'encryption-key') FROM instances;
+    ```
+  </Tab>
+
+  <Tab title="Full Disk Encryption">
+    ```bash
+    # LUKS encryption (Linux)
+
+    # Encrypt volume at OS level
+    sudo cryptsetup luksFormat /dev/sdb
+    sudo cryptsetup luksOpen /dev/sdb encrypted_volume
+    sudo mkfs.ext4 /dev/mapper/encrypted_volume
+    sudo mount /dev/mapper/encrypted_volume /mnt/encrypted
+
+    # Store database on encrypted volume
+    AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH=/mnt/encrypted/omni.db
+    ```
+  </Tab>
+</Tabs>
+
+### Sensitive Data Handling
+
+```bash .env
+# Redact sensitive data from traces
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+
+# Redacted fields:
+# - API keys
+# - Tokens
+# - Passwords
+# - Phone numbers (partially masked)
+# - Email addresses (partially masked)
+```
+
+**Example trace output:**
+
+```json
+{
+  "trace_id": "abc-123",
+  "payload": {
+    "phone": "+1234***890",  // Masked
+    "message": "Hello!",
+    "api_key": "[REDACTED]"  // Redacted
+  }
+}
+```
+
+---
+
+## Webhook Security
+
+### Signature Verification
+
+Verify webhook payloads from Evolution API:
+
+```python
+# Verify webhook signature (pseudo-code)
+
+import hmac
+import hashlib
+
+def verify_webhook(payload: str, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected, signature)
+
+# Usage
+if not verify_webhook(request.body, request.headers['X-Signature'], WEBHOOK_SECRET):
+    return 403  # Reject unsigned webhook
+```
+
+### Webhook IP Restrictions
+
+```nginx
+# Only accept webhooks from Evolution API
+location /webhooks/whatsapp {
+    allow 127.0.0.1;      # Local Evolution API
+    allow 10.0.0.0/8;     # Private network
+    deny all;
+
+    proxy_pass http://localhost:8882;
+}
+```
+
+---
+
+## Monitoring and Auditing
+
+### Audit Logging
+
+```bash
+# Enable comprehensive audit logs
+LOG_LEVEL=INFO
+AUTOMAGIK_OMNI_ENABLE_TRACING=true
+
+# Log all security events:
+# - Failed authentication attempts
+# - API key usage
+# - Instance creation/deletion
+# - Access control violations
+# - Rate limit violations
+```
+
+**Example audit log:**
+
+```json
+{
+  "timestamp": "2025-01-04T12:34:56Z",
+  "event": "auth_failure",
+  "ip": "203.0.113.42",
+  "api_key": "abc***xyz",
+  "endpoint": "/api/v1/instances",
+  "reason": "invalid_api_key"
+}
+```
+
+### Security Monitoring
+
+```bash
+# Monitor for suspicious activity
+
+# Failed auth attempts
+pm2 logs omni-api | grep "auth_failure"
+
+# Unusual traffic patterns
+pm2 logs omni-api | grep "rate_limit_exceeded"
+
+# Check for security updates
+sudo apt update && sudo apt list --upgradable
+```
+
+### Intrusion Detection
+
+```bash
+# Install fail2ban
+sudo apt install fail2ban
+
+# Configure OMNI filter
+sudo nano /etc/fail2ban/filter.d/omni-auth.conf
+```
+
+```ini
+# /etc/fail2ban/filter.d/omni-auth.conf
+[Definition]
+failregex = .*auth_failure.*ip.*<HOST>
+ignoreregex =
+```
+
+```ini
+# /etc/fail2ban/jail.local
+[omni-auth]
+enabled = true
+port = 80,443
+filter = omni-auth
+logpath = /home/user/automagik-omni/logs/api-out.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+```
+
+```bash
+# Start fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+
+# Check banned IPs
+sudo fail2ban-client status omni-auth
+```
+
+---
+
+## Compliance
+
+### GDPR Compliance
+
+<AccordionGroup>
+  <Accordion title="Data Minimization">
+    Only collect necessary data:
+
+    ```bash
+    # Configure minimal data collection
+    AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=7  # Short retention
+    AUTOMAGIK_OMNI_TRACE_MAX_PAYLOAD_SIZE=10240  # Limit size
+    ```
+  </Accordion>
+
+  <Accordion title="Right to be Forgotten">
+    Implement user data deletion:
+
+    ```bash
+    # Delete user data from all tables
+    curl -X DELETE http://localhost:8882/api/v1/users/+1234567890 \
+      -H "x-api-key: your-key"
+
+    # Clean traces
+    curl -X POST http://localhost:8882/api/v1/traces/cleanup \
+      -H "x-api-key: your-key" \
+      -d '{"user_phone": "+1234567890"}'
+    ```
+  </Accordion>
+
+  <Accordion title="Data Export (Portability)">
+    Export user data in machine-readable format:
+
+    ```bash
+    # Export user data
+    curl http://localhost:8882/api/v1/users/+1234567890/export \
+      -H "x-api-key: your-key" \
+      > user-data.json
+    ```
+  </Accordion>
+
+  <Accordion title="Consent Management">
+    Track user consent:
+
+    ```sql
+    -- Add consent tracking
+    ALTER TABLE contacts ADD COLUMN consent_given BOOLEAN DEFAULT FALSE;
+    ALTER TABLE contacts ADD COLUMN consent_date TIMESTAMP;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### SOC 2 Considerations
+
+For enterprise deployments seeking SOC 2 compliance:
+
+<CardGroup cols={2}>
+  <Card title="Access Controls" icon="key">
+    - Multi-factor authentication
+    - Role-based access control
+    - Audit logs for all access
+    - Regular access reviews
+  </Card>
+
+  <Card title="Data Encryption" icon="lock">
+    - TLS 1.3 for data in transit
+    - AES-256 for data at rest
+    - Key management procedures
+    - Encrypted backups
+  </Card>
+
+  <Card title="Monitoring" icon="chart-line">
+    - 24/7 security monitoring
+    - Intrusion detection systems
+    - Automated alerting
+    - Incident response plan
+  </Card>
+
+  <Card title="Change Management" icon="code-branch">
+    - Code review requirements
+    - Staging environment testing
+    - Rollback procedures
+    - Change documentation
+  </Card>
+</CardGroup>
+
+---
+
+## Incident Response
+
+### Security Incident Checklist
+
+<Steps>
+  <Step title="Detect">
+    ```bash
+    # Monitor for security events
+    pm2 logs omni-api --lines 1000 | grep -E "auth_failure|rate_limit|error"
+
+    # Check for unusual patterns
+    # - Spike in failed authentications
+    # - Unusual IP addresses
+    # - High error rates
+    ```
+  </Step>
+
+  <Step title="Contain">
+    ```bash
+    # Block compromised API key
+    # Update .env with new key
+    pm2 restart omni-api
+
+    # Block attacker IPs
+    sudo ufw deny from 203.0.113.42
+
+    # Disable compromised instance
+    curl -X DELETE http://localhost:8882/api/v1/instances/compromised-bot \
+      -H "x-api-key: your-key"
+    ```
+  </Step>
+
+  <Step title="Investigate">
+    ```bash
+    # Analyze logs
+    pm2 logs omni-api --since yesterday > incident-logs.txt
+
+    # Check traces
+    curl http://localhost:8882/api/v1/traces \
+      ?start_date=2025-01-04T00:00:00Z \
+      -H "x-api-key: your-key"
+
+    # Database audit
+    psql $AUTOMAGIK_OMNI_DATABASE_URL -c "\
+      SELECT * FROM traces WHERE status = 'failed' \
+      AND created_at > NOW() - INTERVAL '24 hours';"
+    ```
+  </Step>
+
+  <Step title="Recover">
+    ```bash
+    # Restore from backup if needed
+    pg_restore -U omni_user -d automagik_omni backup.dump
+
+    # Rotate all credentials
+    ./scripts/rotate-all-keys.sh
+
+    # Update security configurations
+    # Apply patches and updates
+    ```
+  </Step>
+
+  <Step title="Document">
+    Create incident report:
+    - Timeline of events
+    - Root cause analysis
+    - Impact assessment
+    - Remediation steps taken
+    - Lessons learned
+    - Preventive measures
+  </Step>
+</Steps>
+
+---
+
+## Security Checklist
+
+Use this checklist for production deployments:
+
+<AccordionGroup>
+  <Accordion title="✅ API Security">
+    - [ ] Strong API keys (32+ characters)
+    - [ ] API keys stored in secret manager
+    - [ ] API key rotation policy (90 days)
+    - [ ] Rate limiting enabled
+    - [ ] IP whitelisting configured
+    - [ ] Invalid auth attempts monitored
+  </Accordion>
+
+  <Accordion title="✅ Network Security">
+    - [ ] HTTPS/TLS enabled (minimum TLS 1.2)
+    - [ ] Valid SSL certificate (not self-signed)
+    - [ ] Firewall rules configured
+    - [ ] Direct access to OMNI port blocked
+    - [ ] VPN or private network for sensitive deployments
+    - [ ] DDoS protection enabled
+  </Accordion>
+
+  <Accordion title="✅ Data Security">
+    - [ ] Database credentials secured
+    - [ ] Encryption at rest enabled
+    - [ ] Sensitive data redaction enabled
+    - [ ] Regular backups configured
+    - [ ] Backup encryption enabled
+    - [ ] Data retention policies defined
+  </Accordion>
+
+  <Accordion title="✅ Access Control">
+    - [ ] Principle of least privilege applied
+    - [ ] Instance-level access control configured
+    - [ ] Blocked users list maintained
+    - [ ] Regular access reviews scheduled
+  </Accordion>
+
+  <Accordion title="✅ Monitoring">
+    - [ ] Audit logging enabled
+    - [ ] Security monitoring configured
+    - [ ] Intrusion detection enabled
+    - [ ] Alerting rules defined
+    - [ ] Log retention policy set
+  </Accordion>
+
+  <Accordion title="✅ Compliance">
+    - [ ] GDPR requirements addressed
+    - [ ] Data deletion procedures documented
+    - [ ] User consent mechanism implemented
+    - [ ] Privacy policy published
+    - [ ] Data processing agreement signed
+  </Accordion>
+
+  <Accordion title="✅ Incident Response">
+    - [ ] Incident response plan documented
+    - [ ] Security contacts defined
+    - [ ] Escalation procedures established
+    - [ ] Backup restoration tested
+    - [ ] Disaster recovery plan verified
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deployment Options" icon="rocket" href="/omni/config/deployment-options">
+    Deploy OMNI securely to production
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/omni/config/environment-variables">
+    Configure security settings
+  </Card>
+
+  <Card title="Database Setup" icon="database" href="/omni/config/database-setup">
+    Secure your database
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Implement secure API access
+  </Card>
+</CardGroup>
+
+---
+
+**Remember**: Security is an ongoing process, not a one-time setup. Regularly review and update your security practices as threats evolve.

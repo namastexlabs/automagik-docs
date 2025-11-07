@@ -1,0 +1,476 @@
+---
+title: "Channel Status"
+description: "Monitor channel health and connection status across all platforms"
+icon: "broadcast-tower"
+---
+
+## Overview
+
+Channel endpoints provide health monitoring and status information for all connected messaging platforms. Use these endpoints to monitor connectivity, troubleshoot issues, and ensure reliable messaging.
+
+---
+
+## List All Channels
+
+Get comprehensive information about all configured instances across all channel types.
+
+**Endpoint**: `GET /api/v1/omni/`
+
+<ParamField query="channel_type" type="string">
+  Filter by specific channel type: `whatsapp`, `discord`
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/?channel_type=whatsapp" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8882/api/v1/omni/",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"channel_type": "whatsapp"}
+)
+
+data = response.json()
+for channel in data["channels"]:
+    print(f"{channel['instance_name']}: {channel['is_healthy']}")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/omni/?channel_type=whatsapp',
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const data = await response.json();
+console.log(data.channels);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "channels": [
+    {
+      "instance_name": "my-whatsapp",
+      "channel_type": "whatsapp",
+      "is_healthy": true,
+      "connection_status": "connected",
+      "capabilities": [
+        "send_text",
+        "send_media",
+        "send_audio",
+        "send_reaction",
+        "fetch_profile"
+      ],
+      "metadata": {
+        "profile_name": "My Business",
+        "owner_jid": "5511999999999@s.whatsapp.net",
+        "connected_at": "2025-11-01T00:00:00Z"
+      }
+    },
+    {
+      "instance_name": "discord-bot",
+      "channel_type": "discord",
+      "is_healthy": true,
+      "connection_status": "connected",
+      "capabilities": [
+        "send_text",
+        "send_media",
+        "send_reaction"
+      ],
+      "metadata": {
+        "guild_count": 5,
+        "channel_count": 23
+      }
+    }
+  ],
+  "total_count": 2,
+  "healthy_count": 2,
+  "partial_errors": []
+}
+```
+
+---
+
+## Check Instance Status
+
+Get detailed connection status for a specific instance.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to check
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8882/api/v1/instances/my-whatsapp/status \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/status",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+status = response.json()
+if status["status"] == "connected":
+    print("✅ Instance is connected")
+else:
+    print("❌ Instance is disconnected")
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Connected
+{
+  "instance": "my-whatsapp",
+  "status": "connected",
+  "channel_type": "whatsapp",
+  "channel_data": {
+    "state": "open",
+    "owner_jid": "5511999999999@s.whatsapp.net",
+    "profile_name": "My Business",
+    "profile_picture_url": "https://...",
+    "connected_at": "2025-11-01T00:00:00Z",
+    "last_activity": "2025-11-04T10:30:00Z"
+  }
+}
+```
+
+```json 200 Disconnected
+{
+  "instance": "my-whatsapp",
+  "status": "disconnected",
+  "channel_type": "whatsapp",
+  "message": "Instance is not connected. Scan QR code to connect.",
+  "channel_data": {
+    "state": "close",
+    "last_disconnected": "2025-11-04T09:00:00Z",
+    "disconnect_reason": "Session expired"
+  }
+}
+```
+
+### Status Values
+
+| Status | Description | Action Required |
+|--------|-------------|-----------------|
+| `connected` | Instance is active and ready | None |
+| `disconnected` | Instance is not connected | Scan QR code or reconnect |
+| `connecting` | Connection in progress | Wait |
+| `error` | Connection error occurred | Check logs and retry |
+| `rate_limited` | Platform rate limit active | Wait and retry |
+
+---
+
+## Discover Instances
+
+Discover all available instances from external services and sync their status.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/discover \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/discover",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+discovered = response.json()
+print(f"Found {discovered['total_discovered']} instances")
+
+for instance in discovered["instances"]:
+    print(f"  {instance['name']}: {instance['status']}")
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance discovery completed",
+  "instances": [
+    {
+      "name": "my-whatsapp",
+      "channel_type": "whatsapp",
+      "status": "connected",
+      "configured": true,
+      "active": true,
+      "channel_data": {
+        "state": "open",
+        "profile_name": "My Business"
+      }
+    },
+    {
+      "name": "discord-bot",
+      "channel_type": "discord",
+      "status": "connected",
+      "configured": true,
+      "active": true,
+      "channel_data": {
+        "guilds": 5,
+        "channels": 23
+      }
+    },
+    {
+      "name": "test-instance",
+      "channel_type": "whatsapp",
+      "status": "disconnected",
+      "configured": true,
+      "active": false,
+      "channel_data": {
+        "state": "close"
+      }
+    }
+  ],
+  "total_discovered": 3,
+  "connected": 2,
+  "disconnected": 1
+}
+```
+
+---
+
+## Health Monitoring
+
+### System Health Check
+
+```bash
+curl http://localhost:8882/health
+```
+
+```json 200 Healthy
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "timestamp": "2025-11-04T10:30:00Z",
+  "uptime_seconds": 86400,
+  "database": "connected",
+  "active_instances": 3
+}
+```
+
+### Monitor All Instances
+
+```python
+def monitor_instances():
+    """Check health of all instances."""
+    instances = omni.list_instances()
+
+    healthy = 0
+    unhealthy = 0
+
+    for instance in instances:
+        status = omni.get_status(instance["name"])
+
+        if status["status"] == "connected":
+            healthy += 1
+            print(f"✅ {instance['name']}: Connected")
+        else:
+            unhealthy += 1
+            print(f"❌ {instance['name']}: Disconnected")
+
+    return {
+        "total": len(instances),
+        "healthy": healthy,
+        "unhealthy": unhealthy
+    }
+
+health = monitor_instances()
+print(f"\nHealth: {health['healthy']}/{health['total']} instances connected")
+```
+
+---
+
+## Use Cases
+
+### Automated Health Checks
+
+```python
+import time
+from datetime import datetime
+
+def health_check_loop():
+    """Continuous health monitoring."""
+    while True:
+        instances = omni.list_instances()
+
+        for instance in instances:
+            try:
+                status = omni.get_status(instance["name"])
+
+                if status["status"] != "connected":
+                    # Alert or auto-reconnect
+                    print(f"[{datetime.now()}] Alert: {instance['name']} disconnected")
+                    omni.restart_instance(instance["name"])
+
+            except Exception as e:
+                print(f"Error checking {instance['name']}: {e}")
+
+        time.sleep(60)  # Check every minute
+
+# Run in background
+health_check_loop()
+```
+
+### Status Dashboard
+
+```python
+def get_dashboard_data():
+    """Get data for monitoring dashboard."""
+    instances = omni.list_instances()
+    channels = omni.get_supported_channels()
+
+    data = {
+        "timestamp": datetime.now().isoformat(),
+        "instances": {
+            "total": len(instances),
+            "connected": sum(1 for i in instances if i["is_active"]),
+            "disconnected": sum(1 for i in instances if not i["is_active"])
+        },
+        "channels": {
+            "supported": len(channels["supported_channels"]),
+            "production": sum(
+                1 for c in channels["supported_channels"]
+                if c["status"] == "production"
+            )
+        },
+        "details": [
+            {
+                "name": i["name"],
+                "channel": i["channel_type"],
+                "status": "connected" if i["is_active"] else "disconnected",
+                "last_activity": i.get("updated_at")
+            }
+            for i in instances
+        ]
+    }
+
+    return data
+
+# Use in web dashboard
+dashboard = get_dashboard_data()
+```
+
+### Proactive Reconnection
+
+```python
+def ensure_all_connected():
+    """Ensure all instances are connected."""
+    instances = omni.list_instances()
+
+    for instance in instances:
+        status = omni.get_status(instance["name"])
+
+        if status["status"] != "connected":
+            print(f"Reconnecting {instance['name']}...")
+
+            try:
+                omni.restart_instance(instance["name"])
+                time.sleep(5)
+
+                # Check if reconnected
+                new_status = omni.get_status(instance["name"])
+                if new_status["status"] == "connected":
+                    print(f"✅ {instance['name']} reconnected")
+                else:
+                    print(f"❌ {instance['name']} still disconnected - may need QR")
+
+            except Exception as e:
+                print(f"Failed to reconnect {instance['name']}: {e}")
+
+ensure_all_connected()
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Health Checks" icon="heartbeat">
+    Check instance status before sending:
+
+    ```python
+    status = omni.get_status("my-whatsapp")
+    if status["status"] == "connected":
+        omni.send_text(...)
+    ```
+  </Card>
+
+  <Card title="Automated Monitoring" icon="robot">
+    Set up automated monitoring:
+
+    ```python
+    # Check every 5 minutes
+    schedule.every(5).minutes.do(
+        monitor_instances
+    )
+    ```
+  </Card>
+
+  <Card title="Alert on Failures" icon="bell">
+    Send alerts when disconnected:
+
+    ```python
+    if status != "connected":
+        send_alert(
+            f"Instance {name} disconnected"
+        )
+    ```
+  </Card>
+
+  <Card title="Log Status Changes" icon="file-text">
+    Track connection history:
+
+    ```python
+    log_status_change(
+        instance=name,
+        old_status=old,
+        new_status=new,
+        timestamp=now()
+    )
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Create and manage instances
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Monitor message delivery
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages across channels
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

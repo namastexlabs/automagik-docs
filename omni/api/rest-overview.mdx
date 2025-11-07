@@ -1,0 +1,572 @@
+---
+title: "REST API Overview"
+description: "Complete reference for Automagik OMNI's REST API"
+icon: "code"
+---
+
+## Overview
+
+Automagik OMNI provides a comprehensive REST API for omnichannel messaging. Connect your applications to WhatsApp, Discord, Slack, and more through a single, unified interface.
+
+<Info>
+**Base URL**: `http://localhost:8882/api/v1` (default local)
+</Info>
+
+---
+
+## Quick Start
+
+### 1. Start OMNI Server
+
+```bash
+# Start OMNI with PM2
+pm2 start ecosystem.config.js
+
+# Or with make
+make dev-all
+
+# API available at http://localhost:8882/api/v1
+```
+
+### 2. Test the API
+
+```bash
+# Health check
+curl http://localhost:8882/health
+
+# List instances
+curl -H "x-api-key: YOUR_API_KEY" \
+  http://localhost:8882/api/v1/instances
+```
+
+---
+
+## Authentication
+
+All API requests require authentication via API key in the request header.
+
+### API Key Header
+
+```bash
+curl -X GET http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-secret-api-key"
+```
+
+**Header Format**:
+- Header name: `x-api-key`
+- Header value: Your API key from `.env` file
+
+### Setting Your API Key
+
+Configure in your `.env` file:
+
+```env
+AUTOMAGIK_OMNI_API_KEY=your-super-secure-api-key-here
+```
+
+<Warning>
+**Security Best Practices**:
+- Use strong, unique API keys (minimum 32 characters)
+- Never commit API keys to version control
+- Rotate keys regularly in production
+- Use HTTPS in production deployments
+</Warning>
+
+### Authentication Errors
+
+| Status Code | Error | Description |
+|-------------|-------|-------------|
+| 401 | `UNAUTHORIZED` | Missing or invalid API key |
+| 403 | `FORBIDDEN` | Valid key but insufficient permissions |
+
+**Example Error Response**:
+```json
+{
+  "detail": "Invalid API key"
+}
+```
+
+---
+
+## Base URL
+
+```bash
+# Local development (default)
+BASE_URL=http://localhost:8882/api/v1
+
+# Custom port (if configured)
+BASE_URL=http://localhost:9000/api/v1
+
+# Production deployment
+BASE_URL=https://omni.yourdomain.com/api/v1
+```
+
+---
+
+## Response Format
+
+### Success Response
+
+All successful responses follow this structure:
+
+```json
+{
+  "success": true,
+  "message_id": "3EB0ABC123...",
+  "status": "sent",
+  "instance": "my-whatsapp",
+  "timestamp": "2025-11-04T10:30:00Z"
+}
+```
+
+### Error Response
+
+```json
+{
+  "detail": "Instance 'my-whatsapp' not found",
+  "status_code": 404
+}
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Status | Description |
+|------|--------|-------------|
+| 200 | OK | Request successful |
+| 201 | Created | Resource created successfully |
+| 400 | Bad Request | Invalid request parameters |
+| 401 | Unauthorized | Missing or invalid authentication |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource not found |
+| 422 | Unprocessable Entity | Validation error |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error |
+| 503 | Service Unavailable | Service temporarily unavailable |
+
+### Common Error Codes
+
+| Error Code | HTTP Status | Description | Solution |
+|------------|-------------|-------------|----------|
+| `INSTANCE_NOT_FOUND` | 404 | Instance doesn't exist | Check instance name |
+| `INSTANCE_NOT_CONNECTED` | 503 | Instance disconnected | Reconnect instance or check QR code |
+| `INVALID_PHONE_NUMBER` | 400 | Invalid phone format | Use format: +5511999999999 |
+| `INVALID_DISCORD_ID` | 400 | Invalid Discord channel ID | Use 15-21 digit snowflake ID |
+| `MESSAGE_SEND_FAILED` | 500 | Failed to send message | Check instance status |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests | Slow down request rate |
+| `VALIDATION_ERROR` | 422 | Request validation failed | Check request parameters |
+| `CHANNEL_NOT_SUPPORTED` | 400 | Channel type not supported | Use whatsapp or discord |
+
+---
+
+## Pagination
+
+List endpoints support pagination for large datasets:
+
+### Pagination Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip` | integer | 0 | Number of items to skip |
+| `limit` | integer | 100 | Maximum items to return (max: 500) |
+
+### Example Request
+
+```bash
+GET /api/v1/instances?skip=0&limit=20
+```
+
+### Pagination Response
+
+```json
+{
+  "instances": [...],
+  "total": 156,
+  "skip": 0,
+  "limit": 20
+}
+```
+
+---
+
+## Filtering & Sorting
+
+### Filtering
+
+Most list endpoints support filtering:
+
+```bash
+# Filter traces by status
+GET /api/v1/traces?trace_status=completed
+
+# Multiple filters
+GET /api/v1/traces?instance_name=my-whatsapp&has_media=true
+
+# Date range filter
+GET /api/v1/traces?start_date=2025-11-01T00:00:00Z&end_date=2025-11-04T23:59:59Z
+```
+
+### Common Filters
+
+| Endpoint | Filters Available |
+|----------|-------------------|
+| `/instances` | `skip`, `limit`, `include_status` |
+| `/traces` | `phone`, `instance_name`, `trace_status`, `message_type`, `has_media`, `start_date`, `end_date` |
+
+---
+
+## Rate Limiting
+
+### Current Limits
+
+| Endpoint Category | Limit | Window |
+|-------------------|-------|--------|
+| Instance Management | Unlimited | - |
+| Message Sending | Platform-dependent | See below |
+| Trace Queries | Unlimited | - |
+
+### Platform-Specific Limits
+
+| Platform | Limit | Note |
+|----------|-------|------|
+| WhatsApp (Evolution API) | ~60/min | Enforced by WhatsApp |
+| Discord | 120/min per channel | Discord API limit |
+| Slack | 100/min | Coming soon |
+
+<Info>
+Rate limits are primarily enforced by the underlying messaging platforms (WhatsApp, Discord, etc.), not by OMNI itself.
+</Info>
+
+---
+
+## API Endpoints
+
+### Core Resources
+
+<CardGroup cols={2}>
+  <Card title="Instances" icon="server" href="/omni/api/instances">
+    Manage messaging instances
+
+    - `GET /api/v1/instances`
+    - `POST /api/v1/instances`
+    - `GET /api/v1/instances/{name}`
+    - `PUT /api/v1/instances/{name}`
+    - `DELETE /api/v1/instances/{name}`
+  </Card>
+
+  <Card title="Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages across channels
+
+    - `POST /{instance}/send-text`
+    - `POST /{instance}/send-media`
+    - `POST /{instance}/send-audio`
+    - `POST /{instance}/send-reaction`
+  </Card>
+
+  <Card title="Traces" icon="chart-line" href="/omni/api/traces">
+    Track and analyze messages
+
+    - `GET /api/v1/traces`
+    - `GET /api/v1/traces/{id}`
+    - `GET /api/v1/traces/analytics/summary`
+  </Card>
+
+  <Card title="Profiles" icon="user" href="/omni/api/profiles">
+    Manage user profiles
+
+    - `POST /{instance}/fetch-profile`
+    - `POST /{instance}/update-profile-picture`
+  </Card>
+</CardGroup>
+
+### Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Contacts" icon="address-book" href="/omni/api/contacts">
+    Contact management (Coming Soon)
+  </Card>
+
+  <Card title="Chats" icon="comments" href="/omni/api/chats">
+    Chat management (Coming Soon)
+  </Card>
+
+  <Card title="Channels" icon="broadcast-tower" href="/omni/api/channels">
+    Channel health and status
+  </Card>
+
+  <Card title="Webhooks" icon="webhook" href="/omni/api/webhooks">
+    Webhook configuration (Coming Soon)
+  </Card>
+</CardGroup>
+
+---
+
+## Quick Examples
+
+### Send a WhatsApp Message
+
+```bash
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/send-text \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "text": "Hello from OMNI! 👋"
+  }'
+```
+
+### Create a New Instance
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-whatsapp",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_KEY",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_AGENT_KEY"
+  }'
+```
+
+### Get Instance Status
+
+```bash
+curl -X GET http://localhost:8882/api/v1/instances/my-whatsapp/status \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+### Query Message Traces
+
+```bash
+curl -X GET "http://localhost:8882/api/v1/traces?instance_name=my-whatsapp&limit=10" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+---
+
+## SDK Libraries
+
+### Python
+
+```bash
+pip install automagik-omni-client
+```
+
+```python
+from omni_client import OmniClient
+
+client = OmniClient(
+    base_url="http://localhost:8882",
+    api_key="your-api-key"
+)
+
+# Send message
+result = client.send_text(
+    instance="my-whatsapp",
+    phone="+5511999999999",
+    text="Hello from Python!"
+)
+```
+
+### JavaScript/TypeScript
+
+```bash
+npm install @automagik/omni-client
+```
+
+```javascript
+import { OmniClient } from '@automagik/omni-client';
+
+const client = new OmniClient({
+  baseUrl: 'http://localhost:8882',
+  apiKey: 'your-api-key'
+});
+
+// Send message
+const result = await client.sendText({
+  instance: 'my-whatsapp',
+  phone: '+5511999999999',
+  text: 'Hello from JavaScript!'
+});
+```
+
+### cURL
+
+```bash
+# Set base URL and API key
+export BASE_URL="http://localhost:8882/api/v1"
+export API_KEY="your-api-key"
+
+# Send message
+curl -X POST $BASE_URL/my-whatsapp/send-text \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number": "+5511999999999", "text": "Hello!"}'
+```
+
+---
+
+## Interactive Documentation
+
+OMNI includes built-in FastAPI/Swagger documentation:
+
+```bash
+# Start OMNI
+make dev-all
+
+# Open in browser
+open http://localhost:8882/docs
+```
+
+The interactive docs let you:
+- Test all endpoints directly
+- See request/response schemas
+- View authentication requirements
+- Download OpenAPI spec
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Check Status" icon="heartbeat">
+    Before sending messages, verify instance is connected:
+
+    ```bash
+    GET /instances/{name}/status
+    ```
+  </Card>
+
+  <Card title="Use Proper Phone Format" icon="phone">
+    For WhatsApp, always include country code:
+
+    ```
+    ✅ +5511999999999
+    ❌ 5511999999999
+    ❌ (11) 99999-9999
+    ```
+  </Card>
+
+  <Card title="Handle Errors Gracefully" icon="triangle-exclamation">
+    ```python
+    try:
+        result = client.send_text(...)
+    except InstanceNotConnected:
+        # Reconnect or show QR code
+        qr = client.get_qr_code(instance)
+    ```
+  </Card>
+
+  <Card title="Use Traces for Debugging" icon="magnifying-glass">
+    Every message gets a trace ID for debugging:
+
+    ```bash
+    GET /traces/{trace_id}
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Webhooks (Coming Soon)
+
+Subscribe to real-time message events:
+
+```bash
+POST /api/v1/webhooks
+{
+  "url": "https://your-server.com/webhook",
+  "events": ["message.received", "message.sent", "instance.connected"],
+  "secret": "webhook-secret"
+}
+```
+
+**Webhook Payload**:
+```json
+{
+  "event": "message.received",
+  "timestamp": "2025-11-04T10:30:00Z",
+  "data": {
+    "instance": "my-whatsapp",
+    "from": "+5511999999999",
+    "message": "Hello!",
+    "message_id": "3EB0ABC123..."
+  },
+  "signature": "sha256=abc123..."
+}
+```
+
+---
+
+## OpenAPI Specification
+
+Download the full OpenAPI spec:
+
+```bash
+# JSON format
+curl http://localhost:8882/openapi.json > omni-api.json
+
+# View in browser
+open http://localhost:8882/docs
+```
+
+Import into tools like:
+- Postman
+- Insomnia
+- Swagger UI
+- API clients
+
+---
+
+## Testing the API
+
+### Using HTTPie
+
+```bash
+# Install HTTPie
+brew install httpie
+
+# List instances (cleaner syntax)
+http localhost:8882/api/v1/instances x-api-key:YOUR_KEY
+
+# Send message
+http POST localhost:8882/api/v1/my-whatsapp/send-text \
+  x-api-key:YOUR_KEY \
+  phone_number="+5511999999999" \
+  text="Hello from HTTPie!"
+```
+
+### Using Postman
+
+1. Import OpenAPI spec: `http://localhost:8882/openapi.json`
+2. Set environment variable: `baseUrl = http://localhost:8882`
+3. Add header: `x-api-key = YOUR_API_KEY`
+4. Start making requests
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Create and configure messaging instances
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages across all channels
+  </Card>
+
+  <Card title="Track Messages" icon="chart-line" href="/omni/api/traces">
+    Debug and analyze message traces
+  </Card>
+
+  <Card title="MCP Tools" icon="plug" href="/omni/api/mcp-tools">
+    Use OMNI from AI coding agents
+  </Card>
+</CardGroup>

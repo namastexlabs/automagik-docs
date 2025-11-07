@@ -1,0 +1,359 @@
+---
+title: "Profile Management"
+description: "Fetch and update user profiles across messaging platforms"
+icon: "user"
+openapi: "POST /{instance_name}/fetch-profile"
+---
+
+## Overview
+
+Manage user profiles and profile pictures for your OMNI instances. Fetch profile information from contacts and update your own instance's profile picture.
+
+---
+
+## Fetch User Profile
+
+Retrieve profile information for a specific user or contact.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to use
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Phone number with country code (WhatsApp) or user ID (Discord)
+</ParamField>
+
+<ParamField body="user_id" type="string">
+  Internal user ID (alternative to phone_number)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/fetch-profile \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/fetch-profile",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999"
+    }
+)
+
+profile = response.json()
+print(f"Name: {profile['profile']['name']}")
+print(f"Picture: {profile['profile']['picture_url']}")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/my-whatsapp/fetch-profile',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      phone_number: '+5511999999999'
+    })
+  }
+);
+
+const data = await response.json();
+console.log(data.profile);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "profile": {
+    "name": "John Doe",
+    "picture_url": "https://pps.whatsapp.net/...",
+    "status": "Hey there! I'm using WhatsApp",
+    "jid": "5511999999999@s.whatsapp.net",
+    "verified": false
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "error": "User profile not found"
+}
+```
+
+---
+
+## Update Profile Picture
+
+Update your instance's profile picture. Useful for branding your business or bot.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField body="picture_url" type="string" required>
+  URL to the new profile picture (must be accessible publicly)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/my-whatsapp/update-profile-picture \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "picture_url": "https://example.com/my-business-logo.jpg"
+  }'
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/my-whatsapp/update-profile-picture",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "picture_url": "https://example.com/logo.jpg"
+    }
+)
+
+if response.json()["success"]:
+    print("Profile picture updated!")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/my-whatsapp/update-profile-picture',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      picture_url: 'https://example.com/logo.jpg'
+    })
+  }
+);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "status": "updated"
+}
+```
+
+```json 400 Bad Request
+{
+  "success": false,
+  "status": "failed",
+  "error": "Invalid image URL or format"
+}
+```
+
+### Image Requirements
+
+| Platform | Format | Max Size | Dimensions |
+|----------|--------|----------|------------|
+| WhatsApp | JPG, PNG | 5 MB | Min 192x192, Max 640x640 |
+| Discord | JPG, PNG, GIF | 8 MB | Min 128x128, recommended 512x512 |
+
+<Note>
+Images are automatically resized and compressed by the messaging platform.
+</Note>
+
+---
+
+## Use Cases
+
+### Profile Information Lookup
+
+```python
+def get_contact_info(phone_number):
+    """Get detailed contact information."""
+    profile = omni.fetch_profile(
+        instance="my-whatsapp",
+        phone_number=phone_number
+    )
+
+    return {
+        "name": profile["profile"]["name"],
+        "picture": profile["profile"]["picture_url"],
+        "verified": profile["profile"].get("verified", False)
+    }
+
+contact = get_contact_info("+5511999999999")
+print(f"Contact: {contact['name']}")
+```
+
+### Bulk Profile Sync
+
+```python
+contacts = ["+5511999999999", "+5511888888888", "+5511777777777"]
+
+for phone in contacts:
+    try:
+        profile = omni.fetch_profile(
+            instance="my-whatsapp",
+            phone_number=phone
+        )
+        # Save to database
+        save_profile(phone, profile["profile"])
+    except Exception as e:
+        print(f"Failed to fetch {phone}: {e}")
+```
+
+### Branding Setup
+
+```python
+def setup_business_profile(instance, logo_url, business_name):
+    """Set up business branding."""
+    # Update profile picture
+    omni.update_profile_picture(
+        instance=instance,
+        picture_url=logo_url
+    )
+
+    # Note: Profile name update requires WhatsApp Business API
+    print(f"Profile picture updated for {business_name}")
+
+setup_business_profile(
+    instance="my-whatsapp",
+    logo_url="https://example.com/logo.jpg",
+    business_name="ACME Corp"
+)
+```
+
+---
+
+## Platform-Specific Notes
+
+### WhatsApp
+
+- **Profile Name**: Can only be changed through WhatsApp app, not via API
+- **Status Message**: Read-only via API
+- **Profile Picture**: Can be updated via API
+- **Verification Badge**: Read-only, requires WhatsApp Business verification
+
+### Discord
+
+- **Username**: Requires Discord API with bot permissions
+- **Avatar**: Can be updated via API
+- **Status**: Requires privileged gateway intents
+- **Verification**: Discord-controlled, not editable via API
+
+---
+
+## Error Handling
+
+```python
+try:
+    profile = omni.fetch_profile(
+        instance="my-whatsapp",
+        phone_number="+5511999999999"
+    )
+
+    if profile["success"]:
+        print(f"Found: {profile['profile']['name']}")
+    else:
+        print("Profile not found")
+
+except HTTPException as e:
+    if e.status_code == 404:
+        print("Instance or user not found")
+    elif e.status_code == 503:
+        print("Instance not connected")
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Cache Profile Data" icon="database">
+    Don't fetch profile on every message:
+
+    ```python
+    # Cache profiles for 24 hours
+    cache[phone] = {
+        "profile": profile,
+        "fetched_at": datetime.now()
+    }
+    ```
+  </Card>
+
+  <Card title="Handle Missing Profiles" icon="triangle-exclamation">
+    Not all users have public profiles:
+
+    ```python
+    try:
+        profile = fetch_profile(phone)
+    except:
+        # Use phone number as fallback
+        profile = {"name": phone}
+    ```
+  </Card>
+
+  <Card title="Rate Limiting" icon="clock">
+    Respect platform rate limits:
+
+    ```python
+    for phone in contacts:
+        fetch_profile(phone)
+        time.sleep(1)  # Wait between requests
+    ```
+  </Card>
+
+  <Card title="Image Optimization" icon="image">
+    Optimize images before uploading:
+
+    ```python
+    # Compress and resize to 512x512
+    optimized_url = compress_image(
+        original_url,
+        size=(512, 512)
+    )
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages to contacts
+  </Card>
+
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Configure instances
+  </Card>
+
+  <Card title="Contact Management" icon="address-book" href="/omni/api/contacts">
+    Manage contacts (Coming Soon)
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

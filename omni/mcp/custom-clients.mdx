@@ -1,0 +1,932 @@
+---
+title: "Custom MCP Clients"
+description: "Integrate OMNI with any MCP-compatible tool"
+icon: "wrench"
+---
+
+## Custom MCP Client Setup
+
+Configure OMNI as an MCP server for any MCP-compatible AI agent or tool. OMNI follows the standard Model Context Protocol specification, making it compatible with any compliant client.
+
+---
+
+## Standard MCP Configuration
+
+All MCP clients follow a similar pattern. OMNI uses the standard MCP stdio transport.
+
+### Generic Configuration Structure
+
+```json
+{
+  "command": "uvx",
+  "args": ["--from", "automagik-omni", "mcp-server-omni"],
+  "env": {
+    "OMNI_URL": "http://localhost:8882",
+    "OMNI_API_KEY": "your-api-key-here"
+  }
+}
+```
+
+### Required Components
+
+| Component | Value | Purpose |
+|-----------|-------|---------|
+| `command` | `uvx` | Python package runner (uv-based) |
+| `args` | `["--from", "automagik-omni", "mcp-server-omni"]` | Install and run OMNI MCP server |
+| `env.OMNI_URL` | `http://localhost:8882` | OMNI API endpoint |
+| `env.OMNI_API_KEY` | Your API key | Authentication |
+
+---
+
+## Prerequisites
+
+### 1. Install OMNI
+
+```bash
+pip install automagik-omni
+```
+
+Or with uv:
+```bash
+uv pip install automagik-omni
+```
+
+### 2. Ensure OMNI is Running
+
+```bash
+# Start OMNI server
+make dev  # or your preferred method
+
+# Verify health
+curl http://localhost:8882/health
+# Should return: {"status":"healthy"}
+```
+
+### 3. Get Your API Key
+
+```bash
+cat .env | grep AUTOMAGIK_OMNI_API_KEY
+```
+
+---
+
+## Configuration by Client Type
+
+### JSON-Based Clients
+
+Most MCP clients use JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Clients using this format**:
+- Claude Code / Claude Desktop
+- Continue.dev
+- Most Electron-based AI apps
+
+### YAML-Based Clients
+
+Some tools prefer YAML:
+
+```yaml
+mcpServers:
+  omni:
+    command: uvx
+    args:
+      - --from
+      - automagik-omni
+      - mcp-server-omni
+    env:
+      OMNI_URL: http://localhost:8882
+      OMNI_API_KEY: your-api-key-here
+```
+
+**Clients using this format**:
+- Roo Code
+- Some CLI-based AI agents
+
+### TOML-Based Clients
+
+TOML configuration:
+
+```toml
+[mcpServers.omni]
+command = "uvx"
+args = ["--from", "automagik-omni", "mcp-server-omni"]
+
+[mcpServers.omni.env]
+OMNI_URL = "http://localhost:8882"
+OMNI_API_KEY = "your-api-key-here"
+```
+
+---
+
+## Common MCP Client Examples
+
+### Continue.dev
+
+**Location**: `.continue/config.json`
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Roo Code
+
+**Location**: `~/.roo/config.yaml`
+
+```yaml
+servers:
+  omni:
+    command: uvx
+    args:
+      - --from
+      - automagik-omni
+      - mcp-server-omni
+    environment:
+      OMNI_URL: http://localhost:8882
+      OMNI_API_KEY: your-api-key-here
+```
+
+### Gemini CLI
+
+**Location**: `~/.gemini/mcp.json`
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "omni": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": ["--from", "automagik-omni", "mcp-server-omni"],
+        "env": {
+          "OMNI_URL": "http://localhost:8882",
+          "OMNI_API_KEY": "your-api-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+### Aider
+
+**Location**: `.aider.conf.yml`
+
+```yaml
+mcp:
+  servers:
+    omni:
+      command: uvx
+      args: ["--from", "automagik-omni", "mcp-server-omni"]
+      env:
+        OMNI_URL: http://localhost:8882
+        OMNI_API_KEY: your-api-key-here
+```
+
+### Custom Node.js Client
+
+If you're building a Node.js MCP client:
+
+```javascript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "uvx",
+  args: ["--from", "automagik-omni", "mcp-server-omni"],
+  env: {
+    OMNI_URL: "http://localhost:8882",
+    OMNI_API_KEY: "your-api-key-here"
+  }
+});
+
+const client = new Client({
+  name: "my-omni-client",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+await client.connect(transport);
+
+// List available tools
+const tools = await client.listTools();
+console.log("OMNI tools:", tools);
+
+// Call a tool
+const result = await client.callTool({
+  name: "manage_instances",
+  arguments: {
+    operation: "list"
+  }
+});
+```
+
+### Custom Python Client
+
+If you're building a Python MCP client:
+
+```python
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    server_params = StdioServerParameters(
+        command="uvx",
+        args=["--from", "automagik-omni", "mcp-server-omni"],
+        env={
+            "OMNI_URL": "http://localhost:8882",
+            "OMNI_API_KEY": "your-api-key-here"
+        }
+    )
+
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            # Initialize connection
+            await session.initialize()
+
+            # List tools
+            tools = await session.list_tools()
+            print(f"Available tools: {tools}")
+
+            # Call tool
+            result = await session.call_tool(
+                "manage_instances",
+                arguments={"operation": "list"}
+            )
+            print(f"Instances: {result}")
+
+asyncio.run(main())
+```
+
+---
+
+## Environment Configuration
+
+### Localhost Development
+
+```json
+{
+  "env": {
+    "OMNI_URL": "http://localhost:8882",
+    "OMNI_API_KEY": "dev-api-key-here"
+  }
+}
+```
+
+### Remote Production Server
+
+```json
+{
+  "env": {
+    "OMNI_URL": "https://omni.yourcompany.com",
+    "OMNI_API_KEY": "prod-api-key-here"
+  }
+}
+```
+
+### Custom Port
+
+```json
+{
+  "env": {
+    "OMNI_URL": "http://localhost:8000",
+    "OMNI_API_KEY": "your-api-key-here"
+  }
+}
+```
+
+### Using Environment Variables
+
+For better security, reference shell environment variables:
+
+```bash
+# In ~/.zshrc or ~/.bashrc
+export OMNI_API_KEY="your-secret-key"
+export OMNI_URL="http://localhost:8882"
+```
+
+```json
+{
+  "env": {
+    "OMNI_URL": "${OMNI_URL}",
+    "OMNI_API_KEY": "${OMNI_API_KEY}"
+  }
+}
+```
+
+---
+
+## Testing Your Configuration
+
+### 1. Manual MCP Server Test
+
+Test the MCP server directly:
+
+```bash
+uvx --from automagik-omni mcp-server-omni
+```
+
+You should see MCP protocol output (not human-readable, but no errors).
+
+Press `Ctrl+C` to stop.
+
+### 2. Tool Discovery Test
+
+Once configured, test in your MCP client:
+
+```
+"What MCP tools do you have?"
+```
+
+Should include:
+- manage_instances
+- send_message
+- manage_traces
+- manage_profiles
+- manage_chats
+- manage_contacts
+
+### 3. Functional Test
+
+```
+"List all my OMNI messaging instances"
+```
+
+Should return your configured instances.
+
+### 4. End-to-End Test
+
+```
+"Send a test message to +[your-number] saying 'MCP test successful'"
+```
+
+Should send message and confirm delivery.
+
+---
+
+## Available MCP Tools
+
+OMNI exposes 6 core MCP tools:
+
+### manage_instances
+
+**Operations**: list, get, create, update, delete, set_default, status, qr, restart, logout
+
+**Example**:
+```json
+{
+  "name": "manage_instances",
+  "arguments": {
+    "operation": "list",
+    "include_status": true
+  }
+}
+```
+
+### send_message
+
+**Message Types**: text, media, audio, sticker, contact, reaction
+
+**Example**:
+```json
+{
+  "name": "send_message",
+  "arguments": {
+    "message_type": "text",
+    "instance_name": "sales-bot",
+    "phone": "+44123456789",
+    "message": "Hello from OMNI!"
+  }
+}
+```
+
+### manage_traces
+
+**Operations**: list, get, get_payloads, analytics, by_phone, cleanup
+
+**Example**:
+```json
+{
+  "name": "manage_traces",
+  "arguments": {
+    "operation": "analytics",
+    "start_date": "2025-11-01",
+    "end_date": "2025-11-07"
+  }
+}
+```
+
+### manage_profiles
+
+**Operations**: fetch, update_picture
+
+**Example**:
+```json
+{
+  "name": "manage_profiles",
+  "arguments": {
+    "operation": "fetch",
+    "instance_name": "sales-bot",
+    "phone_number": "+44123456789"
+  }
+}
+```
+
+### manage_chats
+
+**Operations**: list, get
+
+**Example**:
+```json
+{
+  "name": "manage_chats",
+  "arguments": {
+    "operation": "list",
+    "instance_name": "sales-bot",
+    "page_size": 20
+  }
+}
+```
+
+### manage_contacts
+
+**Operations**: list, get
+
+**Example**:
+```json
+{
+  "name": "manage_contacts",
+  "arguments": {
+    "operation": "list",
+    "instance_name": "sales-bot",
+    "search_query": "John"
+  }
+}
+```
+
+---
+
+## Tool Schemas
+
+Complete JSON schemas for all tools are available from the MCP server:
+
+```bash
+# List tools with full schemas
+uvx --from automagik-omni mcp-server-omni --list-tools
+
+# Or via MCP protocol
+# Client sends: tools/list
+# Server responds with full tool definitions
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Find your client's config location">
+    **Common locations**:
+
+    1. Check client documentation for:
+       - "MCP configuration"
+       - "External tools"
+       - "Model Context Protocol"
+
+    2. Common config paths:
+       - `~/.config/<client>/config.json`
+       - `~/.config/<client>/mcp.json`
+       - `./<client>/config.yaml`
+       - Project root: `.mcp.json`
+
+    3. Environment-specific:
+       - **macOS**: `~/Library/Application Support/<Client>/`
+       - **Windows**: `%APPDATA%\<Client>\`
+       - **Linux**: `~/.config/<Client>/`
+
+    4. Ask in client's community/docs:
+       - GitHub Issues
+       - Discord/Slack
+       - Documentation site
+  </Accordion>
+
+  <Accordion title="Verify OMNI MCP server works">
+    Test server independently:
+
+    ```bash
+    # Test 1: Run server
+    uvx --from automagik-omni mcp-server-omni
+    # Should start without errors
+
+    # Test 2: Check OMNI API
+    curl http://localhost:8882/health
+    # Should return: {"status":"healthy"}
+
+    # Test 3: Verify uvx works
+    which uvx
+    # Should show path to uvx
+
+    # Test 4: Check automagik-omni package
+    pip show automagik-omni
+    # Should show package details
+    ```
+  </Accordion>
+
+  <Accordion title="Authentication issues">
+    **Error**: `401 Unauthorized`
+
+    **Solutions**:
+
+    1. Verify API key matches `.env`:
+       ```bash
+       cat .env | grep AUTOMAGIK_OMNI_API_KEY
+       ```
+
+    2. Check for extra whitespace:
+       ```json
+       "OMNI_API_KEY": "key123"  ✅ Correct
+       "OMNI_API_KEY": " key123 "  ❌ Spaces
+       ```
+
+    3. Ensure quotes are correct:
+       ```json
+       "OMNI_API_KEY": "key123"  ✅ Correct
+       "OMNI_API_KEY": "\"key123\""  ❌ Escaped
+       ```
+
+    4. Regenerate API key:
+       - Update `AUTOMAGIK_OMNI_API_KEY` in `.env`
+       - Restart OMNI server
+       - Update MCP config
+       - Restart client
+  </Accordion>
+
+  <Accordion title="Connection refused">
+    **Error**: `Connection refused` or `ECONNREFUSED`
+
+    **Solutions**:
+
+    1. Verify OMNI is running:
+       ```bash
+       curl http://localhost:8882/health
+       ```
+
+    2. Check OMNI_URL matches server:
+       - If OMNI runs on different port, update `OMNI_URL`
+       - If remote server, use full URL: `https://...`
+
+    3. Check firewall/network:
+       ```bash
+       # Test connectivity
+       nc -zv localhost 8882
+       # or
+       telnet localhost 8882
+       ```
+
+    4. Verify OMNI host binding:
+       ```bash
+       # In .env, ensure:
+       AUTOMAGIK_OMNI_API_HOST=0.0.0.0  # Not 127.0.0.1
+       AUTOMAGIK_OMNI_API_PORT=8882
+       ```
+  </Accordion>
+
+  <Accordion title="Tools not appearing">
+    **Symptom**: MCP client doesn't see OMNI tools
+
+    **Solutions**:
+
+    1. Check client supports MCP:
+       - Look for "Model Context Protocol" in docs
+       - Search for "MCP" in settings
+
+    2. Verify configuration syntax:
+       - JSON: Use JSON validator (jsonlint.com)
+       - YAML: Use YAML validator
+       - No trailing commas in JSON
+
+    3. Check client logs:
+       - Most clients have debug/console logs
+       - Look for MCP connection errors
+       - Check for tool discovery issues
+
+    4. Test with another MCP server:
+       - Try a known-working MCP server
+       - If that works, issue is OMNI-specific
+       - If not, issue is client configuration
+  </Accordion>
+
+  <Accordion title="Enable debug logging">
+    Add debug environment variable:
+
+    ```json
+    {
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here",
+        "DEBUG": "mcp:*"
+      }
+    }
+    ```
+
+    Or for OMNI-specific debugging:
+
+    ```json
+    {
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here",
+        "LOG_LEVEL": "DEBUG"
+      }
+    }
+    ```
+
+    Check client logs for detailed MCP protocol messages.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Configuration
+
+### Multiple OMNI Environments
+
+Configure dev, staging, and production:
+
+```json
+{
+  "mcpServers": {
+    "omni-dev": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "dev-key"
+      }
+    },
+    "omni-staging": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://staging-omni.company.com",
+        "OMNI_API_KEY": "staging-key"
+      }
+    },
+    "omni-prod": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.company.com",
+        "OMNI_API_KEY": "prod-key"
+      }
+    }
+  }
+}
+```
+
+### Custom Timeouts
+
+Some clients support timeout configuration:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      },
+      "timeout": 30000  // 30 seconds (if supported by client)
+    }
+  }
+}
+```
+
+### Proxy Configuration
+
+If OMNI is behind a proxy:
+
+```json
+{
+  "env": {
+    "OMNI_URL": "http://localhost:8882",
+    "OMNI_API_KEY": "your-api-key-here",
+    "HTTP_PROXY": "http://proxy.company.com:8080",
+    "HTTPS_PROXY": "http://proxy.company.com:8080"
+  }
+}
+```
+
+---
+
+## Building Custom Integrations
+
+### MCP Protocol Basics
+
+OMNI's MCP server uses the standard MCP stdio transport:
+
+1. **Communication**: JSON-RPC 2.0 over stdin/stdout
+2. **Transport**: stdio (standard input/output)
+3. **Protocol Version**: MCP 1.0
+
+### Tool Call Flow
+
+```
+Client → Server: {"jsonrpc":"2.0","method":"tools/list","id":1}
+Server → Client: {"jsonrpc":"2.0","result":{"tools":[...]}}
+
+Client → Server: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"manage_instances","arguments":{"operation":"list"}}}
+Server → Client: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}]}}
+```
+
+### Authentication Flow
+
+OMNI MCP server authenticates with OMNI API using the `OMNI_API_KEY` environment variable:
+
+```
+1. Client launches MCP server with env vars
+2. MCP server stores OMNI_URL and OMNI_API_KEY
+3. On tool call, MCP server makes HTTP request:
+   - URL: OMNI_URL + endpoint
+   - Header: x-api-key: OMNI_API_KEY
+4. OMNI API validates key and processes request
+5. MCP server returns result to client
+```
+
+### Error Handling
+
+OMNI MCP server returns structured errors:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32603,
+    "message": "Internal error",
+    "data": {
+      "error": "Connection refused: http://localhost:8882",
+      "suggestion": "Check that OMNI server is running"
+    }
+  }
+}
+```
+
+---
+
+## Security Best Practices
+
+<Warning>
+**Never commit API keys** to version control. Always use environment variables or secure vaults.
+</Warning>
+
+### Secure API Key Storage
+
+```bash
+# Option 1: Environment variables
+export OMNI_API_KEY="your-secret-key"
+
+# Option 2: Secure vault (e.g., 1Password, LastPass)
+export OMNI_API_KEY=$(op read "op://vault/omni/api-key")
+
+# Option 3: AWS Secrets Manager
+export OMNI_API_KEY=$(aws secretsmanager get-secret-value --secret-id omni-api-key --query SecretString --output text)
+```
+
+### Network Security
+
+```yaml
+Production Checklist:
+  - ✅ Use HTTPS for OMNI_URL
+  - ✅ Restrict MCP server to localhost
+  - ✅ Use VPN for remote access
+  - ✅ Implement IP whitelisting on OMNI API
+  - ✅ Rotate API keys regularly
+  - ✅ Use separate keys per environment
+  - ✅ Monitor API key usage
+  - ✅ Enable audit logging
+```
+
+### Key Rotation
+
+```bash
+# 1. Generate new key
+NEW_KEY=$(openssl rand -hex 32)
+
+# 2. Update OMNI .env
+echo "AUTOMAGIK_OMNI_API_KEY=$NEW_KEY" >> .env
+
+# 3. Restart OMNI
+make dev
+
+# 4. Update MCP config
+# ... update OMNI_API_KEY in client config
+
+# 5. Restart client
+
+# 6. Verify new key works
+# ... test MCP tools
+
+# 7. Revoke old key (if OMNI supports key management)
+```
+
+---
+
+## Next Steps
+
+<Steps>
+  <Step title="Test Configuration">
+    Verify your MCP client can connect to OMNI and list tools.
+  </Step>
+
+  <Step title="Read Tool Documentation">
+    Review complete tool schemas and parameters:
+    - [MCP Architecture](/omni/concepts/mcp-architecture)
+    - [MCP Tools Reference](/omni/api/mcp-tools)
+  </Step>
+
+  <Step title="Try Example Commands">
+    Test with basic operations:
+    - List instances
+    - Send test message
+    - Query analytics
+  </Step>
+
+  <Step title="Build Custom Workflows">
+    Create client-specific workflows for your use cases.
+  </Step>
+
+  <Step title="Share Your Integration">
+    Document your client configuration and share with the community!
+  </Step>
+</Steps>
+
+---
+
+## Community & Support
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs/automagik-omni/issues">
+    Report bugs or request client-specific examples
+  </Card>
+
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help with custom integrations
+  </Card>
+
+  <Card title="MCP Specification" icon="book" href="https://spec.modelcontextprotocol.io">
+    Official MCP protocol documentation
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/rest">
+    OMNI REST API (wrapped by MCP)
+  </Card>
+</CardGroup>
+
+---
+
+## Contribute Your Configuration
+
+Found a configuration for a new MCP client? Share it!
+
+1. Fork the [automagik-docs](https://github.com/namastexlabs/automagik-docs) repo
+2. Add your configuration to this page
+3. Submit a pull request
+4. Help others use OMNI with their favorite tools
+
+---
+
+<Card title="Any MCP Client Works!" icon="plug">
+**OMNI follows the standard MCP specification.**
+
+If your tool supports Model Context Protocol, it supports OMNI. Just configure the stdio transport and environment variables.
+
+Need help? Reach out in [Discord](https://discord.gg/xcW8c7fF3R) or open a [GitHub issue](https://github.com/namastexlabs/automagik-omni/issues).
+</Card>

@@ -1,0 +1,426 @@
+---
+title: "Webhooks"
+description: "Receive real-time events from messaging platforms"
+icon: "webhook"
+---
+
+## Overview
+
+<Warning>
+**Coming Soon**: Webhook functionality is currently in development and will be available in Q4 2025.
+</Warning>
+
+Webhooks allow you to receive real-time notifications when events occur on your messaging instances. Instead of polling for updates, OMNI will push events to your server as they happen.
+
+---
+
+## Planned Webhook Events
+
+The following events will trigger webhook notifications:
+
+### Message Events
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `message.received` | New incoming message | Full message data |
+| `message.sent` | Message successfully sent | Message ID, status |
+| `message.delivered` | Message delivered to recipient | Message ID, timestamp |
+| `message.read` | Message read by recipient | Message ID, timestamp |
+| `message.failed` | Message delivery failed | Message ID, error details |
+
+### Instance Events
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `instance.connected` | Instance connected successfully | Instance name, channel type |
+| `instance.disconnected` | Instance lost connection | Instance name, reason |
+| `instance.qr_updated` | New QR code available (WhatsApp) | Instance name, QR code |
+| `instance.error` | Instance error occurred | Instance name, error details |
+
+### Contact Events
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `contact.updated` | Contact profile updated | Contact ID, changes |
+| `contact.blocked` | Contact blocked | Contact ID |
+| `contact.unblocked` | Contact unblocked | Contact ID |
+
+---
+
+## Future Webhook Configuration
+
+### Register Webhook
+
+```bash
+POST /api/v1/webhooks
+```
+
+```json Request Body
+{
+  "url": "https://your-server.com/webhook",
+  "events": [
+    "message.received",
+    "message.sent",
+    "instance.disconnected"
+  ],
+  "secret": "your-webhook-secret-key",
+  "instance_filter": ["my-whatsapp", "discord-bot"]
+}
+```
+
+```json Response
+{
+  "id": "webhook_abc123",
+  "url": "https://your-server.com/webhook",
+  "events": ["message.received", "message.sent", "instance.disconnected"],
+  "status": "active",
+  "created_at": "2025-11-04T10:30:00Z"
+}
+```
+
+---
+
+## Webhook Payload Format
+
+All webhook events will follow this structure:
+
+```json
+{
+  "event": "message.received",
+  "webhook_id": "webhook_abc123",
+  "timestamp": "2025-11-04T10:30:00Z",
+  "instance": "my-whatsapp",
+  "data": {
+    // Event-specific data
+  },
+  "signature": "sha256=abc123..."
+}
+```
+
+### Message Received Example
+
+```json
+{
+  "event": "message.received",
+  "webhook_id": "webhook_abc123",
+  "timestamp": "2025-11-04T10:30:00Z",
+  "instance": "my-whatsapp",
+  "data": {
+    "message_id": "3EB0ABC123...",
+    "from": "+5511999999999",
+    "from_name": "John Doe",
+    "message": "Hello!",
+    "message_type": "conversation",
+    "timestamp": "2025-11-04T10:30:00Z",
+    "has_media": false
+  },
+  "signature": "sha256=..."
+}
+```
+
+### Instance Disconnected Example
+
+```json
+{
+  "event": "instance.disconnected",
+  "webhook_id": "webhook_abc123",
+  "timestamp": "2025-11-04T10:30:00Z",
+  "instance": "my-whatsapp",
+  "data": {
+    "reason": "Session expired",
+    "last_connected": "2025-11-03T10:00:00Z",
+    "requires_qr": true
+  },
+  "signature": "sha256=..."
+}
+```
+
+---
+
+## Webhook Signature Verification
+
+Webhooks will be signed using HMAC-SHA256 for security:
+
+```python
+import hmac
+import hashlib
+
+def verify_webhook(payload, signature, secret):
+    """Verify webhook signature."""
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(
+        f"sha256={expected}",
+        signature
+    )
+
+# In your webhook handler
+@app.post("/webhook")
+def handle_webhook(request):
+    signature = request.headers.get("X-OMNI-Signature")
+    payload = request.body
+
+    if not verify_webhook(payload, signature, WEBHOOK_SECRET):
+        return {"error": "Invalid signature"}, 401
+
+    event = json.loads(payload)
+    process_event(event)
+    return {"status": "received"}, 200
+```
+
+---
+
+## Webhook Handler Example
+
+```python
+from flask import Flask, request
+import json
+
+app = Flask(__name__)
+
+@app.post("/webhook")
+def webhook_handler():
+    """Handle OMNI webhook events."""
+    # Verify signature
+    signature = request.headers.get("X-OMNI-Signature")
+    if not verify_webhook(request.data, signature, SECRET):
+        return {"error": "Invalid signature"}, 401
+
+    # Parse event
+    event = request.json
+
+    # Route to appropriate handler
+    if event["event"] == "message.received":
+        handle_message_received(event["data"])
+
+    elif event["event"] == "instance.disconnected":
+        handle_instance_disconnected(event["data"])
+
+    elif event["event"] == "message.failed":
+        handle_message_failed(event["data"])
+
+    return {"status": "received"}, 200
+
+
+def handle_message_received(data):
+    """Process incoming message."""
+    print(f"New message from {data['from']}: {data['message']}")
+
+    # Trigger your bot or automation
+    if data["message"].lower() == "hello":
+        omni.send_text(
+            instance=data["instance"],
+            phone_number=data["from"],
+            text="Hi! How can I help?"
+        )
+
+
+def handle_instance_disconnected(data):
+    """Handle disconnection."""
+    print(f"Instance disconnected: {data['reason']}")
+
+    # Send alert
+    send_alert(f"Instance {data['instance']} disconnected")
+
+    # Auto-reconnect
+    omni.restart_instance(data["instance"])
+```
+
+---
+
+## Webhook Management
+
+### List Webhooks
+
+```bash
+GET /api/v1/webhooks
+```
+
+```json Response
+{
+  "webhooks": [
+    {
+      "id": "webhook_abc123",
+      "url": "https://your-server.com/webhook",
+      "events": ["message.received"],
+      "status": "active",
+      "last_triggered": "2025-11-04T10:30:00Z",
+      "success_count": 1234,
+      "failure_count": 5
+    }
+  ]
+}
+```
+
+### Update Webhook
+
+```bash
+PUT /api/v1/webhooks/{webhook_id}
+```
+
+```json Request
+{
+  "events": ["message.received", "message.sent"],
+  "status": "active"
+}
+```
+
+### Delete Webhook
+
+```bash
+DELETE /api/v1/webhooks/{webhook_id}
+```
+
+### Test Webhook
+
+```bash
+POST /api/v1/webhooks/{webhook_id}/test
+```
+
+```json Response
+{
+  "status": "success",
+  "latency_ms": 234,
+  "response_code": 200
+}
+```
+
+---
+
+## Retry Policy
+
+Failed webhook deliveries will be automatically retried:
+
+| Attempt | Delay | Total Wait |
+|---------|-------|------------|
+| 1 | 1 second | 1s |
+| 2 | 5 seconds | 6s |
+| 3 | 30 seconds | 36s |
+| 4 | 2 minutes | 2m 36s |
+| 5 | 10 minutes | 12m 36s |
+
+After 5 failed attempts, the webhook delivery is marked as failed and logged.
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Verify Signatures" icon="shield-check">
+    Always verify webhook signatures:
+
+    ```python
+    if not verify_webhook(payload, signature):
+        return 401
+    ```
+  </Card>
+
+  <Card title="Respond Quickly" icon="bolt">
+    Respond within 5 seconds:
+
+    ```python
+    # Process async
+    queue_event(event)
+    return 200  # Respond immediately
+    ```
+  </Card>
+
+  <Card title="Handle Duplicates" icon="copy">
+    Use idempotency keys:
+
+    ```python
+    if event_id in processed:
+        return 200  # Already processed
+    ```
+  </Card>
+
+  <Card title="Log Everything" icon="file-text">
+    Keep webhook logs:
+
+    ```python
+    log_webhook(
+        event_id=event["id"],
+        payload=event,
+        processed=True
+    )
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Rate Limiting
+
+Webhooks will have the following limits:
+
+- **Max 1000 events per minute** per webhook
+- **Max 10 concurrent deliveries** per webhook
+- Exceeding limits will trigger throttling
+
+---
+
+## Troubleshooting
+
+### Webhook Not Receiving Events
+
+1. Check webhook URL is publicly accessible
+2. Verify webhook is active: `GET /webhooks`
+3. Check firewall allows incoming requests
+4. Verify HTTPS certificate is valid
+
+### Signature Verification Failing
+
+1. Ensure using correct secret key
+2. Use raw request body (not parsed JSON)
+3. Check for encoding issues
+4. Verify HMAC implementation
+
+### High Failure Rate
+
+1. Check server response time < 5s
+2. Return 200 OK for successful processing
+3. Implement retry logic on your side
+4. Check server logs for errors
+
+---
+
+## Coming Soon
+
+<Info>
+Webhook functionality is scheduled for **Q4 2025**. Features include:
+
+- Real-time event notifications
+- Multiple webhook endpoints per instance
+- Event filtering and routing
+- Webhook retry and failure handling
+- Webhook testing and monitoring dashboard
+- Webhook logs and analytics
+
+Join our [Discord](https://discord.gg/xcW8c7fF3R) for updates!
+</Info>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track messages (available now)
+  </Card>
+
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Manage instances
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages across channels
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

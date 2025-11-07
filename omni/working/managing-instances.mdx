@@ -1,0 +1,966 @@
+---
+title: "Managing Instances"
+description: "Complete guide to creating, configuring, and managing messaging instances"
+icon: "server"
+---
+
+## Overview
+
+Instances are the core of Automagik OMNI - each instance represents a connected messaging bot on a specific platform (WhatsApp, Discord, Slack, etc.). This guide covers everything you need to manage instances throughout their lifecycle.
+
+---
+
+## Creating Your First Instance
+
+### WhatsApp Instance with Evolution API
+
+<Steps>
+  <Step title="Start Evolution API">
+    ```bash
+    # Evolution API should be running (via PM2 or make evo)
+    make evo
+    # Runs on http://localhost:18082
+    ```
+  </Step>
+
+  <Step title="Create Instance">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST http://localhost:8882/api/v1/instances \
+          -H "Content-Type: application/json" \
+          -H "x-api-key: your-omni-api-key" \
+          -d '{
+            "name": "support-bot",
+            "channel_type": "whatsapp",
+            "evolution_url": "http://localhost:18082",
+            "evolution_api_key": "your-evolution-key",
+            "agent_api_url": "http://localhost:8886/chat",
+            "agent_api_key": "your-agent-key",
+            "default_agent": "support-agent"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        import requests
+
+        response = requests.post(
+            "http://localhost:8882/api/v1/instances",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": "your-omni-api-key"
+            },
+            json={
+                "name": "support-bot",
+                "channel_type": "whatsapp",
+                "evolution_url": "http://localhost:18082",
+                "evolution_api_key": "your-evolution-key",
+                "agent_api_url": "http://localhost:8886/chat",
+                "agent_api_key": "your-agent-key",
+                "default_agent": "support-agent"
+            }
+        )
+
+        print(response.json())
+        # {"status": "success", "instance_name": "support-bot", ...}
+        ```
+      </Tab>
+
+      <Tab title="JavaScript">
+        ```javascript
+        const response = await fetch('http://localhost:8882/api/v1/instances', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'your-omni-api-key'
+          },
+          body: JSON.stringify({
+            name: 'support-bot',
+            channel_type: 'whatsapp',
+            evolution_url: 'http://localhost:18082',
+            evolution_api_key: 'your-evolution-key',
+            agent_api_url: 'http://localhost:8886/chat',
+            agent_api_key: 'your-agent-key',
+            default_agent: 'support-agent'
+          })
+        });
+
+        const data = await response.json();
+        console.log(data);
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Get QR Code">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl http://localhost:8882/api/v1/instances/support-bot/qr \
+          -H "x-api-key: your-omni-api-key"
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        response = requests.get(
+            "http://localhost:8882/api/v1/instances/support-bot/qr",
+            headers={"x-api-key": "your-omni-api-key"}
+        )
+
+        qr_data = response.json()
+        print(f"QR Code: {qr_data['qr_code']}")
+        # Display QR code in terminal or save to file
+        ```
+      </Tab>
+
+      <Tab title="JavaScript">
+        ```javascript
+        const response = await fetch(
+          'http://localhost:8882/api/v1/instances/support-bot/qr',
+          { headers: { 'x-api-key': 'your-omni-api-key' } }
+        );
+
+        const qr = await response.json();
+        console.log('Scan this QR code:', qr.qr_code);
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Scan QR Code">
+    Open WhatsApp on your phone → Settings → Linked Devices → Scan the QR code
+  </Step>
+
+  <Step title="Verify Connection">
+    ```bash
+    curl http://localhost:8882/api/v1/instances/support-bot/status \
+      -H "x-api-key: your-omni-api-key"
+
+    # Response: {"status": "connected", "phone": "+1234567890", ...}
+    ```
+  </Step>
+</Steps>
+
+---
+
+### Discord Instance with Bot Token
+
+<Steps>
+  <Step title="Create Discord Bot">
+    1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+    2. Click **New Application**
+    3. Go to **Bot** section
+    4. Click **Add Bot**
+    5. Copy the **Bot Token**
+    6. Enable **Message Content Intent**
+  </Step>
+
+  <Step title="Create Instance in OMNI">
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST http://localhost:8882/api/v1/instances \
+          -H "Content-Type: application/json" \
+          -H "x-api-key: your-omni-api-key" \
+          -d '{
+            "name": "discord-support",
+            "channel_type": "discord",
+            "discord_token": "YOUR_BOT_TOKEN_HERE",
+            "agent_api_url": "http://localhost:8886/chat",
+            "agent_api_key": "your-agent-key",
+            "default_agent": "discord-assistant"
+          }'
+        ```
+      </Tab>
+
+      <Tab title="Python">
+        ```python
+        response = requests.post(
+            "http://localhost:8882/api/v1/instances",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": "your-omni-api-key"
+            },
+            json={
+                "name": "discord-support",
+                "channel_type": "discord",
+                "discord_token": "YOUR_BOT_TOKEN_HERE",
+                "agent_api_url": "http://localhost:8886/chat",
+                "agent_api_key": "your-agent-key",
+                "default_agent": "discord-assistant"
+            }
+        )
+
+        print(response.json())
+        ```
+      </Tab>
+
+      <Tab title="JavaScript">
+        ```javascript
+        const response = await fetch('http://localhost:8882/api/v1/instances', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'your-omni-api-key'
+          },
+          body: JSON.stringify({
+            name: 'discord-support',
+            channel_type: 'discord',
+            discord_token: 'YOUR_BOT_TOKEN_HERE',
+            agent_api_url: 'http://localhost:8886/chat',
+            agent_api_key: 'your-agent-key',
+            default_agent: 'discord-assistant'
+          })
+        });
+
+        console.log(await response.json());
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Invite Bot to Server">
+    Generate invite URL:
+    ```
+    https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=2048&scope=bot
+    ```
+    Replace `YOUR_CLIENT_ID` with your Application ID from Discord Developer Portal
+  </Step>
+
+  <Step title="Verify Connection">
+    ```bash
+    curl http://localhost:8882/api/v1/instances/discord-support/status \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Listing All Instances
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # List all instances
+    curl http://localhost:8882/api/v1/instances \
+      -H "x-api-key: your-omni-api-key"
+
+    # With pagination
+    curl "http://localhost:8882/api/v1/instances?skip=0&limit=10" \
+      -H "x-api-key: your-omni-api-key"
+
+    # Filter by channel type
+    curl "http://localhost:8882/api/v1/instances?channel_type=whatsapp" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # List all instances
+    response = requests.get(
+        "http://localhost:8882/api/v1/instances",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    instances = response.json()
+    for instance in instances["instances"]:
+        print(f"{instance['name']}: {instance['channel_type']} - {instance['status']}")
+
+    # With filtering
+    response = requests.get(
+        "http://localhost:8882/api/v1/instances",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={"channel_type": "whatsapp", "limit": 10}
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // List all instances
+    const response = await fetch('http://localhost:8882/api/v1/instances', {
+      headers: { 'x-api-key': 'your-omni-api-key' }
+    });
+
+    const { instances } = await response.json();
+    instances.forEach(instance => {
+      console.log(`${instance.name}: ${instance.channel_type} - ${instance.status}`);
+    });
+
+    // With filtering
+    const filtered = await fetch(
+      'http://localhost:8882/api/v1/instances?channel_type=discord&limit=5',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "instances": [
+    {
+      "name": "support-bot",
+      "channel_type": "whatsapp",
+      "status": "connected",
+      "evolution_url": "http://localhost:18082",
+      "agent_api_url": "http://localhost:8886/chat",
+      "default_agent": "support-agent",
+      "created_at": "2025-11-04T10:00:00Z",
+      "updated_at": "2025-11-04T10:05:00Z"
+    },
+    {
+      "name": "discord-support",
+      "channel_type": "discord",
+      "status": "connected",
+      "agent_api_url": "http://localhost:8886/chat",
+      "created_at": "2025-11-04T11:00:00Z"
+    }
+  ],
+  "total": 2,
+  "skip": 0,
+  "limit": 100
+}
+```
+
+---
+
+## Getting Instance Details
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl http://localhost:8882/api/v1/instances/support-bot \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "http://localhost:8882/api/v1/instances/support-bot",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    instance = response.json()
+    print(f"Name: {instance['name']}")
+    print(f"Status: {instance['status']}")
+    print(f"Channel: {instance['channel_type']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const instance = await response.json();
+    console.log(`${instance.name} is ${instance.status}`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Checking Connection Status
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get connection status
+    curl http://localhost:8882/api/v1/instances/support-bot/status \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "http://localhost:8882/api/v1/instances/support-bot/status",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    status = response.json()
+    if status["status"] == "connected":
+        print(f"✅ Connected as {status.get('phone', 'N/A')}")
+    else:
+        print(f"❌ Not connected: {status['status']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/status',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const status = await response.json();
+    console.log(`Status: ${status.status}`);
+    if (status.status === 'connected') {
+      console.log(`Phone: ${status.phone || 'N/A'}`);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "status": "connected",
+  "instance_name": "support-bot",
+  "channel_type": "whatsapp",
+  "phone": "+1234567890",
+  "evolution_status": {
+    "state": "open",
+    "connection": "connected"
+  }
+}
+```
+
+---
+
+## Updating Instance Configuration
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Update agent URL
+    curl -X PATCH http://localhost:8882/api/v1/instances/support-bot \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "agent_api_url": "http://new-agent:8886/chat",
+        "agent_api_key": "new-api-key"
+      }'
+
+    # Update default agent
+    curl -X PATCH http://localhost:8882/api/v1/instances/support-bot \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "default_agent": "updated-agent"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Update agent configuration
+    response = requests.patch(
+        "http://localhost:8882/api/v1/instances/support-bot",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "agent_api_url": "http://new-agent:8886/chat",
+            "agent_api_key": "new-api-key",
+            "default_agent": "updated-agent"
+        }
+    )
+
+    print(response.json())
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          agent_api_url: 'http://new-agent:8886/chat',
+          agent_api_key: 'new-api-key',
+          default_agent: 'updated-agent'
+        })
+      }
+    );
+
+    console.log(await response.json());
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Restarting and Logout Operations
+
+### Restart Instance
+
+Use when the connection is unstable or needs to be refreshed.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/restart \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/restart",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    result = response.json()
+    print(f"Restart initiated: {result['message']}")
+
+    # Wait and check status
+    import time
+    time.sleep(5)
+
+    status = requests.get(
+        "http://localhost:8882/api/v1/instances/support-bot/status",
+        headers={"x-api-key": "your-omni-api-key"}
+    ).json()
+
+    print(f"New status: {status['status']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/restart',
+      {
+        method: 'POST',
+        headers: { 'x-api-key': 'your-omni-api-key' }
+      }
+    );
+
+    const result = await response.json();
+    console.log(result.message);
+
+    // Wait and verify
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const statusResponse = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/status',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const status = await statusResponse.json();
+    console.log(`Status: ${status.status}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Logout Instance
+
+Disconnects the instance from the messaging platform.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/logout \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/logout",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    print(response.json())
+    # {"status": "success", "message": "Instance logged out successfully"}
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/logout',
+      {
+        method: 'POST',
+        headers: { 'x-api-key': 'your-omni-api-key' }
+      }
+    );
+
+    const result = await response.json();
+    console.log(result.message);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Deleting Instances
+
+<Warning>
+**Destructive Operation**: Deleting an instance permanently removes all configuration. Message traces are preserved for analytics.
+</Warning>
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE http://localhost:8882/api/v1/instances/support-bot \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Confirm deletion
+    instance_name = "support-bot"
+    confirm = input(f"Delete instance '{instance_name}'? (yes/no): ")
+
+    if confirm.lower() == "yes":
+        response = requests.delete(
+            f"http://localhost:8882/api/v1/instances/{instance_name}",
+            headers={"x-api-key": "your-omni-api-key"}
+        )
+
+        if response.status_code == 200:
+            print(f"✅ Instance '{instance_name}' deleted successfully")
+        else:
+            print(f"❌ Error: {response.json()}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const instanceName = 'support-bot';
+
+    // Confirm before deleting
+    const confirmDelete = confirm(`Delete instance '${instanceName}'?`);
+
+    if (confirmDelete) {
+      const response = await fetch(
+        `http://localhost:8882/api/v1/instances/${instanceName}`,
+        {
+          method: 'DELETE',
+          headers: { 'x-api-key': 'your-omni-api-key' }
+        }
+      );
+
+      const result = await response.json();
+      console.log(result.message);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Common Instance Management Patterns
+
+### Health Monitoring Script
+
+```python
+import requests
+import time
+from datetime import datetime
+
+OMNI_URL = "http://localhost:8882"
+API_KEY = "your-omni-api-key"
+
+def check_all_instances():
+    """Monitor health of all instances"""
+    response = requests.get(
+        f"{OMNI_URL}/api/v1/instances",
+        headers={"x-api-key": API_KEY}
+    )
+
+    instances = response.json()["instances"]
+
+    for instance in instances:
+        status_response = requests.get(
+            f"{OMNI_URL}/api/v1/instances/{instance['name']}/status",
+            headers={"x-api-key": API_KEY}
+        )
+
+        status = status_response.json()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if status["status"] == "connected":
+            print(f"✅ [{timestamp}] {instance['name']}: Connected")
+        else:
+            print(f"❌ [{timestamp}] {instance['name']}: {status['status']}")
+            # Auto-restart if disconnected
+            restart_instance(instance['name'])
+
+def restart_instance(instance_name):
+    """Restart disconnected instance"""
+    print(f"🔄 Restarting {instance_name}...")
+    requests.post(
+        f"{OMNI_URL}/api/v1/instances/{instance_name}/restart",
+        headers={"x-api-key": API_KEY}
+    )
+
+if __name__ == "__main__":
+    while True:
+        check_all_instances()
+        time.sleep(300)  # Check every 5 minutes
+```
+
+### Batch Instance Creation
+
+```python
+import requests
+
+OMNI_URL = "http://localhost:8882"
+API_KEY = "your-omni-api-key"
+
+# Define multiple instances
+instances_config = [
+    {
+        "name": "sales-bot",
+        "channel_type": "whatsapp",
+        "evolution_url": "http://localhost:18082",
+        "evolution_api_key": "evo-key-1",
+        "agent_api_url": "http://localhost:8886/chat",
+        "default_agent": "sales-agent"
+    },
+    {
+        "name": "support-bot",
+        "channel_type": "whatsapp",
+        "evolution_url": "http://localhost:18082",
+        "evolution_api_key": "evo-key-2",
+        "agent_api_url": "http://localhost:8886/chat",
+        "default_agent": "support-agent"
+    },
+    {
+        "name": "discord-community",
+        "channel_type": "discord",
+        "discord_token": "discord-token-1",
+        "agent_api_url": "http://localhost:8886/chat",
+        "default_agent": "community-manager"
+    }
+]
+
+for config in instances_config:
+    print(f"Creating instance: {config['name']}")
+
+    response = requests.post(
+        f"{OMNI_URL}/api/v1/instances",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY
+        },
+        json=config
+    )
+
+    if response.status_code == 200:
+        print(f"✅ Created {config['name']}")
+
+        # Get QR code for WhatsApp instances
+        if config['channel_type'] == 'whatsapp':
+            qr_response = requests.get(
+                f"{OMNI_URL}/api/v1/instances/{config['name']}/qr",
+                headers={"x-api-key": API_KEY}
+            )
+            print(f"QR Code ready for {config['name']}")
+    else:
+        print(f"❌ Failed to create {config['name']}: {response.json()}")
+```
+
+### Instance Configuration Manager
+
+```javascript
+class OmniInstanceManager {
+  constructor(baseUrl, apiKey) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+
+  async createInstance(config) {
+    const response = await fetch(`${this.baseUrl}/api/v1/instances`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey
+      },
+      body: JSON.stringify(config)
+    });
+    return response.json();
+  }
+
+  async listInstances(filters = {}) {
+    const params = new URLSearchParams(filters);
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/instances?${params}`,
+      { headers: { 'x-api-key': this.apiKey } }
+    );
+    return response.json();
+  }
+
+  async getInstanceStatus(name) {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/instances/${name}/status`,
+      { headers: { 'x-api-key': this.apiKey } }
+    );
+    return response.json();
+  }
+
+  async restartInstance(name) {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/instances/${name}/restart`,
+      {
+        method: 'POST',
+        headers: { 'x-api-key': this.apiKey }
+      }
+    );
+    return response.json();
+  }
+
+  async deleteInstance(name) {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/instances/${name}`,
+      {
+        method: 'DELETE',
+        headers: { 'x-api-key': this.apiKey }
+      }
+    );
+    return response.json();
+  }
+
+  async monitorHealth() {
+    const { instances } = await this.listInstances();
+
+    for (const instance of instances) {
+      const status = await this.getInstanceStatus(instance.name);
+      console.log(`${instance.name}: ${status.status}`);
+
+      if (status.status !== 'connected') {
+        console.log(`Restarting ${instance.name}...`);
+        await this.restartInstance(instance.name);
+      }
+    }
+  }
+}
+
+// Usage
+const manager = new OmniInstanceManager(
+  'http://localhost:8882',
+  'your-omni-api-key'
+);
+
+await manager.monitorHealth();
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Instance creation fails with 'Evolution API not responding'">
+    **Problem**: Cannot connect to Evolution API
+
+    **Solutions**:
+    1. Verify Evolution API is running:
+       ```bash
+       curl http://localhost:18082/health
+       ```
+    2. Check Evolution API key matches in `.env`
+    3. Restart Evolution API:
+       ```bash
+       make evo-restart
+       ```
+    4. Check logs:
+       ```bash
+       pm2 logs evolution-api
+       ```
+  </Accordion>
+
+  <Accordion title="QR code not appearing">
+    **Problem**: QR code endpoint returns empty or error
+
+    **Solutions**:
+    1. Ensure instance was created successfully
+    2. Check Evolution API connection
+    3. Try restarting the instance:
+       ```bash
+       curl -X POST http://localhost:8882/api/v1/instances/your-instance/restart \
+         -H "x-api-key: your-key"
+       ```
+    4. Generate new QR code:
+       ```bash
+       curl http://localhost:8882/api/v1/instances/your-instance/qr \
+         -H "x-api-key: your-key"
+       ```
+  </Accordion>
+
+  <Accordion title="Discord bot not connecting">
+    **Problem**: Discord instance status shows 'disconnected'
+
+    **Solutions**:
+    1. Verify bot token is correct
+    2. Check Message Content Intent is enabled in Discord Developer Portal
+    3. Ensure bot has been invited to at least one server
+    4. Check Discord token hasn't expired
+    5. Review logs for authentication errors
+  </Accordion>
+
+  <Accordion title="Instance status stuck in 'restarting'">
+    **Problem**: Instance doesn't recover after restart
+
+    **Solutions**:
+    1. Wait 30 seconds and check again
+    2. Try logout and recreate:
+       ```bash
+       curl -X POST http://localhost:8882/api/v1/instances/your-instance/logout \
+         -H "x-api-key: your-key"
+       ```
+    3. Delete and recreate the instance
+    4. Check underlying service (Evolution API / Discord bot) health
+  </Accordion>
+
+  <Accordion title="'Instance name already exists' error">
+    **Problem**: Trying to create instance with duplicate name
+
+    **Solutions**:
+    1. List existing instances:
+       ```bash
+       curl http://localhost:8882/api/v1/instances -H "x-api-key: your-key"
+       ```
+    2. Delete old instance if not needed:
+       ```bash
+       curl -X DELETE http://localhost:8882/api/v1/instances/name \
+         -H "x-api-key: your-key"
+       ```
+    3. Use a different unique name
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Messages" icon="paper-plane" href="/omni/working/sending-messages">
+    Learn how to send messages through your instances
+  </Card>
+
+  <Card title="Manage Profiles" icon="user" href="/omni/working/managing-profiles">
+    Update profile pictures and fetch user profiles
+  </Card>
+
+  <Card title="View Traces" icon="chart-line" href="/omni/working/viewing-traces">
+    Track message history and debug issues
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/manage-instances">
+    Complete API documentation
+  </Card>
+</CardGroup>

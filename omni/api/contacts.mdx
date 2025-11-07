@@ -1,0 +1,306 @@
+---
+title: "Contact Management"
+description: "Manage contacts and address books across messaging platforms"
+icon: "address-book"
+---
+
+## Overview
+
+Access and manage contacts across all messaging platforms through a unified interface. The Omni Contacts API provides consistent contact data regardless of the underlying channel (WhatsApp, Discord, etc.).
+
+<Note>
+Contact endpoints are available NOW via the `/api/v1/omni/{instance_name}/contacts` path.
+</Note>
+
+---
+
+## List Contacts
+
+Retrieve all contacts for an instance with filtering and pagination.
+
+**Endpoint**: `GET /api/v1/omni/{instance_name}/contacts`
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number (1-based)
+</ParamField>
+
+<ParamField query="page_size" type="integer" default="50">
+  Items per page (max: 500)
+</ParamField>
+
+<ParamField query="search_query" type="string">
+  Search contacts by name
+</ParamField>
+
+<ParamField query="status_filter" type="string">
+  Filter by contact status
+</ParamField>
+
+<ParamField query="channel_type" type="string">
+  Filter by channel type (`whatsapp`, `discord`)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/my-whatsapp/contacts?page=1&page_size=50" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8882/api/v1/omni/my-whatsapp/contacts",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"page": 1, "page_size": 50, "search_query": "John"}
+)
+
+data = response.json()
+for contact in data["contacts"]:
+    print(f"{contact['display_name']}: {contact['phone_number']}")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/omni/my-whatsapp/contacts?page=1&page_size=50',
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const data = await response.json();
+console.log(data.contacts);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "contacts": [
+    {
+      "contact_id": "5511999999999@s.whatsapp.net",
+      "display_name": "John Doe",
+      "phone_number": "+5511999999999",
+      "profile_picture_url": "https://pps.whatsapp.net/...",
+      "status": "Hey there! I'm using WhatsApp",
+      "channel_type": "whatsapp",
+      "instance_name": "my-whatsapp",
+      "is_blocked": false,
+      "is_business": false,
+      "last_seen": "2025-11-04T10:30:00Z",
+      "metadata": {
+        "verified": false,
+        "push_name": "John"
+      }
+    }
+  ],
+  "total_count": 156,
+  "page": 1,
+  "page_size": 50,
+  "has_more": true,
+  "instance_name": "my-whatsapp",
+  "channel_type": "whatsapp",
+  "partial_errors": []
+}
+```
+
+---
+
+## Get Contact by ID
+
+Retrieve detailed information about a specific contact.
+
+**Endpoint**: `GET /api/v1/omni/{instance_name}/contacts/{contact_id}`
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<ParamField path="contact_id" type="string" required>
+  Contact identifier (e.g., `5511999999999@s.whatsapp.net` for WhatsApp, Discord user ID for Discord)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/omni/my-whatsapp/contacts/5511999999999@s.whatsapp.net" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+contact_id = "5511999999999@s.whatsapp.net"
+response = requests.get(
+    f"http://localhost:8882/api/v1/omni/my-whatsapp/contacts/{contact_id}",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+contact = response.json()
+print(f"Contact: {contact['display_name']}")
+```
+
+```javascript JavaScript
+const contactId = '5511999999999@s.whatsapp.net';
+const response = await fetch(
+  `http://localhost:8882/api/v1/omni/my-whatsapp/contacts/${encodeURIComponent(contactId)}`,
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const contact = await response.json();
+console.log(contact);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "contact_id": "5511999999999@s.whatsapp.net",
+  "display_name": "John Doe",
+  "phone_number": "+5511999999999",
+  "profile_picture_url": "https://pps.whatsapp.net/...",
+  "status": "Hey there! I'm using WhatsApp",
+  "channel_type": "whatsapp",
+  "instance_name": "my-whatsapp",
+  "is_blocked": false,
+  "is_business": false,
+  "last_seen": "2025-11-04T10:30:00Z",
+  "metadata": {
+    "verified": false,
+    "push_name": "John"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Contact '5511999999999@s.whatsapp.net' not found in instance 'my-whatsapp'"
+}
+```
+
+---
+
+## Use Cases
+
+### List and Search Contacts
+
+```python
+import requests
+
+# List all contacts with pagination
+response = requests.get(
+    "http://localhost:8882/api/v1/omni/my-whatsapp/contacts",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"page": 1, "page_size": 100}
+)
+
+contacts = response.json()["contacts"]
+print(f"Found {len(contacts)} contacts")
+
+# Search for specific contacts
+response = requests.get(
+    "http://localhost:8882/api/v1/omni/my-whatsapp/contacts",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"search_query": "John", "page_size": 50}
+)
+
+matches = response.json()["contacts"]
+for contact in matches:
+    print(f"{contact['display_name']}: {contact['phone_number']}")
+```
+
+### Get Contact Details
+
+```python
+# Fetch specific contact by ID
+contact_id = "5511999999999@s.whatsapp.net"
+response = requests.get(
+    f"http://localhost:8882/api/v1/omni/my-whatsapp/contacts/{contact_id}",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+if response.status_code == 200:
+    contact = response.json()
+    print(f"Contact: {contact['display_name']}")
+    print(f"Status: {contact['status']}")
+    print(f"Last seen: {contact['last_seen']}")
+```
+
+### Sync Contacts Across Channels
+
+```python
+# Get contacts from WhatsApp instance
+whatsapp_contacts = requests.get(
+    "http://localhost:8882/api/v1/omni/my-whatsapp/contacts",
+    headers={"x-api-key": "YOUR_API_KEY"}
+).json()["contacts"]
+
+# Get contacts from Discord instance
+discord_contacts = requests.get(
+    "http://localhost:8882/api/v1/omni/discord-bot/contacts",
+    headers={"x-api-key": "YOUR_API_KEY"}
+).json()["contacts"]
+
+print(f"WhatsApp: {len(whatsapp_contacts)} contacts")
+print(f"Discord: {len(discord_contacts)} contacts")
+```
+
+---
+
+## Future Features
+
+<Info>
+Additional contact management features coming in **Q4 2025**:
+
+- Contact CRUD operations (create, update, delete)
+- Contact groups and tagging system
+- Advanced filtering and search
+- Bulk operations (import, update, delete)
+- Contact merge and deduplication
+- Custom fields and metadata
+- Activity tracking and analytics
+- Export to CSV, JSON, vCard
+
+Current endpoints (available NOW):
+- `GET /api/v1/omni/{instance}/contacts` - List contacts
+- `GET /api/v1/omni/{instance}/contacts/{contact_id}` - Get contact by ID
+
+Join our [Discord](https://discord.gg/xcW8c7fF3R) for updates!
+</Info>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Profile Management" icon="user" href="/omni/api/profiles">
+    Fetch user profiles (available now)
+  </Card>
+
+  <Card title="Chat Management" icon="comments" href="/omni/api/chats">
+    Manage conversations
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages to contacts
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

@@ -1,0 +1,539 @@
+---
+title: "MCP Tools"
+description: "Control OMNI from AI coding agents via Model Context Protocol"
+icon: "plug"
+---
+
+## Overview
+
+Automagik OMNI includes a built-in **Model Context Protocol (MCP) server**, enabling AI agents like Claude Code, Cursor, and Cline to programmatically manage messaging instances and send messages.
+
+<Info>
+MCP is an open protocol that allows AI assistants to interact with external tools and services. OMNI's MCP server exposes messaging functionality to any MCP-compatible AI agent.
+</Info>
+
+---
+
+## Quick Setup
+
+### Claude Code
+
+Add to your MCP servers configuration (`claude_desktop_config.json` or similar):
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to Cursor's MCP settings (`.cursor/mcp_settings.json`):
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Cline (VSCode Extension)
+
+Add to Cline MCP configuration:
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "omni",
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Available MCP Tools
+
+### manage_instances
+
+Comprehensive instance management tool for creating, configuring, and monitoring messaging instances.
+
+**Operations**:
+- `list`: List all instances with status
+- `get`: Get specific instance details
+- `create`: Create new instance
+- `update`: Update instance configuration
+- `delete`: Delete an instance
+- `set_default`: Set instance as default
+- `status`: Get connection status
+- `qr`: Get QR code for WhatsApp connection
+- `restart`: Restart instance connection
+- `logout`: Logout and clear session
+
+**Parameters**:
+```json
+{
+  "operation": "create",
+  "config": {
+    "name": "my-whatsapp",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_KEY",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_AGENT_KEY"
+  }
+}
+```
+
+**Usage from Claude Code**:
+```
+"Create a new WhatsApp instance named 'support-bot'"
+"List all my messaging instances"
+"Get QR code for instance 'my-whatsapp'"
+"Restart instance 'discord-bot'"
+```
+
+---
+
+### send_message
+
+Send messages through any configured channel with support for all message types.
+
+**Message Types**:
+- `text`: Send text messages
+- `media`: Send images, videos, documents
+- `audio`: Send audio/voice messages
+- `sticker`: Send stickers
+- `contact`: Send contact cards
+- `reaction`: Send emoji reactions
+
+**Parameters**:
+```json
+{
+  "message_type": "text",
+  "instance_name": "my-whatsapp",
+  "phone": "+5511999999999",
+  "message": "Hello from Claude!"
+}
+```
+
+**Usage from Claude Code**:
+```
+"Send a WhatsApp message to +5511999999999: Hello!"
+"Send an image to customer +5511888888888 using my-whatsapp instance"
+"React to message msg_123 with 👍 emoji"
+```
+
+---
+
+### manage_traces
+
+Query and analyze message traces for debugging and analytics.
+
+**Operations**:
+- `list`: List traces with filters
+- `get`: Get specific trace details
+- `get_payloads`: Get trace payloads for debugging
+- `analytics`: Get analytics summary
+- `by_phone`: Get traces for specific phone number
+- `cleanup`: Clean up old traces
+
+**Parameters**:
+```json
+{
+  "operation": "list",
+  "instance_name": "my-whatsapp",
+  "limit": 10,
+  "trace_status": "completed"
+}
+```
+
+**Usage from Claude Code**:
+```
+"Show me the last 10 messages from my-whatsapp instance"
+"Get trace details for trace_abc123"
+"Show me analytics for the last 24 hours"
+"Get all messages from phone +5511999999999"
+```
+
+---
+
+### manage_profiles
+
+Fetch and update user profiles.
+
+**Operations**:
+- `fetch`: Fetch user profile information
+- `update_picture`: Update instance profile picture
+
+**Parameters**:
+```json
+{
+  "operation": "fetch",
+  "instance_name": "my-whatsapp",
+  "phone_number": "+5511999999999"
+}
+```
+
+**Usage from Claude Code**:
+```
+"Fetch profile for +5511999999999 on my-whatsapp"
+"Update my profile picture to https://example.com/logo.jpg"
+```
+
+---
+
+### manage_chats
+
+Manage chat conversations and history.
+
+**Operations**:
+- `list`: List all chats with pagination
+- `get`: Get specific chat details
+
+**Parameters**:
+```json
+{
+  "operation": "list",
+  "instance_name": "my-whatsapp",
+  "page": 1,
+  "page_size": 50,
+  "chat_type_filter": "group"
+}
+```
+
+**Usage from Claude Code**:
+```
+"List all group chats on my-whatsapp"
+"Show me details for chat cmfrcz7ag00yr29akeheeiozu"
+```
+
+---
+
+### manage_contacts
+
+Organize and manage contacts across platforms.
+
+**Operations**:
+- `list`: List all contacts with search and filters
+- `get`: Get specific contact details
+
+**Parameters**:
+```json
+{
+  "operation": "list",
+  "instance_name": "my-whatsapp",
+  "search_query": "John",
+  "page_size": 10
+}
+```
+
+**Usage from Claude Code**:
+```
+"Search for contacts named John on my-whatsapp"
+"Get details for contact 555196644761@s.whatsapp.net"
+```
+
+---
+
+### list_all_channels
+
+Get comprehensive health status and capabilities for all channels.
+
+**Parameters**:
+```json
+{
+  "channel_type": "whatsapp"
+}
+```
+
+**Usage from Claude Code**:
+```
+"Show me all configured channels and their status"
+"List all WhatsApp channels"
+```
+
+---
+
+## Natural Language Usage
+
+With MCP integration, you can control OMNI using natural language from your AI coding assistant:
+
+### Instance Management
+
+```
+✅ "Create a new WhatsApp instance for customer support"
+✅ "List all my messaging instances"
+✅ "Show me the QR code for my-whatsapp"
+✅ "Restart the discord-bot instance"
+✅ "Check if my-whatsapp is connected"
+```
+
+### Sending Messages
+
+```
+✅ "Send 'Hello!' to +5511999999999 on my-whatsapp"
+✅ "Send the product image to customer +5511888888888"
+✅ "React to the last message with a thumbs up"
+✅ "Send the quarterly report PDF to the team"
+```
+
+### Analytics & Debugging
+
+```
+✅ "Show me message analytics for the last week"
+✅ "Find all failed messages from yesterday"
+✅ "Get trace details for message trace_abc123"
+✅ "Show me all messages from +5511999999999"
+```
+
+### Contact Management
+
+```
+✅ "List all contacts on my-whatsapp"
+✅ "Search for contacts named 'John'"
+✅ "Get profile information for +5511999999999"
+```
+
+---
+
+## Use Cases
+
+### Automated Customer Support
+
+```
+"Check for any failed messages in the last hour and retry them"
+
+"Send a message to all customers in the VIP group:
+'Thank you for being a valued customer!'"
+```
+
+### Monitoring & Alerts
+
+```
+"Check if all my instances are connected and alert me if any are down"
+
+"Show me analytics for customer interactions this week"
+```
+
+### Bulk Operations
+
+```
+"Send a promotional message to all contacts in the 'prospects' group"
+
+"Archive all chats that haven't had activity in 30 days"
+```
+
+### Integration Development
+
+```
+"Create a new instance for testing and send a test message"
+
+"Get all traces from the last 24 hours and export to JSON"
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+The MCP server uses these environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OMNI_URL` | OMNI API base URL | `http://localhost:8882` |
+| `OMNI_API_KEY` | API key for authentication | (required) |
+| `OMNI_TIMEOUT` | Request timeout in seconds | `30` |
+| `OMNI_VERIFY_SSL` | Verify SSL certificates | `true` |
+
+### Custom Configuration
+
+For advanced setups, you can customize the MCP server:
+
+```json
+{
+  "mcpServers": {
+    "omni-production": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.yourdomain.com",
+        "OMNI_API_KEY": "production-api-key",
+        "OMNI_TIMEOUT": "60"
+      }
+    },
+    "omni-staging": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni-staging.yourdomain.com",
+        "OMNI_API_KEY": "staging-api-key"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Advanced Examples
+
+### Multi-Instance Workflow
+
+```
+"List all my WhatsApp instances and check which ones are connected.
+For any disconnected instances, show me the QR code.
+Then send a test message to +5511999999999 from each connected instance."
+```
+
+### Analytics Pipeline
+
+```
+"Get message analytics for all instances from the last 7 days.
+Group by instance and message type.
+Calculate success rates and average response times.
+Export the results to CSV format."
+```
+
+### Automated Maintenance
+
+```
+"Check all instances for connection status.
+For any disconnected WhatsApp instances, attempt to restart them.
+If restart fails, show me the QR code.
+Log all operations to maintenance.log"
+```
+
+---
+
+## Troubleshooting
+
+### MCP Server Not Found
+
+**Error**: `Command 'uvx' not found` or `mcp-server-omni not found`
+
+**Solution**:
+```bash
+# Install uvx
+pip install uvx
+
+# Or install OMNI MCP server directly
+pip install automagik-omni
+```
+
+### Connection Failed
+
+**Error**: `Failed to connect to OMNI API`
+
+**Solution**:
+1. Verify OMNI is running: `curl http://localhost:8882/health`
+2. Check `OMNI_URL` in MCP configuration
+3. Verify API key is correct
+4. Check firewall/network settings
+
+### Authentication Error
+
+**Error**: `Invalid API key` or `Unauthorized`
+
+**Solution**:
+1. Check `OMNI_API_KEY` matches your `.env` file
+2. Verify API key format (no extra spaces or quotes)
+3. Restart your AI coding assistant after config changes
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Descriptive Names" icon="tag">
+    Use clear instance names:
+
+    ```
+    ✅ "customer-support-whatsapp"
+    ✅ "sales-team-discord"
+    ❌ "instance1"
+    ```
+  </Card>
+
+  <Card title="Test First" icon="flask">
+    Test with a single message:
+
+    ```
+    "Send a test message to my phone
+    before sending to customers"
+    ```
+  </Card>
+
+  <Card title="Monitor Status" icon="heartbeat">
+    Check instance health:
+
+    ```
+    "Check all instance statuses
+    before sending bulk messages"
+    ```
+  </Card>
+
+  <Card title="Use Natural Language" icon="comments">
+    Speak naturally:
+
+    ```
+    ✅ "Send a thank you message to John"
+    ❌ send_message(instance="x", phone="y")
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## MCP Resources
+
+- **MCP Specification**: [modelcontextprotocol.io](https://modelcontextprotocol.io)
+- **OMNI GitHub**: [github.com/namastexlabs/automagik-omni](https://github.com/namastexlabs/automagik-omni)
+- **Discord Community**: [discord.gg/xcW8c7fF3R](https://discord.gg/xcW8c7fF3R)
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Learn about instance operations
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Message sending API reference
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Debug and analyze messages
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Complete API documentation
+  </Card>
+</CardGroup>

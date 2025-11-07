@@ -1,0 +1,720 @@
+---
+title: "Cursor Setup"
+description: "Configure MCP for Cursor IDE"
+icon: "terminal"
+---
+
+## Cursor MCP Setup
+
+Configure OMNI as an MCP server for Cursor in 3 minutes. Control WhatsApp, Discord, and more directly from your IDE.
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install OMNI">
+    ```bash
+    pip install automagik-omni
+    ```
+
+    Or with uv:
+    ```bash
+    uv pip install automagik-omni
+    ```
+  </Step>
+
+  <Step title="Verify OMNI is Running">
+    ```bash
+    # Check OMNI health
+    curl http://localhost:8882/health
+    # Should return: {"status":"healthy"}
+    ```
+  </Step>
+
+  <Step title="Get Your API Key">
+    ```bash
+    # From your OMNI .env file
+    cat .env | grep AUTOMAGIK_OMNI_API_KEY
+    ```
+
+    Copy the value after `AUTOMAGIK_OMNI_API_KEY=`
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Step 1: Open Cursor Settings
+
+<Steps>
+  <Step title="Access Settings">
+    - Press `Cmd/Ctrl + ,`
+    - Or go to **Cursor → Settings** (macOS) / **File → Settings** (Windows/Linux)
+  </Step>
+
+  <Step title="Search for MCP">
+    Type "MCP" in the settings search box
+  </Step>
+
+  <Step title="Find MCP Configuration">
+    Look for **"Mcp Servers"** or **"Model Context Protocol"** section
+  </Step>
+</Steps>
+
+### Step 2: Add OMNI Configuration
+
+Add this configuration:
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Replace `your-api-key-here`** with your actual API key.
+
+<Tip>
+Cursor settings can be edited via UI or directly in the JSON file.
+</Tip>
+
+### Step 3: Reload Cursor
+
+- Press `Cmd/Ctrl + R` to reload window
+- Or restart Cursor completely
+
+---
+
+## Configuration Options
+
+### Standard Setup (Localhost)
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Remote Server Setup
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.yourcompany.com",
+        "OMNI_API_KEY": "your-prod-api-key"
+      }
+    }
+  }
+}
+```
+
+### Custom Port
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8000",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Testing Your Setup
+
+### Quick Tests
+
+<Steps>
+  <Step title="Open Cursor Chat">
+    - Press `Cmd/Ctrl + L` for Cursor chat
+    - Or click the chat icon in the sidebar
+  </Step>
+
+  <Step title="Verify MCP Tools">
+    ```
+    What MCP servers do you have?
+    ```
+
+    Response should include "omni" with OMNI messaging tools.
+  </Step>
+
+  <Step title="List Instances">
+    ```
+    List all my OMNI messaging instances
+    ```
+
+    Cursor should show your configured instances.
+  </Step>
+
+  <Step title="Send Test Message">
+    ```
+    Send a test message to +[your-number] saying "Hello from Cursor!"
+    ```
+
+    Cursor should:
+    1. Use OMNI MCP tools
+    2. Send the message
+    3. Confirm delivery
+  </Step>
+</Steps>
+
+---
+
+## Usage in Cursor
+
+### With Cursor Composer
+
+Cursor Composer is great for multi-step OMNI operations:
+
+```
+You: "Set up a complete customer support system:
+     1. Create WhatsApp instance called support-bot
+     2. Show me the QR code to connect
+     3. Send a test message to +44123456789"
+
+Cursor Composer executes:
+→ manage_instances(operation="create", config={name: "support-bot", ...})
+→ manage_instances(operation="qr", instance_name="support-bot")
+→ [Waits for you to scan QR]
+→ send_message(message_type="text", phone="+44123456789", message="Test")
+
+Cursor: "✅ Support bot created and connected
+         ✅ Test message sent successfully
+         ✅ System is live and ready for customers"
+```
+
+### With Cursor Chat
+
+Quick one-off commands work great in chat:
+
+```
+You: "Show me message analytics for today"
+
+Cursor Chat:
+→ manage_traces(operation="analytics", start_date="2025-11-04")
+
+Cursor: "📊 Today's Analytics (Nov 4, 2025)
+
+         Total Messages: 127
+         Success Rate: 98.4%
+         Avg Response Time: 1.2s
+
+         By Instance:
+         - sales-bot: 87 messages
+         - support-bot: 40 messages
+
+         Issues: 2 failures (agent timeout)"
+```
+
+### With @ Mentions
+
+Reference OMNI in code comments or chat:
+
+```
+You: @omni "Check status of sales-bot instance"
+
+Cursor:
+→ manage_instances(operation="status", instance_name="sales-bot")
+
+Cursor: "sales-bot status:
+         - Connected: ✅ Yes
+         - Platform: WhatsApp
+         - Last activity: 2 minutes ago
+         - Health: Good"
+```
+
+---
+
+## Available MCP Tools
+
+### manage_instances
+
+Control instance lifecycle:
+
+```
+"Create a WhatsApp instance named london-office"
+"Show QR code for sales-bot"
+"Restart the support-bot connection"
+"Check status of all instances"
+"Delete old-bot instance"
+```
+
+### send_message
+
+Send any message type:
+
+```
+"Send 'Meeting at 3pm' to +44123456789"
+"Send image at https://example.com/img.jpg to customer"
+"Send voice note to +44987654321"
+"React with 👍 to message xyz123"
+```
+
+### manage_traces
+
+Analyze message history:
+
+```
+"Show failed messages from yesterday"
+"Get analytics for last 7 days"
+"Show all messages to +44123456789"
+"Generate weekly report"
+```
+
+### manage_profiles
+
+User profile operations:
+
+```
+"Get profile for +44123456789"
+"Update bot profile picture to this URL"
+```
+
+### manage_chats
+
+Chat management:
+
+```
+"List all chats for sales-bot"
+"Show only group chats"
+"Get details for chat_xyz123"
+```
+
+### manage_contacts
+
+Contact operations:
+
+```
+"List all contacts for sales-bot"
+"Search contacts for 'John'"
+"Get contact info for +44123456789"
+```
+
+---
+
+## Workflow Examples
+
+### Daily Standup Automation
+
+```
+You in Cursor Composer:
+"Generate my daily standup report:
+1. Message count per instance
+2. Any failed messages
+3. Top 5 most active contacts
+4. Send summary to team at +44123456789"
+
+Cursor executes:
+→ manage_instances(operation="list")
+→ For each instance: manage_traces(operation="analytics")
+→ manage_traces(operation="list", trace_status="failed")
+→ Analyzes data and formats report
+→ send_message(message_type="text", message=report)
+
+Result: Automated daily standup, zero manual work
+```
+
+### Customer Incident Response
+
+```
+You: "Customer +44123456789 says they didn't get their order confirmation.
+     Check what happened and resend if needed."
+
+Cursor:
+→ manage_traces(operation="by_phone", phone="+44123456789")
+→ Finds: Message sent at 10:23, status "delivered"
+→ Gets trace details
+
+Cursor: "Found the order confirmation:
+         - Sent: 10:23 AM today
+         - Status: Delivered
+         - Read: 10:45 AM (customer opened it)
+
+         The message was definitely delivered and read.
+         Customer might have missed it in their chat history.
+
+         Should I resend it anyway for peace of mind?"
+
+You: "Yes, resend"
+
+Cursor:
+→ send_message(message_type="text", phone="+44123456789", message=...)
+
+Cursor: "✅ Resent order confirmation at 14:37"
+```
+
+### Multi-Channel Announcement
+
+```
+You: "Send 'System maintenance tonight at 11pm' to all active instances"
+
+Cursor Composer:
+→ manage_instances(operation="list", include_status=true)
+→ Filters to connected instances
+→ For each instance:
+    send_message(message_type="text", message="System maintenance...")
+
+Cursor: "Sent announcement to 4 instances:
+         ✅ sales-bot (WhatsApp): 23 active chats
+         ✅ support-bot (WhatsApp): 15 active chats
+         ✅ team-bot (Discord): 45 members
+         ✅ marketing-bot (WhatsApp): 31 active chats
+
+         Total reach: 114 recipients
+         All sent successfully in 8 seconds"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP server not found">
+    **Solutions**:
+
+    1. Verify automagik-omni is installed:
+       ```bash
+       pip show automagik-omni
+       ```
+
+    2. Check settings JSON syntax:
+       - No trailing commas
+       - Proper quotes
+       - Valid JSON structure
+
+    3. Ensure `"command": "uvx"` (not `"uv"` or `"python"`)
+
+    4. Test MCP server manually:
+       ```bash
+       uvx --from automagik-omni mcp-server-omni
+       ```
+
+    5. Reload Cursor: `Cmd/Ctrl + R`
+  </Accordion>
+
+  <Accordion title="Connection refused">
+    **Error**: `Connection error: http://localhost:8882`
+
+    **Solutions**:
+
+    1. Check OMNI is running:
+       ```bash
+       curl http://localhost:8882/health
+       ```
+
+    2. Verify OMNI_URL in config matches your server
+
+    3. Check firewall rules allow localhost
+
+    4. Confirm port in `.env` matches config:
+       ```bash
+       grep AUTOMAGIK_OMNI_API_PORT .env
+       ```
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    **Error**: `401 Unauthorized`
+
+    **Solutions**:
+
+    1. Verify API key matches:
+       ```bash
+       cat .env | grep AUTOMAGIK_OMNI_API_KEY
+       ```
+
+    2. Check for spaces or quotes in config
+
+    3. Try regenerating API key
+
+    4. Reload Cursor after fixing
+  </Accordion>
+
+  <Accordion title="Cursor doesn't see OMNI tools">
+    **Solutions**:
+
+    1. Ask Cursor: "What MCP servers do you have?"
+       → Should list "omni"
+
+    2. Check Cursor console for errors:
+       - View → Toggle Developer Tools
+       - Check Console tab
+
+    3. Verify config file location:
+       - **macOS**: `~/Library/Application Support/Cursor/User/settings.json`
+       - **Windows**: `%APPDATA%\Cursor\User\settings.json`
+       - **Linux**: `~/.config/Cursor/User/settings.json`
+
+    4. Restart Cursor completely
+  </Accordion>
+
+  <Accordion title="Slow responses">
+    **Possible causes**:
+    - Large dataset queries
+    - Network latency
+    - OMNI server overload
+
+    **Solutions**:
+    - Be more specific: "Last 10 traces" not "All traces"
+    - Use date filters: "Messages from yesterday"
+    - Check OMNI server performance
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Configuration
+
+### Multiple Environments
+
+```json
+{
+  "mcp.servers": {
+    "omni-dev": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "dev-key"
+      }
+    },
+    "omni-prod": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "https://omni.company.com",
+        "OMNI_API_KEY": "prod-key"
+      }
+    }
+  }
+}
+```
+
+**Usage**:
+```
+"List instances on omni-dev"
+"Send message via omni-prod"
+```
+
+### With Environment Variables
+
+```bash
+# In ~/.zshrc or ~/.bashrc
+export OMNI_DEV_KEY="your-dev-key"
+export OMNI_PROD_KEY="your-prod-key"
+```
+
+```json
+{
+  "mcp.servers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "${OMNI_DEV_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Configuration File Location
+
+Cursor stores MCP config in settings.json:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Cursor/User/settings.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    open -a "TextEdit" ~/Library/Application\ Support/Cursor/User/settings.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Cursor\User\settings.json
+    ```
+
+    **Quick edit**:
+    ```cmd
+    notepad %APPDATA%\Cursor\User\settings.json
+    ```
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Cursor/User/settings.json
+    ```
+
+    **Quick edit**:
+    ```bash
+    nano ~/.config/Cursor/User/settings.json
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+### Natural Language
+
+<Tip>
+Use conversational commands. Cursor understands intent.
+
+✅ "Send a message to +44123456789"
+❌ "use send_message with phone parameter +44123456789"
+</Tip>
+
+### Be Specific
+
+```
+✅ "Show failed messages from sales-bot yesterday"
+❌ "Show messages"
+
+✅ "Create WhatsApp instance called london-office"
+❌ "Create instance"
+
+✅ "Send 'Meeting at 3pm' to +44123456789 via support-bot"
+❌ "Send message"
+```
+
+### Use Composer for Complex Tasks
+
+Cursor Composer excels at multi-step operations:
+
+```
+"Complete messaging setup:
+1. Create 3 instances: sales, support, marketing
+2. Show QR codes for each
+3. Send test messages
+4. Generate status report"
+```
+
+### Leverage Code Context
+
+Cursor sees your code. Use that context:
+
+```
+# In your code:
+CUSTOMER_PHONE = "+44123456789"
+
+# In Cursor chat:
+"Send order confirmation to CUSTOMER_PHONE"
+
+Cursor will:
+1. Read CUSTOMER_PHONE from your code
+2. Use that value in MCP call
+3. Send message
+```
+
+---
+
+## Integration with Development Workflow
+
+### During Development
+
+```
+You (coding a feature):
+"Send test notification to +44123456789 saying 'Payment processed'"
+
+Cursor:
+→ Sends test message immediately
+→ You verify it works
+→ Continue coding
+```
+
+### During Debugging
+
+```
+You (investigating issue):
+"Check if webhooks from WhatsApp are being received. Show last 5 traces."
+
+Cursor:
+→ manage_traces(operation="list", limit=5)
+→ Shows recent activity
+→ Helps you identify issue
+```
+
+### During Deployment
+
+```
+You (preparing release):
+"Send 'System update in 5 minutes' to all production instances"
+
+Cursor:
+→ Identifies prod instances
+→ Sends coordinated message
+→ Confirms delivery
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Overview" icon="book" href="/omni/mcp/overview">
+    Learn about OMNI MCP integration
+  </Card>
+
+  <Card title="MCP Architecture" icon="microchip" href="/omni/concepts/mcp-architecture">
+    Deep dive into how it works
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/mcp-tools">
+    Complete MCP tools documentation
+  </Card>
+
+  <Card title="Message Tracing" icon="chart-line" href="/omni/concepts/message-tracing">
+    Debug with AI assistance
+  </Card>
+</CardGroup>
+
+---
+
+<Card title="Ready to Go!" icon="rocket">
+**OMNI is now integrated with Cursor.**
+
+Try these commands:
+- "List my instances"
+- "Send a test message to +[your-number]"
+- "Show today's analytics"
+
+Control your entire messaging infrastructure without leaving your IDE.
+</Card>

@@ -1,287 +1,403 @@
 ---
 title: "Quick Start"
-description: "Send your first omnichannel message in 5 minutes"
+description: "Send your first message in 5 minutes"
 icon: "rocket"
 ---
 
-## Send Your First Omnichannel Message in 5 Minutes
+## Send Your First Message in 5 Minutes
 
-This guide will walk you through setting up Omni, connecting to WhatsApp, and sending your first message through the unified API.
+This guide will walk you through setting up Omni, connecting WhatsApp, and sending your first message using the **REST API**.
 
----
-
-## Step 1: Start Evolution API
-
-Omni uses Evolution API for WhatsApp. Start it with Docker:
-
-```bash
-# Pull and run Evolution API
-docker run -d \
-  --name evolution-api \
-  -p 8080:8080 \
-  atendai/evolution-api
-```
-
-Wait a few seconds for it to start, then verify:
-
-```bash
-curl http://localhost:8080/health
-# Should return: {"status":"ok"}
-```
+<Warning>
+**Prerequisites**: Complete the [Installation Guide](/omni/installation) first. Make sure services are running with `make dev-all` or PM2.
+</Warning>
 
 ---
 
-## Step 2: Initialize Omni
+## Step 1: Verify Services Are Running
 
 ```bash
-# Initialize Omni workspace
-omni init
+# Check Omni API
+curl http://localhost:8882/health
+# Expected: {"status": "healthy"}
 
-# This creates:
-# - .omni/ directory
-# - config.json
-# - .env
+# Check Evolution API (WhatsApp)
+curl http://localhost:18082/health
+# Expected: {"status": true}
 ```
+
+If both return healthy, you're ready to continue!
 
 ---
 
-## Step 3: Configure Omni
+## Step 2: Get Your API Keys
 
-Edit `config.json`:
+Your API keys are in `.env`:
 
+```bash
+# View your Omni API key
+grep AUTOMAGIK_OMNI_API_KEY .env
+
+# View your Evolution API key
+grep EVOLUTION_API_KEY .env
+```
+
+**Example output:**
+```
+AUTOMAGIK_OMNI_API_KEY="your-secret-key-here"
+EVOLUTION_API_KEY="your-evolution-key-here"
+```
+
+<Warning>
+**Security**: Never share these keys! They provide full access to your Omni instance.
+</Warning>
+
+---
+
+## Step 3: Create a WhatsApp Instance
+
+Use the REST API to create your first instance:
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-first-bot",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_API_KEY_HERE"
+  }'
+```
+
+**Replace:**
+- `YOUR_OMNI_API_KEY_HERE` → Your Omni API key from `.env`
+- `YOUR_EVOLUTION_API_KEY_HERE` → Your Evolution API key from `.env`
+
+**Expected response:**
 ```json
 {
-  "evolutionApi": {
-    "baseUrl": "http://localhost:8080",
-    "apiKey": "B6D711FCDE4D4FD5936544120E713976"
-  },
-  "mcp": {
-    "enabled": true,
-    "port": 3000
-  }
+  "id": "...",
+  "name": "my-first-bot",
+  "channel_type": "whatsapp",
+  "status": "created",
+  "evolution_url": "http://localhost:18082"
 }
 ```
 
 <Tip>
-The default Evolution API key is `B6D711FCDE4D4FD5936544120E713976`. Change this in production!
+**Instance created!** This is your multi-tenant messaging instance. You can create multiple instances for different teams, clients, or use cases.
 </Tip>
 
 ---
 
-## Step 4: Start Omni
+## Step 4: Get QR Code to Connect WhatsApp
+
+Get the QR code to link your WhatsApp account:
 
 ```bash
-# Start Omni server
-omni serve
-
-# You should see:
-# 📱 Omni v1.0.0
-# ✓ Evolution API connected
-# ✓ MCP server started
-# ✓ Ready to handle messages
+curl http://localhost:8882/api/v1/instances/my-first-bot/qr \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
 ```
+
+**Expected response:**
+```json
+{
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "instance_name": "my-first-bot",
+  "status": "awaiting_connection"
+}
+```
+
+### Scan the QR Code
+
+The QR code is returned as a base64-encoded PNG. To use it:
+
+**Option 1: Save and Open**
+```bash
+# Save QR code to file (macOS/Linux)
+curl http://localhost:8882/api/v1/instances/my-first-bot/qr \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  | jq -r '.qr_code' \
+  | sed 's/data:image\/png;base64,//' \
+  | base64 -d > qr.png
+
+# Open the image
+open qr.png  # macOS
+xdg-open qr.png  # Linux
+```
+
+**Option 2: Use Evolution API Directly**
+```bash
+# Open in browser (Evolution API provides a web UI)
+open http://localhost:18082/instance/connect/my-first-bot
+```
+
+### Complete WhatsApp Connection
+
+1. Open **WhatsApp** on your phone
+2. Go to **Settings → Linked Devices**
+3. Tap **"Link a Device"**
+4. Scan the QR code displayed
+
+<Tip>
+**Connection takes ~5 seconds**. Once connected, you'll see a success message.
+</Tip>
 
 ---
 
-## Step 5: Create a WhatsApp Instance
+## Step 5: Verify Connection Status
+
+Check if your instance is connected:
 
 ```bash
-# Create instance
-omni instance create --name my-whatsapp --platform whatsapp
-
-# Get QR code to connect
-omni instance qr --name my-whatsapp
+curl http://localhost:8882/api/v1/instances/my-first-bot/status \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
 ```
 
-A QR code will appear in your terminal. **Scan it with WhatsApp** on your phone:
-1. Open WhatsApp
-2. Go to Settings → Linked Devices
-3. Tap "Link a Device"
-4. Scan the QR code
+**Expected response:**
+```json
+{
+  "instance_name": "my-first-bot",
+  "channel_type": "whatsapp",
+  "connection_status": "connected",
+  "phone_number": "+1234567890"
+}
+```
+
+If `connection_status` is `"connected"`, you're ready to send messages!
 
 ---
 
 ## Step 6: Send Your First Message
 
-Once connected, send a message:
+Now send a test message via the REST API:
 
 ```bash
-# Send text message
-omni send \
-  --instance my-whatsapp \
-  --to "+1234567890" \
-  --message "Hello from Omni! 👋"
-
-# You should see:
-# ✓ Message sent successfully
-# Message ID: 3EB0ABC123...
+curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/send-text \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message": "🎉 Hello from Automagik Omni! This is my first message."
+  }'
 ```
 
-**Congratulations!** You just sent your first omnichannel message! 🎉
+**Replace:**
+- `+1234567890` → Recipient's phone number (include country code!)
+- Customize the message text as you like
+
+**Expected response:**
+```json
+{
+  "message_id": "3EB0ABC123DEF456...",
+  "status": "sent",
+  "phone": "+1234567890",
+  "instance_name": "my-first-bot"
+}
+```
+
+**Congratulations!** 🎉 You just sent your first omnichannel message!
 
 ---
 
-## Real-World Example: Multi-Channel Notification
+## Additional Message Types
 
-Send the same message across multiple platforms:
+### Send Media (Image, Video, Document)
 
-<Steps>
-  <Step title="Setup Instances">
-    ```bash
-    # WhatsApp
-    omni instance create --name whatsapp-prod --platform whatsapp
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/send-media \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "media_url": "https://example.com/image.jpg",
+    "media_type": "image",
+    "caption": "Check out this image!"
+  }'
+```
 
-    # Discord (if you have a bot)
-    omni instance create --name discord-bot --platform discord \
-      --token "your-discord-token"
+**Media types:** `image`, `video`, `document`
 
-    # Slack (if you have an app)
-    omni instance create --name slack-workspace --platform slack \
-      --token "xoxb-your-slack-token"
-    ```
-  </Step>
+### Send Audio/Voice Note
 
-  <Step title="Send Across All Channels">
-    ```bash
-    # Same API, different platforms!
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/send-audio \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "audio_url": "https://example.com/audio.mp3"
+  }'
+```
 
-    # WhatsApp
-    omni send --instance whatsapp-prod \
-      --to "+1234567890" \
-      --message "System update completed ✅"
+### Send Reaction
 
-    # Discord
-    omni send --instance discord-bot \
-      --channel "general" \
-      --message "System update completed ✅"
-
-    # Slack
-    omni send --instance slack-workspace \
-      --channel "#engineering" \
-      --message "System update completed ✅"
-    ```
-  </Step>
-</Steps>
-
----
-
-## Message Types
-
-Omni supports rich message types:
-
-<Tabs>
-  <Tab title="Text">
-    ```bash
-    omni send \
-      --instance my-whatsapp \
-      --to "+1234567890" \
-      --message "Simple text message"
-    ```
-  </Tab>
-
-  <Tab title="Media (Image/Video)">
-    ```bash
-    omni send \
-      --instance my-whatsapp \
-      --to "+1234567890" \
-      --media "https://example.com/image.jpg" \
-      --caption "Check out this image!"
-    ```
-  </Tab>
-
-  <Tab title="Document">
-    ```bash
-    omni send \
-      --instance my-whatsapp \
-      --to "+1234567890" \
-      --document "https://example.com/report.pdf" \
-      --filename "Monthly_Report.pdf"
-    ```
-  </Tab>
-
-  <Tab title="Reaction">
-    ```bash
-    omni send \
-      --instance my-whatsapp \
-      --to "+1234567890" \
-      --reaction "👍" \
-      --message-id "3EB0ABC123..."
-    ```
-  </Tab>
-</Tabs>
+```bash
+curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/send-reaction \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1234567890",
+    "message_id": "3EB0ABC123DEF456...",
+    "emoji": "👍"
+  }'
+```
 
 ---
 
-## Using with AI Agents (MCP)
+## View Message Traces
 
-Connect Omni to Claude or any MCP-compatible agent:
+Track all messages sent and received:
 
-**1. Configure Claude Desktop**
+```bash
+# List recent message traces
+curl http://localhost:8882/api/v1/traces?instance_name=my-first-bot&limit=10 \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
+```
 
-Edit `claude_desktop_config.json`:
+**Response:**
+```json
+{
+  "traces": [
+    {
+      "trace_id": "...",
+      "instance_name": "my-first-bot",
+      "phone": "+1234567890",
+      "message_type": "text",
+      "trace_status": "completed",
+      "created_at": "2025-11-04T20:30:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## Using MCP Tools (Optional)
+
+If you're using Claude Code, Cursor, or any MCP-compatible tool, you can control Omni directly from your AI assistant.
+
+### Configure MCP Server
+
+Add to your MCP configuration:
 
 ```json
 {
   "mcpServers": {
     "omni": {
-      "command": "omni",
-      "args": ["serve", "--mcp"]
+      "command": "uvx",
+      "args": ["--from", "automagik-omni", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-api-key-here"
+      }
     }
   }
 }
 ```
 
-**2. Now Claude can send messages!**
+### Use from AI Assistant
 
 ```
-You: "Send a WhatsApp message to +1234567890 saying the report is ready"
+You: "List all my Omni instances"
+Claude: [Uses manage_instances tool]
 
-Claude: I'll send that message via Omni.
-[Uses omni_send_message tool]
+You: "Send a WhatsApp message to +1234567890 saying hello"
+Claude: [Uses send_message tool]
 
-✓ Message sent successfully via WhatsApp!
+You: "Show me message analytics for today"
+Claude: [Uses manage_traces tool]
 ```
 
 ---
 
 ## Multi-Tenant Setup
 
-Manage multiple clients or teams:
+Create instances for different clients or teams:
 
 ```bash
-# Create instances for different clients
-omni instance create --name client-a-whatsapp --platform whatsapp
-omni instance create --name client-b-whatsapp --platform whatsapp
+# Client A - WhatsApp
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "client-a-whatsapp",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_API_KEY_HERE"
+  }'
 
-# Set default instance for easier commands
-omni config set default-instance client-a-whatsapp
-
-# Now omni send uses client-a by default
-omni send --to "+1234567890" --message "Hello!"
-
-# Or specify instance explicitly
-omni send --instance client-b-whatsapp --to "+0987654321" --message "Hi!"
+# Client B - Discord
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "client-b-discord",
+    "channel_type": "discord",
+    "discord_token": "YOUR_DISCORD_BOT_TOKEN"
+  }'
 ```
+
+Each instance is **completely isolated** with its own:
+- Message queue
+- Connection status
+- Trace history
+- Configuration
 
 ---
 
-## Message Tracing
+## Connect to AI Agents
 
-Track and debug all messages:
+Omni can forward messages to any AI agent with an HTTP API:
 
 ```bash
-# View recent messages
-omni traces list --limit 10
-
-# Filter by instance
-omni traces list --instance my-whatsapp
-
-# Filter by phone number
-omni traces by-phone "+1234567890"
-
-# Get detailed trace
-omni traces get <trace-id>
+# Create instance with agent integration
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: YOUR_OMNI_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "ai-powered-bot",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_API_KEY_HERE",
+    "agent_api_url": "http://localhost:8886/chat",
+    "agent_api_key": "YOUR_AGENT_API_KEY",
+    "default_agent": "customer-support-agent"
+  }'
 ```
+
+**How it works:**
+1. User sends message to WhatsApp
+2. Omni receives webhook from Evolution API
+3. Omni forwards message to your AI agent
+4. AI agent processes and returns response
+5. Omni sends response back to user
+
+**Agent API format:**
+```http
+POST http://localhost:8886/chat
+Content-Type: application/json
+x-api-key: YOUR_AGENT_API_KEY
+
+{
+  "message": "User's message",
+  "user_id": "whatsapp:+1234567890",
+  "platform": "whatsapp",
+  "context": {
+    "phone": "+1234567890",
+    "instance_name": "ai-powered-bot"
+  }
+}
+```
+
+<Tip>
+**Works with:**
+- [Automagik Hive](https://github.com/namastexlabs/automagik-hive) - Multi-agent orchestration with streaming SSE
+- Any OpenAPI-compatible agent
+- Custom HTTP endpoints
+</Tip>
 
 ---
 
@@ -290,119 +406,53 @@ omni traces get <trace-id>
 <CardGroup cols={2}>
   <Card title="Customer Support Bot" icon="headset">
     ```bash
-    # Receive message → AI processes → Send reply
-    omni webhook setup --url https://yourapp.com/webhook
-    # Your app receives messages, processes with AI,
-    # sends responses via omni send
+    # Forward incoming messages to AI agent
+    # Agent responds automatically
+    # Full conversation traced
     ```
   </Card>
 
   <Card title="Notification System" icon="bell">
     ```bash
-    # Send alerts across all platforms
-    omni send --instance whatsapp \
-      --to "+list" --message "Alert: Server down"
-    omni send --instance discord \
-      --channel "alerts" --message "Alert: Server down"
+    # Send alerts across platforms
+    curl -X POST .../send-text \
+      -d '{"phone": "+123...", "message": "Alert!"}'
     ```
   </Card>
 
   <Card title="Marketing Campaigns" icon="bullhorn">
     ```bash
-    # Broadcast to subscriber list
-    omni broadcast \
-      --instance my-whatsapp \
-      --list "subscribers.csv" \
-      --message "New product launch! 🚀"
+    # Broadcast to multiple recipients
+    # Track delivery and engagement
+    # Full analytics
     ```
   </Card>
 
   <Card title="Order Updates" icon="box">
     ```bash
     # E-commerce order notifications
-    omni send \
-      --instance shop-whatsapp \
-      --to "$CUSTOMER_PHONE" \
-      --message "Your order #$ORDER_ID has shipped!"
+    # Shipping updates
+    # Delivery confirmations
     ```
   </Card>
 </CardGroup>
 
 ---
 
-## Pro Tips
-
-<AccordionGroup>
-  <Accordion title="Keep Instances Organized">
-    Use clear naming conventions:
-
-    ```bash
-    # Good
-    omni instance create --name prod-customer-support
-    omni instance create --name staging-notifications
-    omni instance create --name team-internal
-
-    # Not ideal
-    omni instance create --name instance1
-    omni instance create --name test123
-    ```
-  </Accordion>
-
-  <Accordion title="Use Environment Variables">
-    ```bash
-    # .env
-    OMNI_DEFAULT_INSTANCE=prod-customer-support
-    OMNI_EVOLUTION_API_KEY=your-key
-
-    # Now commands use defaults
-    omni send --to "+123" --message "Hi!"
-    ```
-  </Accordion>
-
-  <Accordion title="Monitor Instance Health">
-    ```bash
-    # Check connection status regularly
-    omni instance status --all
-
-    # Reconnect if needed
-    omni instance restart --name my-whatsapp
-    ```
-  </Accordion>
-</AccordionGroup>
-
----
-
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Webhook Integration" icon="webhook">
-    Learn to:
-    - Receive incoming messages
-    - Process with AI
-    - Send automated replies
+  <Card title="API Reference" icon="code" href="/omni/api/rest-overview">
+    Explore all REST API endpoints
   </Card>
-
-  <Card title="Advanced Messaging" icon="comments">
-    Explore:
-    - Group chats
-    - Media handling
-    - Message templates
-    - Bulk operations
+  <Card title="Webhooks" icon="webhook" href="/omni/webhooks">
+    Receive incoming messages
   </Card>
-
-  <Card title="Analytics & Monitoring" icon="chart-line">
-    Track:
-    - Message delivery rates
-    - Response times
-    - Usage patterns
-    - Error rates
+  <Card title="Multi-Tenant Setup" icon="users" href="/omni/multi-tenant">
+    Manage multiple clients
   </Card>
-
-  <Card title="Production Deployment" icon="server">
-    Deploy at scale:
-    - Load balancing
-    - High availability
-    - Backup strategies
+  <Card title="Production Deployment" icon="server" href="/omni/deployment">
+    Deploy at scale
   </Card>
 </CardGroup>
 
@@ -413,43 +463,84 @@ omni traces get <trace-id>
 <AccordionGroup>
   <Accordion title="QR code won't scan">
     Try these solutions:
-    ```bash
-    # Get web-based QR
-    omni instance qr --name my-whatsapp --web
 
-    # Or regenerate
-    omni instance disconnect --name my-whatsapp
-    omni instance qr --name my-whatsapp
+    ```bash
+    # Regenerate QR code
+    curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/logout \
+      -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
+
+    # Get new QR code
+    curl http://localhost:8882/api/v1/instances/my-first-bot/qr \
+      -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
     ```
   </Accordion>
 
   <Accordion title="Messages not sending">
-    Check instance status:
-    ```bash
-    omni instance status --name my-whatsapp
-    # Should show: connected
+    Check connection status:
 
-    # If disconnected, reconnect:
-    omni instance restart --name my-whatsapp
+    ```bash
+    # Check instance status
+    curl http://localhost:8882/api/v1/instances/my-first-bot/status \
+      -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
+
+    # If disconnected, restart
+    curl -X POST http://localhost:8882/api/v1/instances/my-first-bot/restart \
+      -H "x-api-key: YOUR_OMNI_API_KEY_HERE"
+    ```
+  </Accordion>
+
+  <Accordion title="Phone number format">
+    Always use **international format** with country code:
+
+    ```bash
+    # ✅ Correct
+    "+1234567890"      # US
+    "+5511999999999"   # Brazil
+    "+447911123456"    # UK
+
+    # ❌ Wrong
+    "1234567890"       # Missing +
+    "(123) 456-7890"   # Has formatting
+    "011-999-9999"     # Local format
     ```
   </Accordion>
 
   <Accordion title="Evolution API errors">
-    Verify Evolution API is running:
-    ```bash
-    curl http://localhost:8080/health
-    docker logs evolution-api
+    Check Evolution API logs:
 
-    # Restart if needed
-    docker restart evolution-api
+    ```bash
+    # View Evolution API logs
+    tail -f logs/evolution-dev.log
+
+    # Or if using PM2
+    pm2 logs evolution-api
+
+    # Restart Evolution API
+    make evo-restart
     ```
+  </Accordion>
+
+  <Accordion title="API authentication errors">
+    Verify your API key:
+
+    ```bash
+    # Check API key in .env
+    grep AUTOMAGIK_OMNI_API_KEY .env
+
+    # Test authentication
+    curl http://localhost:8882/api/v1/instances \
+      -H "x-api-key: YOUR_API_KEY" \
+      -v
+    ```
+
+    Make sure header is `x-api-key`, not `X-API-Key` or `Authorization`.
   </Accordion>
 </AccordionGroup>
 
 ---
 
-**Congratulations!** 🎉 You've sent your first omnichannel message with Omni. You can now reach users on any platform!
+**You're now ready to build omnichannel messaging into your applications!** 🚀
 
 <Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
-  Share your integrations and get help from the community
+  Get help and share your integrations with the community
 </Card>

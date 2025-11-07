@@ -1,0 +1,993 @@
+---
+title: "Custom AI Agents"
+description: "Build and integrate custom AI agents with Automagik OMNI"
+icon: "robot"
+---
+
+## Agent Interface Requirements
+
+### HTTP API Contract
+
+**Minimum Required Endpoint**:
+
+```http
+POST /chat
+Content-Type: application/json
+
+Request:
+{
+  "message": "User's message text",
+  "user_id": "platform:user_identifier",
+  "platform": "whatsapp|discord",
+  "context": {
+    "phone": "+1234567890",
+    "instance_name": "my-bot",
+    "message_id": "abc123"
+  }
+}
+
+Response:
+{
+  "response": "Agent's reply message"
+}
+```
+
+**Optional Enhanced Fields**:
+
+```json
+// Request (OMNI sends)
+{
+  "message": "What's the weather?",
+  "user_id": "whatsapp:1234567890",
+  "platform": "whatsapp",
+  "context": {
+    "phone": "+1234567890",
+    "instance_name": "weather-bot",
+    "message_id": "msg_abc123",
+    "timestamp": 1699024000,
+    "user_name": "John Doe",
+    "media_url": "https://...",      // If message has media
+    "quoted_message_id": "msg_def456" // If replying
+  }
+}
+
+// Response (Agent returns)
+{
+  "response": "The weather today is sunny, 72°F.",
+  "metadata": {                        // Optional
+    "model": "gpt-4",
+    "tokens": 150,
+    "confidence": 0.95
+  },
+  "actions": [                         // Optional (future feature)
+    {
+      "type": "send_location",
+      "data": {...}
+    }
+  ]
+}
+```
+
+---
+
+## Building Agents with Different Frameworks
+
+### FastAPI (Python)
+
+**Simple Agent**:
+
+```python
+# simple_agent.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from openai import OpenAI
+import os
+
+app = FastAPI()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+class ChatResponse(BaseModel):
+    response: str
+
+@app.post("/chat")
+async def chat(request: ChatRequest) -> ChatResponse:
+    """Simple OpenAI-powered chat endpoint"""
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": request.message}
+            ]
+        )
+        return ChatResponse(
+            response=completion.choices[0].message.content
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+# Run: uvicorn simple_agent:app --port 8886
+```
+
+**Advanced Agent with Context**:
+
+```python
+# advanced_agent.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from anthropic import Anthropic
+import redis
+import os
+
+app = FastAPI()
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+class ChatResponse(BaseModel):
+    response: str
+    metadata: dict = {}
+
+def get_conversation_history(user_id: str, limit: int = 5):
+    """Retrieve recent conversation history from Redis"""
+    history = redis_client.lrange(f"history:{user_id}", 0, limit-1)
+    return [eval(h.decode()) for h in history]
+
+def save_to_history(user_id: str, role: str, content: str):
+    """Save message to conversation history"""
+    message = {"role": role, "content": content}
+    redis_client.lpush(f"history:{user_id}", str(message))
+    redis_client.ltrim(f"history:{user_id}", 0, 49)  # Keep last 50
+    redis_client.expire(f"history:{user_id}", 86400)  # 24 hour TTL
+
+@app.post("/chat")
+async def chat(request: ChatRequest) -> ChatResponse:
+    """Context-aware chat with conversation history"""
+    user_id = request.user_id
+
+    # Build conversation history
+    history = get_conversation_history(user_id)
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant on WhatsApp."}
+    ]
+
+    # Add conversation history
+    for msg in reversed(history):
+        messages.append(msg)
+
+    # Add current message
+    messages.append({"role": "user", "content": request.message})
+
+    # Get AI response
+    response = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1024,
+        messages=messages
+    )
+
+    reply = response.content[0].text
+
+    # Save to history
+    save_to_history(user_id, "user", request.message)
+    save_to_history(user_id, "assistant", reply)
+
+    return ChatResponse(
+        response=reply,
+        metadata={
+            "model": "claude-sonnet-4-5",
+            "tokens": response.usage.output_tokens,
+            "conversation_turns": len(history) // 2 + 1
+        }
+    )
+
+@app.delete("/chat/history/{user_id}")
+async def clear_history(user_id: str):
+    """Clear user conversation history"""
+    redis_client.delete(f"history:{user_id}")
+    return {"status": "cleared"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "redis": redis_client.ping()}
+
+# Run: uvicorn advanced_agent:app --port 8886
+```
+
+---
+
+### Express.js (Node.js)
+
+**Simple Express Agent**:
+
+```javascript
+// server.js
+const express = require('express');
+const OpenAI = require('openai');
+
+const app = express();
+app.use(express.json());
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+app.post('/chat', async (req, res) => {
+  try {
+    const { message, user_id, platform, context } = req.body;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: message }
+      ]
+    });
+
+    res.json({
+      response: completion.choices[0].message.content
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy' });
+});
+
+const PORT = process.env.PORT || 8886;
+app.listen(PORT, () => {
+  console.log(`Agent server running on port ${PORT}`);
+});
+
+// Run: node server.js
+```
+
+**With Conversation Memory**:
+
+```javascript
+// server_with_memory.js
+const express = require('express');
+const OpenAI = require('openai');
+const Redis = require('redis');
+
+const app = express();
+app.use(express.json());
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const redis = Redis.createClient();
+redis.connect();
+
+async function getHistory(userId, limit = 5) {
+  const history = await redis.lRange(`history:${userId}`, 0, limit - 1);
+  return history.map(h => JSON.parse(h));
+}
+
+async function saveHistory(userId, role, content) {
+  const message = JSON.stringify({ role, content });
+  await redis.lPush(`history:${userId}`, message);
+  await redis.lTrim(`history:${userId}`, 0, 49);
+  await redis.expire(`history:${userId}`, 86400);
+}
+
+app.post('/chat', async (req, res) => {
+  try {
+    const { message, user_id, platform, context } = req.body;
+
+    // Build conversation
+    const history = await getHistory(user_id);
+    const messages = [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      ...history.reverse(),
+      { role: 'user', content: message }
+    ];
+
+    // Get AI response
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages
+    });
+
+    const reply = completion.choices[0].message.content;
+
+    // Save history
+    await saveHistory(user_id, 'user', message);
+    await saveHistory(user_id, 'assistant', reply);
+
+    res.json({
+      response: reply,
+      metadata: {
+        tokens: completion.usage.total_tokens
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(8886, () => console.log('Agent running on port 8886'));
+```
+
+---
+
+### Flask (Python)
+
+**Flask Agent**:
+
+```python
+# flask_agent.py
+from flask import Flask, request, jsonify
+import openai
+import os
+
+app = Flask(__name__)
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    message = data.get('message')
+    user_id = data.get('user_id')
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": message}
+            ]
+        )
+
+        return jsonify({
+            "response": response.choices[0].message.content
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "healthy"})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8886)
+
+# Run: python flask_agent.py
+```
+
+---
+
+## Streaming Responses with SSE
+
+### Server-Sent Events Implementation
+
+**FastAPI with Streaming**:
+
+```python
+# streaming_agent.py
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from anthropic import Anthropic
+import json
+import os
+
+app = FastAPI()
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+async def generate_stream(message: str):
+    """Generate streaming SSE response"""
+    with client.messages.stream(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": message}]
+    ) as stream:
+        for text in stream.text_stream:
+            # Yield SSE formatted chunks
+            yield f"data: {json.dumps({'chunk': text})}\n\n"
+
+        # Final event with complete response
+        yield f"data: {json.dumps({'done': True, 'response': stream.get_final_text()})}\n\n"
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Streaming chat endpoint"""
+    return StreamingResponse(
+        generate_stream(request.message),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
+# Run: uvicorn streaming_agent:app --port 8886
+```
+
+**OMNI automatically handles streaming**:
+- Buffers SSE chunks
+- Assembles complete response
+- Sends when stream completes
+- Handles errors gracefully
+
+---
+
+## Context Management
+
+### Session State Persistence
+
+**Using Redis**:
+
+```python
+# redis_context.py
+import redis
+import json
+from typing import Optional, Dict, Any
+
+class ContextManager:
+    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+        self.redis = redis.from_url(redis_url)
+
+    def get_context(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user context from Redis"""
+        data = self.redis.get(f"ctx:{user_id}")
+        return json.loads(data) if data else None
+
+    def save_context(self, user_id: str, context: Dict[str, Any], ttl: int = 3600):
+        """Save user context to Redis"""
+        self.redis.setex(
+            f"ctx:{user_id}",
+            ttl,
+            json.dumps(context)
+        )
+
+    def update_context(self, user_id: str, updates: Dict[str, Any]):
+        """Update specific context fields"""
+        context = self.get_context(user_id) or {}
+        context.update(updates)
+        self.save_context(user_id, context)
+
+    def clear_context(self, user_id: str):
+        """Clear user context"""
+        self.redis.delete(f"ctx:{user_id}")
+
+# Usage in agent
+context_mgr = ContextManager()
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    user_id = request.user_id
+
+    # Get existing context
+    context = context_mgr.get_context(user_id) or {
+        "conversation_stage": "greeting",
+        "user_preferences": {}
+    }
+
+    # Update context based on conversation
+    if "product" in request.message.lower():
+        context["conversation_stage"] = "product_inquiry"
+
+    # Save updated context
+    context_mgr.save_context(user_id, context)
+
+    # Use context in AI prompt
+    system_prompt = f"""
+    You are a helpful assistant.
+    Conversation stage: {context['conversation_stage']}
+    User preferences: {context['user_preferences']}
+    """
+
+    # ... rest of chat logic
+```
+
+**Using PostgreSQL**:
+
+```python
+# postgres_context.py
+from sqlalchemy import create_engine, Column, String, JSON, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+
+Base = declarative_base()
+
+class UserContext(Base):
+    __tablename__ = 'user_contexts'
+
+    user_id = Column(String, primary_key=True)
+    context = Column(JSON)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+engine = create_engine(os.getenv("DATABASE_URL"))
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+
+def get_context(user_id: str):
+    session = Session()
+    ctx = session.query(UserContext).filter_by(user_id=user_id).first()
+    session.close()
+    return ctx.context if ctx else {}
+
+def save_context(user_id: str, context: dict):
+    session = Session()
+    ctx = session.query(UserContext).filter_by(user_id=user_id).first()
+    if ctx:
+        ctx.context = context
+        ctx.updated_at = datetime.utcnow()
+    else:
+        ctx = UserContext(user_id=user_id, context=context)
+        session.add(ctx)
+    session.commit()
+    session.close()
+```
+
+---
+
+## Error Handling
+
+### Robust Error Handling
+
+```python
+# error_handling.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, ValidationError
+import logging
+from typing import Optional
+
+app = FastAPI()
+logger = logging.getLogger(__name__)
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+class ErrorResponse(BaseModel):
+    error: str
+    code: str
+    details: Optional[str] = None
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request, exc):
+    logger.error(f"Validation error: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"error": "Invalid request format", "code": "VALIDATION_ERROR"}
+    )
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    try:
+        # Validate input
+        if not request.message.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Message cannot be empty"
+            )
+
+        # Process message
+        response = await process_message(request)
+        return {"response": response}
+
+    except openai.RateLimitError:
+        logger.warning(f"Rate limit hit for user {request.user_id}")
+        return {
+            "response": "I'm experiencing high demand. Please try again in a moment.",
+            "error": "RATE_LIMIT"
+        }
+
+    except openai.APIError as e:
+        logger.error(f"OpenAI API error: {e}")
+        return {
+            "response": "I'm having trouble connecting to my AI service. Please try again.",
+            "error": "AI_SERVICE_ERROR"
+        }
+
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+        # Don't expose internal errors to user
+        return {
+            "response": "I encountered an error processing your message. Please try again.",
+            "error": "INTERNAL_ERROR"
+        }
+
+async def process_message(request: ChatRequest) -> str:
+    """Process message with timeout"""
+    import asyncio
+
+    try:
+        # Set timeout for AI processing
+        response = await asyncio.wait_for(
+            get_ai_response(request.message),
+            timeout=30.0
+        )
+        return response
+    except asyncio.TimeoutError:
+        logger.error("AI response timeout")
+        return "I'm taking longer than usual to respond. Let me try again."
+```
+
+---
+
+## Testing Custom Agents
+
+### Unit Tests
+
+```python
+# test_agent.py
+import pytest
+from fastapi.testclient import TestClient
+from your_agent import app
+
+client = TestClient(app)
+
+def test_health_endpoint():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+
+def test_chat_endpoint():
+    response = client.post("/chat", json={
+        "message": "Hello",
+        "user_id": "test_user",
+        "platform": "whatsapp",
+        "context": {}
+    })
+    assert response.status_code == 200
+    assert "response" in response.json()
+    assert isinstance(response.json()["response"], str)
+
+def test_empty_message():
+    response = client.post("/chat", json={
+        "message": "",
+        "user_id": "test_user",
+        "platform": "whatsapp"
+    })
+    assert response.status_code == 400
+
+def test_missing_fields():
+    response = client.post("/chat", json={
+        "message": "Hello"
+    })
+    assert response.status_code == 422  # Validation error
+
+@pytest.mark.asyncio
+async def test_streaming():
+    async with client.stream("POST", "/chat", json={
+        "message": "Hello",
+        "user_id": "test_user",
+        "platform": "whatsapp"
+    }) as response:
+        chunks = []
+        async for chunk in response.aiter_lines():
+            if chunk.startswith("data: "):
+                chunks.append(chunk)
+        assert len(chunks) > 0
+
+# Run: pytest test_agent.py
+```
+
+### Integration Testing with OMNI
+
+```bash
+#!/bin/bash
+# test_integration.sh
+
+# 1. Start agent
+uvicorn your_agent:app --port 8886 &
+AGENT_PID=$!
+sleep 2
+
+# 2. Create OMNI instance
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: $OMNI_KEY" \
+  -d '{
+    "name": "test-agent",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_api_key": "'$EVO_KEY'",
+    "agent_api_url": "http://localhost:8886",
+    "default_agent": "test"
+  }'
+
+# 3. Send test message
+curl -X POST http://localhost:8882/api/v1/instances/test-agent/send-text \
+  -H "x-api-key: $OMNI_KEY" \
+  -d '{
+    "phone": "+1234567890",
+    "message": "Test message"
+  }'
+
+# 4. Check trace
+sleep 3
+TRACE=$(curl -s -H "x-api-key: $OMNI_KEY" \
+  "http://localhost:8882/api/v1/traces?limit=1" | jq -r '.[0].status')
+
+if [ "$TRACE" == "completed" ]; then
+    echo "✅ Integration test passed"
+else
+    echo "❌ Integration test failed: $TRACE"
+fi
+
+# Cleanup
+kill $AGENT_PID
+```
+
+---
+
+## Integration with Automagik Hive
+
+### Hive Integration Pattern
+
+**Hive as Multi-Agent Router**:
+
+```python
+# hive_integration.py
+from fastapi import FastAPI
+from pydantic import BaseModel
+import httpx
+
+app = FastAPI()
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Forward to Automagik Hive for multi-agent orchestration"""
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:8886/chat",
+            json={
+                "message": request.message,
+                "user_id": request.user_id,
+                "platform": request.platform,
+                "context": request.context,
+                # Hive-specific fields
+                "session_id": f"{request.platform}:{request.user_id}",
+                "stream": True
+            },
+            timeout=60.0
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "response": "I'm having trouble processing your request.",
+                "error": f"Hive error: {response.status_code}"
+            }
+```
+
+**Direct OMNI → Hive Setup**:
+
+```bash
+# No middleware needed - point OMNI directly at Hive
+curl -X POST http://localhost:8882/api/v1/instances \
+  -d '{
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_HIVE_KEY",
+    "default_agent": "multi-agent"
+  }'
+
+# Hive handles:
+# - Multi-agent orchestration
+# - Tool usage
+# - Streaming responses
+# - Context management
+```
+
+---
+
+## OpenAI/Anthropic API Integration
+
+### Direct API Integration
+
+**OpenAI**:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_KEY")
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    completion = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": request.message}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+
+    return {"response": completion.choices[0].message.content}
+```
+
+**Anthropic Claude**:
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic(api_key="YOUR_KEY")
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1024,
+        messages=[
+            {"role": "user", "content": request.message}
+        ]
+    )
+
+    return {"response": message.content[0].text}
+```
+
+---
+
+## Custom LLM Integration
+
+### Self-Hosted Models
+
+**Ollama Integration**:
+
+```python
+# ollama_agent.py
+import httpx
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Use local Ollama model"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3",
+                "prompt": request.message,
+                "stream": False
+            }
+        )
+
+        result = response.json()
+        return {"response": result["response"]}
+```
+
+**LM Studio Integration**:
+
+```python
+# lmstudio_agent.py
+import httpx
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Use LM Studio local model"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:1234/v1/chat/completions",
+            json={
+                "model": "local-model",
+                "messages": [
+                    {"role": "user", "content": request.message}
+                ]
+            }
+        )
+
+        result = response.json()
+        return {"response": result["choices"][0]["message"]["content"]}
+```
+
+---
+
+## Deployment Best Practices
+
+### Production Checklist
+
+```python
+# production_agent.py
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+import logging
+import time
+
+app = FastAPI(
+    title="Production Agent",
+    version="1.0.0",
+    docs_url="/docs",  # Enable in production for debugging
+    redoc_url="/redoc"
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8882"],  # OMNI server
+    allow_methods=["POST", "GET"],
+    allow_headers=["*"],
+)
+
+# Compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    logger.info(
+        f"{request.method} {request.url.path} "
+        f"- {response.status_code} - {duration:.2f}s"
+    )
+    return response
+
+# Health check with dependencies
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }
+
+# Run with uvicorn
+# uvicorn production_agent:app --host 0.0.0.0 --port 8886 --workers 4
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Scaling Production" icon="server" href="/omni/advanced/scaling-production">
+    Scale your agent and OMNI infrastructure
+  </Card>
+  <Card title="Monitoring & Metrics" icon="chart-line" href="/omni/advanced/monitoring-metrics">
+    Monitor agent performance and health
+  </Card>
+  <Card title="API Reference" icon="code" href="/omni/api/send-message">
+    Complete API documentation
+  </Card>
+  <Card title="Automagik Hive" icon="cubes" href="https://github.com/namastexlabs/automagik-hive">
+    Multi-agent orchestration platform
+  </Card>
+</CardGroup>

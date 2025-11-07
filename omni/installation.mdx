@@ -9,282 +9,243 @@ icon: "download"
 Before installing Omni, make sure you have:
 
 <AccordionGroup>
-  <Accordion title="Python (v3.10 or higher)">
+  <Accordion title="Python 3.12+ (3.11+ supported)">
     ```bash
     # Check your Python version
-    python --version
+    python3 --version
 
-    # Should output Python 3.10.0 or higher
+    # Should output Python 3.11.0 or higher
     ```
 
     If you need to install or upgrade Python:
-    - **macOS**: `brew install python@3.11`
-    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    - **macOS**: `brew install python@3.12`
+    - **Ubuntu/Debian**: `sudo apt install python3.12 python3-pip`
     - **Windows**: Download from [python.org](https://www.python.org)
   </Accordion>
 
-  <Accordion title="Evolution API (for WhatsApp)">
-    Omni uses Evolution API for WhatsApp integration:
-
+  <Accordion title="Node.js 20+ (for Evolution API - WhatsApp)">
     ```bash
-    # Pull Evolution API Docker image
-    docker pull atendai/evolution-api
+    # Check your Node.js version
+    node --version
 
-    # Run Evolution API
-    docker run -p 8080:8080 atendai/evolution-api
+    # Should output v20.0.0 or higher
     ```
 
-    Or use Docker Compose (recommended).
+    Install via:
+    - **macOS**: `brew install node@20`
+    - **Ubuntu/Debian**: Use [NodeSource repository](https://github.com/nodesource/distributions)
+    - **Windows**: Download from [nodejs.org](https://nodejs.org)
   </Accordion>
 
-  <Accordion title="Platform API Keys/Tokens">
-    Depending on which platforms you want to integrate:
-    - **Discord**: Bot token from Discord Developer Portal
-    - **Slack**: App token from Slack API
-    - **WhatsApp**: Evolution API instance
+  <Accordion title="Git (for submodule support)">
+    Omni includes Evolution API as a git submodule.
+
+    ```bash
+    # Check if Git is installed
+    git --version
+    ```
+  </Accordion>
+
+  <Accordion title="Optional: PostgreSQL (Production)">
+    SQLite works great for development. For production scale, use PostgreSQL:
+
+    ```bash
+    # Ubuntu/Debian
+    sudo apt install postgresql postgresql-contrib
+
+    # macOS
+    brew install postgresql@15
+
+    # Or use Docker
+    docker run -d -p 5432:5432 \
+      -e POSTGRES_PASSWORD=yourpassword \
+      -e POSTGRES_DB=automagik_omni \
+      postgres:15
+    ```
   </Accordion>
 </AccordionGroup>
 
 ---
 
-## Installation Methods
+## Installation
 
-<Tabs>
-  <Tab title="pip (Recommended)">
-    Install Omni via pip:
+### Clone with Submodules
 
-    ```bash
-    pip install automagik-omni
-    ```
+Omni includes Evolution API as a submodule, so use `--recurse-submodules`:
 
-    Verify installation:
+```bash
+# Clone repository with Evolution API submodule
+git clone --recurse-submodules https://github.com/namastexlabs/automagik-omni.git
+cd automagik-omni
+```
 
-    ```bash
-    omni --version
-    ```
-  </Tab>
+<Warning>
+**Important**: The `--recurse-submodules` flag is required to clone the Evolution API (WhatsApp integration). Without it, WhatsApp features won't work.
+</Warning>
 
-  <Tab title="pipx (Isolated)">
-    Install Omni in an isolated environment:
+---
 
-    ```bash
-    # Install pipx if you don't have it
-    pip install pipx
-    pipx ensurepath
+### Install Dependencies
 
-    # Install Omni
-    pipx install automagik-omni
-    ```
+Use the Makefile to install everything:
 
-    Avoids dependency conflicts!
-  </Tab>
+```bash
+# Install all dependencies (Omni + Evolution API + optional Discord prompt)
+make install
 
-  <Tab title="uvx (Instant)">
-    Run Omni without installing:
+# This will:
+# 1. Install Omni core dependencies (Python via uv)
+# 2. Install Evolution API dependencies (Node.js via pnpm/npm)
+# 3. Prompt you to install optional Discord support
+```
 
-    ```bash
-    # Install uv first
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+<Tip>
+**What's installed:**
+- Omni Backend (Python/FastAPI)
+- Evolution API (WhatsApp integration with SQLite - no Docker needed!)
+- Optional: Discord bot manager
+</Tip>
 
-    # Run Omni
-    uvx automagik-omni
-    ```
+Alternatively, install components separately:
 
-    Perfect for trying it out!
-  </Tab>
+```bash
+# Install only Omni core (Python dependencies)
+make install-omni
 
-  <Tab title="Docker Compose (Full Stack)">
-    Run complete stack with Docker Compose:
+# Install only Evolution API (Node.js dependencies)
+make install-evolution
 
-    ```bash
-    # Clone the repository
-    git clone https://github.com/namastexlabs/automagik-omni.git
-    cd automagik-omni
-
-    # Start all services
-    docker-compose up -d
-    ```
-
-    Includes Evolution API, Omni, and database.
-  </Tab>
-</Tabs>
+# Install optional Discord extras
+make install-discord
+```
 
 ---
 
 ## Configuration
 
-After installation, initialize Omni:
+### Create .env File
 
 ```bash
-# Initialize Omni workspace
-omni init
-
-# This creates:
-# - .omni/ directory
-# - config.json (Omni configuration)
-# - .env (API keys and secrets)
+# Copy example configuration
+cp .env.example .env
 ```
 
-Configure Omni in `config.json`:
+Edit `.env` with your settings:
 
-```json
-{
-  "evolutionApi": {
-    "baseUrl": "http://localhost:8080",
-    "apiKey": "your-evolution-api-key"
-  },
-  "mcp": {
-    "enabled": true,
-    "port": 3000
-  },
-  "database": {
-    "type": "sqlite",
-    "path": ".omni/omni.db"
-  },
-  "tracing": {
-    "enabled": true,
-    "retentionDays": 30
-  }
-}
-```
+```env
+# =================================================================
+# Core API Settings (REQUIRED)
+# =================================================================
 
-Set up platform credentials in `.env`:
+# API Authentication - Generate a secure random string!
+AUTOMAGIK_OMNI_API_KEY="CHANGE-THIS-TO-SECURE-KEY"
 
-```bash
-# Evolution API
-EVOLUTION_API_KEY=your-evolution-api-key
-EVOLUTION_API_URL=http://localhost:8080
+# API Server
+AUTOMAGIK_OMNI_API_HOST="0.0.0.0"
+AUTOMAGIK_OMNI_API_PORT="8882"
 
-# Discord (if using)
-DISCORD_BOT_TOKEN=your-discord-bot-token
+# =================================================================
+# Database Configuration
+# =================================================================
 
-# Slack (if using)
-SLACK_BOT_TOKEN=xoxb-your-slack-token
+# SQLite (Default - for development)
+AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH="./data/automagik-omni.db"
+
+# PostgreSQL (Optional - for production)
+# AUTOMAGIK_OMNI_DATABASE_URL="postgresql://user:password@localhost:5432/automagik_omni"
+
+# =================================================================
+# Evolution API (WhatsApp)
+# =================================================================
+
+EVOLUTION_API_PATH="resources/evolution-api"
+EVOLUTION_API_URL="http://localhost:18082"
+EVOLUTION_API_PORT="18082"
+EVOLUTION_API_KEY="CHANGE-THIS-TO-SECURE-KEY"
+
+# =================================================================
+# Discord (Optional)
+# =================================================================
+
+# DISCORD_TOKEN="YOUR-DISCORD-BOT-TOKEN-HERE"
+
+# =================================================================
+# Logging
+# =================================================================
+
+LOG_LEVEL="INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_FOLDER="./logs"
 ```
 
 <Warning>
-**Security**: Never commit `.env` to version control! Add it to `.gitignore`.
+**Security**:
+- **NEVER** commit `.env` to version control!
+- Generate **strong, unique** API keys for production
+- Use different keys for Omni and Evolution API
 </Warning>
 
 ---
 
-## Start Omni
+## Start Services
 
-Start the Omni server:
+### Option 1: Development Mode (Makefile)
 
 ```bash
-# Start Omni server
-omni serve
+# Start both Omni + Evolution API together
+make dev-all
 
-# Or with custom port
-omni serve --port 3001
-
-# With MCP server enabled
-omni serve --mcp
+# Or start them separately:
+make dev  # Omni API only
+make evo  # Evolution API only
 ```
 
 You should see output like:
 
 ```
-📱 Omni v1.0.0
-✓ Database initialized
-✓ Evolution API connected
-✓ MCP server started on port 3000
-✓ Omni server listening on http://localhost:8000
+✓ Starting Evolution API in background...
+✓ Evolution API started (logs: logs/evolution-dev.log)
+✓ Starting Omni API server...
 
-Ready to handle omnichannel messages!
+INFO:     Uvicorn running on http://0.0.0.0:8882 (Press CTRL+C to quit)
+INFO:     Started reloader process using WatchFiles
 ```
 
----
-
-## Create Your First Instance
+### Option 2: Production Mode (PM2)
 
 ```bash
-# Create a WhatsApp instance
-omni instance create --name my-whatsapp --platform whatsapp
+# Install PM2 if you haven't already
+npm install -g pm2
 
-# Get QR code for connection
-omni instance qr --name my-whatsapp
+# Start all services with PM2
+pm2 start ecosystem.config.js
 
-# Check instance status
-omni instance status --name my-whatsapp
+# Monitor services
+pm2 monit
+
+# View logs
+pm2 logs
+
+# Stop services
+pm2 stop all
 ```
 
 ---
 
 ## Verify Installation
 
-Test that everything is working:
+Check that services are running:
 
 ```bash
-# Check version
-omni --version
+# Check Omni API health
+curl http://localhost:8882/health
+# Should return: {"status": "healthy"}
 
-# List instances
-omni instance list
-
-# Check MCP server
-omni mcp status
-
-# Test message sending (after instance connected)
-omni send --instance my-whatsapp --to +1234567890 --message "Hello from Omni!"
+# Check Evolution API health
+curl http://localhost:18082/health
+# Should return: {"status": true}
 ```
 
----
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="Evolution API connection failed">
-    Make sure Evolution API is running:
-
-    ```bash
-    # Check if Evolution API is up
-    curl http://localhost:8080/health
-
-    # Restart Evolution API
-    docker restart evolution-api
-
-    # Check Evolution API logs
-    docker logs evolution-api
-    ```
-  </Accordion>
-
-  <Accordion title="QR code not displaying">
-    Make sure you're using a terminal that supports images, or use web interface:
-
-    ```bash
-    # Get QR code as URL
-    omni instance qr --name my-whatsapp --web
-
-    # This opens in your browser
-    ```
-  </Accordion>
-
-  <Accordion title="Message tracing not working">
-    Check database permissions and storage:
-
-    ```bash
-    # Check database file
-    ls -la .omni/omni.db
-
-    # Reset database (WARNING: deletes all traces)
-    omni db reset
-
-    # Check trace settings
-    omni config get tracing
-    ```
-  </Accordion>
-
-  <Accordion title="MCP server port conflict">
-    Change the MCP server port:
-
-    ```bash
-    # Edit config.json or use command line
-    omni serve --mcp-port 3001
-    ```
-  </Accordion>
-</AccordionGroup>
+If both return healthy status, you're ready to go!
 
 ---
 
@@ -292,9 +253,83 @@ omni send --instance my-whatsapp --to +1234567890 --message "Hello from Omni!"
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/omni/quickstart">
-    Send your first omnichannel message
+    Send your first message in 5 minutes
   </Card>
-  <Card title="Introduction" icon="book" href="/omni/introduction">
-    Learn more about Omni
+  <Card title="API Reference" icon="code" href="/omni/api/rest-overview">
+    Explore the REST API
   </Card>
 </CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Evolution API submodule missing">
+    If Evolution API submodule wasn't cloned:
+
+    ```bash
+    # Initialize submodule
+    git submodule update --init --recursive resources/evolution-api
+
+    # Then install Evolution API dependencies
+    make install-evolution
+    ```
+  </Accordion>
+
+  <Accordion title="uv command not found">
+    Install the uv package manager:
+
+    ```bash
+    # Install uv
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Reload shell
+    source ~/.bashrc  # or ~/.zshrc
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    Change ports in `.env`:
+
+    ```env
+    AUTOMAGIK_OMNI_API_PORT="8883"  # Change from 8882
+    EVOLUTION_API_PORT="18083"       # Change from 18082
+    ```
+
+    Then restart services.
+  </Accordion>
+
+  <Accordion title="Evolution API won't start">
+    Check Node.js version and package manager:
+
+    ```bash
+    # Check Node.js version (needs 20+)
+    node --version
+
+    # Try installing with npm instead of pnpm
+    cd resources/evolution-api
+    npm install
+    npm run dev:server
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection errors">
+    For SQLite:
+    ```bash
+    # Ensure data directory exists
+    mkdir -p ./data
+
+    # Check permissions
+    ls -la ./data
+    ```
+
+    For PostgreSQL:
+    ```bash
+    # Test connection
+    psql -h localhost -U your_user -d automagik_omni
+
+    # Check DATABASE_URL is correct in .env
+    ```
+  </Accordion>
+</AccordionGroup>

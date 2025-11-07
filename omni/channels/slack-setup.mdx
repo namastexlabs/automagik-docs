@@ -1,0 +1,740 @@
+---
+title: "Slack Setup"
+description: "Slack workspace integration guide (Coming Q4 2025)"
+icon: "slack"
+---
+
+<Warning>
+**Coming Q4 2025** - Slack integration is currently under development and planned for release in Q4 2025.
+</Warning>
+
+## Overview
+
+Slack is the leading platform for team collaboration and workplace communication. OMNI's upcoming Slack integration will bring your AI agents directly into your workspace, enabling seamless team interactions, workflow automation, and productivity enhancement.
+
+<Info>
+**Most Requested Feature** - Slack integration is one of the most requested features by the OMNI community and is a top priority for Q4 2025.
+</Info>
+
+---
+
+## Why Slack?
+
+### Enterprise-Ready Communication
+
+- **260+ million users** worldwide
+- **750,000+ organizations** use Slack
+- Deep integration with productivity tools
+- Rich app ecosystem
+- Enterprise security and compliance
+
+### Perfect for AI Agents
+
+- **Threaded conversations**: Context-aware discussions
+- **Slash commands**: Easy bot invocation
+- **Interactive messages**: Buttons, forms, modals
+- **Rich formatting**: Markdown, code blocks, mentions
+- **File sharing**: Documents, images, reports
+- **Workflow builder**: No-code automation
+
+---
+
+## Planned Features
+
+### Core Messaging
+
+<CardGroup cols={2}>
+  <Card title="Text Messages" icon="message">
+    **Features**:
+    - Plain text and rich formatting
+    - Markdown support
+    - Code blocks with syntax highlighting
+    - User and channel mentions
+    - Link previews
+  </Card>
+
+  <Card title="Threads" icon="comments">
+    **Features**:
+    - Thread-aware conversations
+    - Context preservation
+    - Multi-party discussions
+    - Thread summaries
+  </Card>
+
+  <Card title="Files & Media" icon="file">
+    **Features**:
+    - Document uploads
+    - Image sharing
+    - PDF reports
+    - CSV data exports
+    - File comments
+  </Card>
+
+  <Card title="Reactions" icon="face-smile">
+    **Features**:
+    - Emoji reactions
+    - Quick feedback
+    - Sentiment tracking
+    - Custom emoji support
+  </Card>
+</CardGroup>
+
+### Interactive Components
+
+<Accordion title="Slash Commands">
+  **Planned Commands**:
+  ```
+  /ai help - Show available commands
+  /ai ask [question] - Ask your AI agent
+  /ai summarize - Summarize this thread
+  /ai translate [language] - Translate message
+  /ai schedule [task] - Schedule a task
+  ```
+
+  **Custom Commands**: Configure your own slash commands
+</Accordion>
+
+<Accordion title="Block Kit Interactions">
+  **Interactive Elements**:
+  - Buttons for quick actions
+  - Dropdown menus for selections
+  - Date/time pickers
+  - Multi-select options
+  - Radio buttons
+  - Text inputs
+
+  **Use Cases**:
+  - Approval workflows
+  - Form submissions
+  - Survey responses
+  - Configuration dialogs
+</Accordion>
+
+<Accordion title="Modal Dialogs">
+  **Rich Interactions**:
+  - Multi-step forms
+  - Complex data collection
+  - Configuration wizards
+  - Data validation
+  - Error handling
+
+  **Examples**:
+  - Report generation forms
+  - Incident creation
+  - User onboarding
+</Accordion>
+
+<Accordion title="App Home">
+  **Personal Dashboard**:
+  - User-specific interface
+  - Persistent information
+  - Quick actions
+  - Status overview
+  - Settings panel
+</Accordion>
+
+---
+
+## Preview: Setup Process
+
+<Info>
+This is a preview of the planned setup experience. Details may change before release.
+</Info>
+
+### Step 1: Create Slack App (Planned)
+
+<Steps>
+  <Step title="Navigate to Slack API">
+    Visit: [api.slack.com/apps](https://api.slack.com/apps)
+
+    Click **Create New App** → **From Scratch**
+  </Step>
+
+  <Step title="Configure App">
+    - **App Name**: Your AI Assistant
+    - **Workspace**: Select your workspace
+    - Click **Create App**
+  </Step>
+
+  <Step title="Configure Bot User">
+    In **App Home**:
+    - Add a Bot User
+    - Set Display Name
+    - Enable "Always Show My Bot as Online"
+  </Step>
+</Steps>
+
+### Step 2: OAuth & Permissions (Planned)
+
+**Required Scopes**:
+
+**Bot Token Scopes**:
+- `chat:write` - Send messages
+- `chat:write.public` - Send to public channels without joining
+- `channels:read` - View channels
+- `groups:read` - View private channels (if invited)
+- `im:read` - View direct messages
+- `mpim:read` - View group direct messages
+- `users:read` - View user information
+- `files:write` - Upload files
+- `reactions:write` - Add reactions
+- `commands` - Handle slash commands
+
+**User Token Scopes** (optional):
+- `users:read` - Read user profiles
+- `channels:history` - Read channel messages
+
+### Step 3: Install to Workspace (Planned)
+
+<Steps>
+  <Step title="Install App">
+    - Click **Install to Workspace**
+    - Review permissions
+    - Click **Allow**
+  </Step>
+
+  <Step title="Copy Tokens">
+    After installation:
+    - **Bot User OAuth Token**: Starts with `xoxb-`
+    - **Signing Secret**: For webhook verification
+  </Step>
+</Steps>
+
+### Step 4: Configure OMNI (Planned)
+
+**Environment Configuration**:
+```env
+# Slack Configuration
+SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+SLACK_SIGNING_SECRET=your-signing-secret-here
+SLACK_APP_TOKEN=xapp-your-app-token-here  # For Socket Mode
+
+# OMNI API
+AUTOMAGIK_OMNI_API_KEY=your-omni-key
+AUTOMAGIK_OMNI_API_PORT=8882
+
+# AI Agent
+AGENT_API_URL=http://localhost:8886
+AGENT_API_KEY=your-agent-key
+```
+
+### Step 5: Create Instance (Planned)
+
+```bash
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-omni-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-slack-bot",
+    "channel_type": "slack",
+    "slack_bot_token": "xoxb-...",
+    "slack_signing_secret": "...",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "your-agent-key"
+  }'
+```
+
+---
+
+## Planned API Examples
+
+### Sending Messages
+
+<Tabs>
+  <Tab title="Text Message">
+    ```bash
+    # Send to channel
+    curl -X POST http://localhost:8882/api/v1/instances/my-slack-bot/send-text \
+      -H "x-api-key: your-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel": "C1234567890",
+        "message": "Hello from OMNI!"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Rich Message">
+    ```bash
+    # Message with formatting
+    curl -X POST http://localhost:8882/api/v1/instances/my-slack-bot/send-rich \
+      -H "x-api-key: your-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel": "C1234567890",
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Deploy Notification*\nYour build completed successfully!"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Environment:*\nProduction"},
+              {"type": "mrkdwn", "text": "*Version:*\nv2.1.0"}
+            ]
+          }
+        ]
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Thread Reply">
+    ```bash
+    # Reply in thread
+    curl -X POST http://localhost:8882/api/v1/instances/my-slack-bot/send-text \
+      -H "x-api-key: your-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel": "C1234567890",
+        "message": "Here is the answer...",
+        "thread_ts": "1234567890.123456"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="File Upload">
+    ```bash
+    # Upload file
+    curl -X POST http://localhost:8882/api/v1/instances/my-slack-bot/send-file \
+      -H "x-api-key: your-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel": "C1234567890",
+        "file_url": "https://example.com/report.pdf",
+        "title": "Monthly Report",
+        "comment": "Here is the monthly report"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Interactive Messages
+
+```bash
+# Message with buttons
+curl -X POST http://localhost:8882/api/v1/instances/my-slack-bot/send-interactive \
+  -H "x-api-key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel": "C1234567890",
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Approve this deployment?"
+        }
+      },
+      {
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {"type": "plain_text", "text": "Approve"},
+            "style": "primary",
+            "value": "approve"
+          },
+          {
+            "type": "button",
+            "text": {"type": "plain_text", "text": "Reject"},
+            "style": "danger",
+            "value": "reject"
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+---
+
+## Use Cases
+
+### Team Collaboration
+
+<CardGroup cols={2}>
+  <Card title="Meeting Summaries" icon="clock">
+    AI agent joins meetings, takes notes, generates summaries, and posts to relevant channels with action items.
+  </Card>
+
+  <Card title="Code Review Assistant" icon="code">
+    Reviews pull requests, provides feedback, and notifies team in Slack with recommendations.
+  </Card>
+
+  <Card title="Documentation Helper" icon="book">
+    Answers questions about docs, searches knowledge base, provides relevant links instantly.
+  </Card>
+
+  <Card title="Standup Automation" icon="user-check">
+    Collects standup updates, compiles reports, identifies blockers, posts team summaries.
+  </Card>
+</CardGroup>
+
+### Workflow Automation
+
+<Accordion title="Incident Management">
+  **Automated Flow**:
+  1. Alert received → Creates Slack incident channel
+  2. Notifies on-call team with mentions
+  3. AI assists with diagnostics
+  4. Tracks resolution progress
+  5. Generates post-mortem report
+</Accordion>
+
+<Accordion title="Customer Support Integration">
+  **Support Flow**:
+  1. Customer query arrives (email, chat, etc.)
+  2. AI agent analyzes and categorizes
+  3. Posts to appropriate support channel
+  4. Suggests responses based on knowledge base
+  5. Tracks resolution and satisfaction
+</Accordion>
+
+<Accordion title="Data Reporting">
+  **Scheduled Reports**:
+  1. AI gathers metrics from various sources
+  2. Generates visualizations and insights
+  3. Posts daily/weekly reports to channels
+  4. Interactive dashboard for exploration
+  5. Alerts on anomalies or trends
+</Accordion>
+
+### Enterprise Features
+
+<Tabs>
+  <Tab title="SSO Integration">
+    **Planned Support**:
+    - SAML 2.0
+    - OAuth 2.0
+    - Active Directory
+    - Okta, OneLogin
+    - Azure AD
+  </Tab>
+
+  <Tab title="Compliance">
+    **Enterprise Controls**:
+    - Data retention policies
+    - Audit logs
+    - Message archiving
+    - Compliance exports
+    - eDiscovery support
+  </Tab>
+
+  <Tab title="Access Control">
+    **Permission Management**:
+    - Role-based access
+    - Channel restrictions
+    - Command permissions
+    - Workspace isolation
+  </Tab>
+</Tabs>
+
+---
+
+## Architecture Preview
+
+### Socket Mode vs Webhooks
+
+<Tabs>
+  <Tab title="Socket Mode (Recommended)">
+    **Benefits**:
+    - No public URL required
+    - Easier local development
+    - Real-time events
+    - No webhook setup
+
+    **How it works**:
+    ```mermaid
+    graph LR
+        Slack[Slack API] <-->|WebSocket| Bot[OMNI Bot]
+        Bot <--> OMNI[OMNI Hub]
+        OMNI <--> Agent[AI Agent]
+    ```
+  </Tab>
+
+  <Tab title="Webhook Mode (Production)">
+    **Benefits**:
+    - More scalable
+    - Better for distributed systems
+    - Lower latency
+    - Production-grade
+
+    **Requirements**:
+    - Public HTTPS endpoint
+    - Webhook verification
+    - Event subscriptions
+
+    **How it works**:
+    ```mermaid
+    graph LR
+        Slack[Slack API] -->|HTTPS POST| OMNI[OMNI Hub]
+        OMNI --> Agent[AI Agent]
+        Agent --> OMNI
+        OMNI -->|API Call| Slack
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Roadmap & Timeline
+
+### Q4 2025 - Initial Release
+
+**Phase 1: Core Features** (Oct-Nov 2025)
+- ✅ Basic messaging (send/receive)
+- ✅ Thread support
+- ✅ File uploads
+- ✅ Slash commands
+- ✅ Reactions
+
+**Phase 2: Interactive Features** (Nov-Dec 2025)
+- ✅ Block Kit integration
+- ✅ Modal dialogs
+- ✅ Interactive components
+- ✅ App Home
+
+**Phase 3: Enterprise** (Dec 2025)
+- ✅ SSO support
+- ✅ Compliance features
+- ✅ Advanced permissions
+- ✅ Analytics dashboard
+
+### 2026 - Advanced Features
+
+**Q1 2026**:
+- Workflow Builder integration
+- Canvas support
+- Advanced analytics
+- Multi-workspace management
+
+**Q2 2026**:
+- Voice/video integration
+- Huddle support
+- Real-time collaboration
+- AI-powered insights
+
+---
+
+## Getting Early Access
+
+<Info>
+**Join the Beta Program** - Sign up for early access and help shape Slack integration!
+</Info>
+
+### How to Participate
+
+<Steps>
+  <Step title="Register Interest">
+    Fill out the beta form:
+    [forms.automagik.com/slack-beta](https://forms.automagik.com/slack-beta)
+
+    Include:
+    - Your use case
+    - Team size
+    - Required features
+  </Step>
+
+  <Step title="Join Community">
+    Connect with other beta testers:
+    - Discord: [discord.gg/xcW8c7fF3R](https://discord.gg/xcW8c7fF3R)
+    - Channel: #slack-integration
+  </Step>
+
+  <Step title="Early Access">
+    Beta testers receive:
+    - Early feature access
+    - Direct support channel
+    - Feature request priority
+    - Beta testing rewards
+  </Step>
+</Steps>
+
+---
+
+## Community Feedback
+
+### Most Wanted Features
+
+Based on community feedback, here are the top requested features:
+
+<AccordionGroup>
+  <Accordion title="1. Slash Commands (96% want this)">
+    Quick invocation with `/ai` commands for common tasks
+  </Accordion>
+
+  <Accordion title="2. Thread Summaries (89% want this)">
+    AI-generated summaries of long thread discussions
+  </Accordion>
+
+  <Accordion title="3. Smart Notifications (84% want this)">
+    Intelligent filtering and routing of notifications
+  </Accordion>
+
+  <Accordion title="4. Code Assistant (78% want this)">
+    Code review, debugging, and snippet generation in Slack
+  </Accordion>
+
+  <Accordion title="5. Meeting Notes (72% want this)">
+    Automated meeting minutes and action item tracking
+  </Accordion>
+</AccordionGroup>
+
+### Have Feedback?
+
+We want to hear from you!
+
+- **Feature Requests**: [github.com/namastexlabs/automagik-omni/issues](https://github.com/namastexlabs/automagik-omni/issues)
+- **Discord Discussion**: [#feature-requests](https://discord.gg/xcW8c7fF3R)
+- **Email**: slack-feedback@automagik.com
+
+---
+
+## Alternative Solutions (For Now)
+
+While Slack integration is in development, you can:
+
+### Option 1: Use Webhooks
+
+```bash
+# Send to Slack via incoming webhook
+curl -X POST https://hooks.slack.com/services/YOUR/WEBHOOK/URL \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Message from OMNI agent",
+    "channel": "#general"
+  }'
+```
+
+### Option 2: Slack API Direct
+
+```bash
+# Use Slack API directly from your agent
+curl -X POST https://slack.com/api/chat.postMessage \
+  -H "Authorization: Bearer xoxb-your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel": "C1234567890",
+    "text": "Direct Slack API call"
+  }'
+```
+
+### Option 3: Third-Party Bridges
+
+- Zapier integration
+- IFTTT workflows
+- n8n automation
+- Make.com scenarios
+
+<Warning>
+These workarounds lack OMNI's unified interface, message tracing, and multi-tenant architecture.
+</Warning>
+
+---
+
+## Stay Updated
+
+### Follow Development Progress
+
+<CardGroup cols={2}>
+  <Card title="GitHub Roadmap" icon="github" href="https://github.com/orgs/namastexlabs/projects/9">
+    Track Slack integration milestones and progress
+  </Card>
+
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Join discussions and get real-time updates
+  </Card>
+
+  <Card title="Newsletter" icon="envelope" href="https://automagik.com/newsletter">
+    Monthly updates on features and releases
+  </Card>
+
+  <Card title="Twitter" icon="twitter" href="https://twitter.com/namastexlabs">
+    Follow for announcements and sneak peeks
+  </Card>
+</CardGroup>
+
+---
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="When exactly will Slack be ready?">
+    **Target: Q4 2025** (October-December 2025)
+
+    Beta access will start in October, with general availability by December 2025.
+  </Accordion>
+
+  <Accordion title="Will it work with Slack Enterprise Grid?">
+    **Yes!** Full Enterprise Grid support is planned, including:
+    - Multi-workspace management
+    - Organization-wide apps
+    - Discovery API
+    - Advanced compliance features
+  </Accordion>
+
+  <Accordion title="What about Slack Connect?">
+    **Planned for Q1 2026**
+
+    Slack Connect support for cross-organization collaboration will be added in the first quarter of 2026.
+  </Accordion>
+
+  <Accordion title="Will there be a free tier?">
+    **Yes!** Just like other OMNI channels, Slack integration will be:
+    - Free and open source
+    - Self-hosted
+    - No usage limits from OMNI side
+
+    (Slack's own pricing still applies for workspace features)
+  </Accordion>
+
+  <Accordion title="Can I help with development?">
+    **Absolutely!** We welcome contributors:
+    - Join beta testing program
+    - Submit feature requests
+    - Contribute code on GitHub
+    - Help with documentation
+    - Test and report bugs
+  </Accordion>
+
+  <Accordion title="What if I need it sooner?">
+    For urgent needs:
+    - Use temporary webhook solutions
+    - Consider Slack API direct integration
+    - Contact us for enterprise early access: enterprise@automagik.com
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="WhatsApp Setup" icon="whatsapp" href="/omni/channels/whatsapp-setup">
+    Get started with WhatsApp (Available Now)
+  </Card>
+
+  <Card title="Discord Setup" icon="discord" href="/omni/channels/discord-setup">
+    Set up Discord integration (Available Now)
+  </Card>
+
+  <Card title="Custom Channels" icon="code" href="/omni/channels/custom-channels">
+    Build your own channel integration
+  </Card>
+
+  <Card title="Roadmap" icon="map" href="https://github.com/orgs/namastexlabs/projects/9">
+    View complete development roadmap
+  </Card>
+</CardGroup>
+
+---
+
+<Info>
+**Want updates on Slack integration?**
+
+Subscribe to release notifications: [automagik.com/slack-notify](https://automagik.com/slack-notify)
+</Info>

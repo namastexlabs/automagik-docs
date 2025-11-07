@@ -11,10 +11,14 @@ The Omni REST API provides programmatic access to all omnichannel messaging feat
 ### Base URL
 
 ```
-http://localhost:8000/api/v1
+http://localhost:8882/api/v1
 ```
 
-For production deployments, replace `localhost:8000` with your Omni server address.
+For production deployments, replace `localhost:8882` with your Omni server address.
+
+<Info>
+Default port is `8882`. This can be configured via `AUTOMAGIK_OMNI_API_PORT` in your `.env` file.
+</Info>
 
 ---
 
@@ -23,61 +27,53 @@ For production deployments, replace `localhost:8000` with your Omni server addre
 ### 1. Start Omni Server
 
 ```bash
-# Start Omni with API enabled
-omni serve --port 8000
+# Start Omni with make
+make dev
 
-# API will be available at http://localhost:8000/api/v1
-# Swagger docs at http://localhost:8000/docs
+# Or with PM2 for production
+pm2 start ecosystem.config.js
+
+# API will be available at http://localhost:8882/api/v1
+# Swagger docs at http://localhost:8882/docs
 ```
 
 ### 2. Test the API
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8882/health
+# {"status":"healthy"}
 
-# List instances
-curl http://localhost:8000/api/v1/instances
+# List instances (requires API key)
+curl http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-api-key-from-env"
 ```
 
 ---
 
 ## Authentication
 
-The Omni API supports multiple authentication methods:
+All Omni API requests require the `x-api-key` header:
 
-<Tabs>
-  <Tab title="API Key">
-    ```bash
-    curl -X GET http://localhost:8000/api/v1/instances \
-      -H "X-API-Key: your-api-key-here"
-    ```
+```bash
+curl -X GET http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-api-key-here"
+```
 
-    Set your API key in the Omni configuration or via environment variable:
-    ```bash
-    export OMNI_API_KEY=your-secret-key
-    ```
-  </Tab>
+**Set your API key in `.env`:**
+```bash .env
+AUTOMAGIK_OMNI_API_KEY=your-secure-random-key-here
+```
 
-  <Tab title="Bearer Token">
-    ```bash
-    curl -X GET http://localhost:8000/api/v1/instances \
-      -H "Authorization: Bearer your-token-here"
-    ```
-  </Tab>
+<Warning>
+**Security**: Always use a strong, randomly generated API key. Never commit keys to version control!
+</Warning>
 
-  <Tab title="No Auth (Development)">
-    For local development, you can disable authentication:
-
-    ```bash
-    omni serve --no-auth
-    ```
-
-    <Warning>
-    Never disable authentication in production!
-    </Warning>
-  </Tab>
-</Tabs>
+**Generate a secure key:**
+```bash
+# Generate a random 32-character API key
+openssl rand -hex 32
+```
 
 ---
 
@@ -210,21 +206,21 @@ All errors follow a consistent format:
 
 ## Interactive Documentation
 
-Omni includes built-in Swagger/OpenAPI documentation:
+Omni includes built-in FastAPI/Swagger documentation:
 
 ```bash
 # Start Omni
-omni serve
+make dev
 
 # Open in browser
-open http://localhost:8000/docs
+open http://localhost:8882/docs
 ```
 
 The interactive docs let you:
-- 🧪 Test all endpoints directly
-- 📖 See request/response schemas
-- 🔐 Configure authentication
-- 💾 Download OpenAPI spec
+- 🧪 Test all endpoints directly in your browser
+- 📖 See complete request/response schemas
+- 🔐 Configure API key authentication
+- 💾 Download OpenAPI spec for code generation
 
 ---
 

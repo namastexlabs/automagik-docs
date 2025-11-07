@@ -1,0 +1,657 @@
+---
+title: "Environment Variables"
+description: "Configure Automagik OMNI with environment variables"
+icon: "gear"
+---
+
+## Overview
+
+Automagik OMNI uses environment variables for all configuration. Set these in your `.env` file, shell environment, or deployment platform. The system supports both SQLite (development) and PostgreSQL (production) databases.
+
+<Warning>
+**Never commit secrets!** Add `.env` to your `.gitignore` and use secret management services in production (AWS Secrets Manager, HashiCorp Vault, etc.).
+</Warning>
+
+---
+
+## Core API Settings
+
+### API Authentication
+
+<ParamField path="AUTOMAGIK_OMNI_API_KEY" type="string" required>
+  Master API key for authenticating all requests to OMNI
+
+  ```bash
+  AUTOMAGIK_OMNI_API_KEY=your-super-secret-key-here
+  ```
+
+  <Warning>
+  **Required!** Generate a secure random string (32+ characters). Use a password manager or:
+  ```bash
+  openssl rand -hex 32
+  ```
+  </Warning>
+</ParamField>
+
+### Server Configuration
+
+<ParamField path="AUTOMAGIK_OMNI_API_HOST" type="string" default="0.0.0.0">
+  Host address for the OMNI backend server
+
+  ```bash
+  AUTOMAGIK_OMNI_API_HOST=0.0.0.0  # Listen on all interfaces
+  AUTOMAGIK_OMNI_API_HOST=127.0.0.1  # Localhost only (more secure)
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_API_PORT" type="number" default="8882">
+  Port for the OMNI API server
+
+  ```bash
+  AUTOMAGIK_OMNI_API_PORT=8882
+  ```
+</ParamField>
+
+### CORS Configuration
+
+<ParamField path="AUTOMAGIK_OMNI_CORS_ORIGINS" type="string" default="http://localhost:3000,http://localhost:8888">
+  Comma-separated list of allowed CORS origins
+
+  ```bash
+  # Development
+  AUTOMAGIK_OMNI_CORS_ORIGINS=http://localhost:3000,http://localhost:8888
+
+  # Production (specific domains)
+  AUTOMAGIK_OMNI_CORS_ORIGINS=https://app.example.com,https://admin.example.com
+
+  # Wildcard (NOT recommended for production)
+  AUTOMAGIK_OMNI_CORS_ORIGINS=*
+  ```
+
+  <Tip>
+  Use specific origins in production for better security. The wildcard `*` should only be used in development.
+  </Tip>
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_PROD_SERVER_URL" type="string" optional>
+  Production server URL for Swagger UI display
+
+  ```bash
+  AUTOMAGIK_OMNI_PROD_SERVER_URL=https://api.example.com
+  ```
+</ParamField>
+
+---
+
+## Database Configuration
+
+### SQLite (Development)
+
+<ParamField path="AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH" type="string" default="./data/automagik-omni.db">
+  Path to SQLite database file (used when PostgreSQL URL is not set)
+
+  ```bash
+  AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH=./data/automagik-omni.db
+  ```
+
+  <Info>
+  SQLite is perfect for development and small deployments. The database file is created automatically on first run.
+  </Info>
+</ParamField>
+
+### PostgreSQL (Production)
+
+<ParamField path="AUTOMAGIK_OMNI_DATABASE_URL" type="string" optional>
+  PostgreSQL connection URL (when set, SQLite is ignored)
+
+  ```bash
+  AUTOMAGIK_OMNI_DATABASE_URL=postgresql://user:password@localhost:5432/automagik_omni
+  ```
+
+  **Format:**
+  ```
+  postgresql://[user]:[password]@[host]:[port]/[database]
+  ```
+
+  <Warning>
+  Use PostgreSQL for production deployments. SQLite is not recommended for high-concurrency scenarios.
+  </Warning>
+</ParamField>
+
+---
+
+## Environment & Logging
+
+### Environment Mode
+
+<ParamField path="ENVIRONMENT" type="string" default="development">
+  Application environment mode
+
+  ```bash
+  ENVIRONMENT=development  # Local development
+  ENVIRONMENT=production   # Production deployment
+  ```
+</ParamField>
+
+### Logging Configuration
+
+<ParamField path="LOG_LEVEL" type="string" default="INFO">
+  Application logging level
+
+  ```bash
+  LOG_LEVEL=DEBUG      # Verbose logging (development)
+  LOG_LEVEL=INFO       # Standard logging (default)
+  LOG_LEVEL=WARNING    # Warnings only
+  LOG_LEVEL=ERROR      # Errors only (production)
+  LOG_LEVEL=CRITICAL   # Critical errors only
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_LOG_VERBOSITY" type="string" default="short">
+  Log output format verbosity
+
+  ```bash
+  AUTOMAGIK_OMNI_LOG_VERBOSITY=short  # Compact logs
+  AUTOMAGIK_OMNI_LOG_VERBOSITY=full   # Detailed logs
+  ```
+</ParamField>
+
+<ParamField path="LOG_FOLDER" type="string" default="./logs">
+  Directory for log file outputs
+
+  ```bash
+  LOG_FOLDER=./logs
+  LOG_FOLDER=/var/log/automagik-omni  # Production path
+  ```
+</ParamField>
+
+### Timezone
+
+<ParamField path="AUTOMAGIK_TIMEZONE" type="string" default="UTC">
+  Global timezone for message timestamps
+
+  ```bash
+  AUTOMAGIK_TIMEZONE=UTC
+  AUTOMAGIK_TIMEZONE=America/New_York
+  AUTOMAGIK_TIMEZONE=Europe/London
+  ```
+
+  <Tip>
+  Always use UTC in production to avoid timezone-related bugs. Convert to local timezone in your client applications.
+  </Tip>
+</ParamField>
+
+---
+
+## Message Tracing
+
+### Trace Settings
+
+<ParamField path="AUTOMAGIK_OMNI_ENABLE_TRACING" type="boolean" default="true">
+  Enable comprehensive message flow tracing
+
+  ```bash
+  AUTOMAGIK_OMNI_ENABLE_TRACING=true   # Enable tracing
+  AUTOMAGIK_OMNI_ENABLE_TRACING=false  # Disable (not recommended)
+  ```
+
+  <Info>
+  Tracing records every message with performance metrics and payloads for debugging and analytics.
+  </Info>
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS" type="number" default="30">
+  Number of days to retain message traces
+
+  ```bash
+  AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=30  # Keep for 30 days
+  AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=7   # Keep for 1 week
+  AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS=90  # Keep for 3 months
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_TRACE_MAX_PAYLOAD_SIZE" type="number" default="1048576">
+  Maximum payload size for traces in bytes (default: 1MB)
+
+  ```bash
+  AUTOMAGIK_OMNI_TRACE_MAX_PAYLOAD_SIZE=1048576  # 1MB
+  AUTOMAGIK_OMNI_TRACE_MAX_PAYLOAD_SIZE=5242880  # 5MB
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE" type="boolean" default="false">
+  Include sensitive data in traces (API keys, tokens, etc.)
+
+  ```bash
+  AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false  # Redact sensitive data (production)
+  AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=true   # Include everything (debug only)
+  ```
+
+  <Warning>
+  **NEVER enable in production!** This will log API keys, tokens, and other sensitive information.
+  </Warning>
+</ParamField>
+
+---
+
+## Evolution API (WhatsApp)
+
+### Connection Settings
+
+<ParamField path="EVOLUTION_API_PATH" type="string" default="resources/evolution-api">
+  Path to Evolution API directory (for PM2 deployment)
+
+  ```bash
+  EVOLUTION_API_PATH=resources/evolution-api
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_URL" type="string" default="http://localhost:18082">
+  Evolution API server URL
+
+  ```bash
+  EVOLUTION_API_URL=http://localhost:18082  # Local
+  EVOLUTION_API_URL=https://whatsapp.example.com  # Production
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_PORT" type="number" default="18082">
+  Port for Evolution API server
+
+  ```bash
+  EVOLUTION_API_PORT=18082
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_KEY" type="string" required>
+  Evolution API authentication key
+
+  ```bash
+  EVOLUTION_API_KEY=your-evolution-api-key-here
+  ```
+
+  <Warning>
+  Must match the API key configured in Evolution API. Generate a secure random string.
+  </Warning>
+</ParamField>
+
+### Evolution API Logging
+
+<ParamField path="EVOLUTION_LOG_LEVEL" type="string" default="ERROR,WARN">
+  Evolution API logging levels (comma-separated)
+
+  ```bash
+  EVOLUTION_LOG_LEVEL=ERROR,WARN          # Production (minimal)
+  EVOLUTION_LOG_LEVEL=ERROR,WARN,INFO    # Standard
+  EVOLUTION_LOG_LEVEL=ERROR,WARN,INFO,DEBUG  # Development (verbose)
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_LOG_BAILEYS" type="string" default="error">
+  Baileys library (WhatsApp protocol) log level
+
+  ```bash
+  EVOLUTION_LOG_BAILEYS=error   # Errors only
+  EVOLUTION_LOG_BAILEYS=warn    # Warnings
+  EVOLUTION_LOG_BAILEYS=info    # Verbose
+  ```
+</ParamField>
+
+---
+
+## Discord Configuration
+
+<ParamField path="DISCORD_TOKEN" type="string" optional>
+  Discord bot token for Discord channel integration
+
+  ```bash
+  DISCORD_TOKEN=YOUR-DISCORD-BOT-TOKEN-HERE
+  ```
+
+  **How to get a Discord token:**
+  1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+  2. Create a new application
+  3. Navigate to "Bot" section
+  4. Copy the bot token
+
+  <Info>
+  Only required if you're using Discord channels. Leave empty if only using WhatsApp.
+  </Info>
+</ParamField>
+
+---
+
+## Using .env Files
+
+Create a `.env` file in your project root:
+
+```bash .env
+# =================================================================
+# Core API Settings (REQUIRED)
+# =================================================================
+AUTOMAGIK_OMNI_API_KEY="your-secure-api-key-here"
+AUTOMAGIK_OMNI_API_HOST="0.0.0.0"
+AUTOMAGIK_OMNI_API_PORT="8882"
+AUTOMAGIK_OMNI_CORS_ORIGINS="http://localhost:3000,http://localhost:8888"
+
+# =================================================================
+# Environment & Logging
+# =================================================================
+ENVIRONMENT="development"
+LOG_LEVEL="INFO"
+AUTOMAGIK_OMNI_LOG_VERBOSITY="short"
+LOG_FOLDER="./logs"
+AUTOMAGIK_TIMEZONE="UTC"
+
+# =================================================================
+# Database (SQLite for development)
+# =================================================================
+AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH="./data/automagik-omni.db"
+
+# PostgreSQL (uncomment for production)
+# AUTOMAGIK_OMNI_DATABASE_URL="postgresql://user:password@localhost:5432/automagik_omni"
+
+# =================================================================
+# Message Tracing
+# =================================================================
+AUTOMAGIK_OMNI_ENABLE_TRACING="true"
+AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS="30"
+AUTOMAGIK_OMNI_TRACE_MAX_PAYLOAD_SIZE="1048576"
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE="false"
+
+# =================================================================
+# Evolution API (WhatsApp)
+# =================================================================
+EVOLUTION_API_PATH="resources/evolution-api"
+EVOLUTION_API_URL="http://localhost:18082"
+EVOLUTION_API_PORT="18082"
+EVOLUTION_API_KEY="your-evolution-api-key-here"
+EVOLUTION_LOG_LEVEL="ERROR,WARN"
+EVOLUTION_LOG_BAILEYS="error"
+
+# =================================================================
+# Discord (Optional)
+# =================================================================
+# DISCORD_TOKEN="YOUR-DISCORD-BOT-TOKEN-HERE"
+```
+
+<Tip>
+**Quick start**: Copy `.env.example` from the repository and customize:
+```bash
+cp .env.example .env
+nano .env  # Edit with your values
+```
+</Tip>
+
+---
+
+## Environment-Specific Configuration
+
+### Development Environment
+
+```bash .env.development
+# Development settings - verbose logging, local services
+ENVIRONMENT="development"
+LOG_LEVEL="DEBUG"
+AUTOMAGIK_OMNI_LOG_VERBOSITY="full"
+
+AUTOMAGIK_OMNI_API_HOST="127.0.0.1"
+AUTOMAGIK_OMNI_API_PORT="8882"
+
+# SQLite for easy setup
+AUTOMAGIK_OMNI_SQLITE_DATABASE_PATH="./data/dev.db"
+
+# Relaxed CORS for local development
+AUTOMAGIK_OMNI_CORS_ORIGINS="*"
+
+# Include sensitive data for debugging
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE="true"
+```
+
+### Staging Environment
+
+```bash .env.staging
+# Staging - production-like settings with extra logging
+ENVIRONMENT="production"
+LOG_LEVEL="INFO"
+AUTOMAGIK_OMNI_LOG_VERBOSITY="full"
+
+AUTOMAGIK_OMNI_API_HOST="0.0.0.0"
+AUTOMAGIK_OMNI_API_PORT="8882"
+
+# PostgreSQL for staging
+AUTOMAGIK_OMNI_DATABASE_URL="postgresql://omni_staging:${DB_PASSWORD}@db.staging.example.com:5432/omni_staging"
+
+# Specific origins
+AUTOMAGIK_OMNI_CORS_ORIGINS="https://staging.example.com"
+
+# Security enabled
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE="false"
+```
+
+### Production Environment
+
+```bash .env.production
+# Production - minimal logging, maximum security
+ENVIRONMENT="production"
+LOG_LEVEL="WARNING"
+AUTOMAGIK_OMNI_LOG_VERBOSITY="short"
+
+AUTOMAGIK_OMNI_API_HOST="0.0.0.0"
+AUTOMAGIK_OMNI_API_PORT="8882"
+AUTOMAGIK_OMNI_PROD_SERVER_URL="https://api.example.com"
+
+# PostgreSQL with connection pooling
+AUTOMAGIK_OMNI_DATABASE_URL="postgresql://omni_prod:${DB_PASSWORD}@db.prod.example.com:5432/omni_prod?pool_size=20"
+
+# Strict CORS
+AUTOMAGIK_OMNI_CORS_ORIGINS="https://app.example.com,https://admin.example.com"
+
+# Long-term trace retention
+AUTOMAGIK_OMNI_TRACE_RETENTION_DAYS="90"
+
+# Security hardening
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE="false"
+
+# Production Evolution API
+EVOLUTION_API_URL="https://whatsapp.example.com"
+EVOLUTION_LOG_LEVEL="ERROR"
+```
+
+---
+
+## Verification
+
+Check your configuration is working:
+
+```bash
+# Start OMNI
+pm2 start ecosystem.config.js
+
+# Check health endpoint
+curl http://localhost:8882/health
+
+# Should return:
+# {"status": "healthy"}
+
+# Check logs
+pm2 logs omni-api
+```
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Generate Strong Keys" icon="key">
+    Use cryptographically secure random keys:
+
+    ```bash
+    # Generate API keys
+    openssl rand -hex 32
+
+    # Or use Python
+    python3 -c "import secrets; print(secrets.token_hex(32))"
+    ```
+  </Card>
+
+  <Card title="Use Secret Management" icon="shield">
+    In production, use secret management services:
+    - **AWS**: Secrets Manager or Parameter Store
+    - **GCP**: Secret Manager
+    - **Azure**: Key Vault
+    - **HashiCorp Vault**
+    - **Kubernetes Secrets**
+  </Card>
+
+  <Card title="Rotate Credentials" icon="rotate">
+    Regularly rotate API keys and database passwords:
+
+    ```bash
+    # Every 90 days minimum
+    # Use secret rotation services
+    ```
+  </Card>
+
+  <Card title="Least Privilege" icon="user-shield">
+    Database users should have minimal permissions:
+
+    ```sql
+    -- Only grant necessary permissions
+    GRANT SELECT, INSERT, UPDATE, DELETE
+    ON automagik_omni.*
+    TO 'omni_user'@'localhost';
+    ```
+  </Card>
+
+  <Card title="Network Security" icon="network-wired">
+    Restrict network access:
+
+    ```bash
+    # Bind to localhost only
+    AUTOMAGIK_OMNI_API_HOST=127.0.0.1
+
+    # Use firewall rules
+    # Use VPN for remote access
+    ```
+  </Card>
+
+  <Card title="Audit Logging" icon="file-lines">
+    Enable comprehensive logging:
+
+    ```bash
+    # Keep audit logs separate
+    LOG_FOLDER=/var/log/automagik-omni
+    AUTOMAGIK_OMNI_ENABLE_TRACING=true
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="API key authentication fails">
+    **Problem**: Requests return 401 Unauthorized
+
+    **Solution**:
+    ```bash
+    # Verify API key is set
+    echo $AUTOMAGIK_OMNI_API_KEY
+
+    # Check request header
+    curl -H "x-api-key: your-key" http://localhost:8882/health
+
+    # Restart service after changing .env
+    pm2 restart omni-api
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection errors">
+    **Problem**: Cannot connect to database
+
+    **Solution**:
+    ```bash
+    # Check PostgreSQL URL format
+    AUTOMAGIK_OMNI_DATABASE_URL=postgresql://user:pass@host:5432/db
+
+    # Test PostgreSQL connection
+    psql $AUTOMAGIK_OMNI_DATABASE_URL -c "SELECT 1"
+
+    # For SQLite, check file permissions
+    ls -la ./data/automagik-omni.db
+    ```
+  </Accordion>
+
+  <Accordion title="CORS errors in browser">
+    **Problem**: Frontend cannot connect to API
+
+    **Solution**:
+    ```bash
+    # Add your frontend origin
+    AUTOMAGIK_OMNI_CORS_ORIGINS=https://yourapp.com
+
+    # Development: Use wildcard (temporary)
+    AUTOMAGIK_OMNI_CORS_ORIGINS=*
+
+    # Restart after changes
+    pm2 restart omni-api
+    ```
+  </Accordion>
+
+  <Accordion title="Evolution API not connecting">
+    **Problem**: WhatsApp integration fails
+
+    **Solution**:
+    ```bash
+    # Verify Evolution API is running
+    curl http://localhost:18082/health
+
+    # Check API keys match
+    echo $EVOLUTION_API_KEY
+
+    # Check logs
+    pm2 logs evolution-api
+    ```
+  </Accordion>
+
+  <Accordion title="Logs not appearing">
+    **Problem**: No log output
+
+    **Solution**:
+    ```bash
+    # Check log level
+    LOG_LEVEL=DEBUG  # More verbose
+
+    # Check log folder exists
+    mkdir -p ./logs
+    chmod 755 ./logs
+
+    # Check PM2 logs
+    pm2 logs omni-api --lines 100
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Setup" icon="database" href="/omni/config/database-setup">
+    Configure SQLite or PostgreSQL
+  </Card>
+
+  <Card title="Security Best Practices" icon="shield" href="/omni/config/security-best-practices">
+    Harden your production deployment
+  </Card>
+
+  <Card title="Deployment Options" icon="rocket" href="/omni/config/deployment-options">
+    Deploy with PM2, Docker, or systemd
+  </Card>
+
+  <Card title="Quick Start" icon="play" href="/omni/quickstart">
+    Get your first instance running
+  </Card>
+</CardGroup>

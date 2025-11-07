@@ -1,0 +1,512 @@
+---
+title: "Access Control"
+description: "Manage allow/block rules for phone numbers across instances"
+icon: "shield"
+---
+
+## Overview
+
+Access Control API allows you to create allow and block rules for phone numbers, providing granular control over who can interact with your messaging instances. Rules can be global (apply to all instances) or scoped to specific instances.
+
+<Note>
+Access Control endpoints are available NOW via the `/api/v1/access/rules` path.
+</Note>
+
+---
+
+## List Access Rules
+
+Retrieve all access control rules with optional filtering.
+
+**Endpoint**: `GET /api/v1/access/rules`
+
+<ParamField query="instance_name" type="string">
+  Filter by instance scope (omit for global rules)
+</ParamField>
+
+<ParamField query="rule_type" type="string">
+  Filter by rule type: `allow` or `block`
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/access/rules?instance_name=my-whatsapp&rule_type=block" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8882/api/v1/access/rules",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"instance_name": "my-whatsapp", "rule_type": "block"}
+)
+
+rules = response.json()
+for rule in rules:
+    print(f"{rule['phone_number']}: {rule['rule_type']}")
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/access/rules?instance_name=my-whatsapp&rule_type=block',
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const rules = await response.json();
+console.log(rules);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+[
+  {
+    "id": 1,
+    "instance_name": "my-whatsapp",
+    "phone_number": "+5511999999999",
+    "rule_type": "block",
+    "created_at": "2025-11-01T00:00:00Z",
+    "updated_at": "2025-11-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "instance_name": null,
+    "phone_number": "+55119*",
+    "rule_type": "allow",
+    "created_at": "2025-11-02T00:00:00Z",
+    "updated_at": "2025-11-02T00:00:00Z"
+  }
+]
+```
+
+---
+
+## Create Access Rule
+
+Create a new allow or block rule for a phone number.
+
+**Endpoint**: `POST /api/v1/access/rules`
+
+<ParamField body="phone_number" type="string" required>
+  Phone number in E.164 format (e.g., `+5511999999999`). Supports prefix wildcard with trailing `*` (e.g., `+55119*` to match all numbers starting with +55119)
+</ParamField>
+
+<ParamField body="rule_type" type="string" required>
+  Rule type: `allow` or `block`
+</ParamField>
+
+<ParamField body="instance_name" type="string">
+  Optional instance scope. Omit for global rule that applies to all instances
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL - Block Specific Number
+curl -X POST http://localhost:8882/api/v1/access/rules \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+5511999999999",
+    "rule_type": "block",
+    "instance_name": "my-whatsapp"
+  }'
+```
+
+```bash cURL - Allow Prefix (Wildcard)
+curl -X POST http://localhost:8882/api/v1/access/rules \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "phone_number": "+55119*",
+    "rule_type": "allow"
+  }'
+```
+
+```python Python
+import requests
+
+# Block specific number on specific instance
+response = requests.post(
+    "http://localhost:8882/api/v1/access/rules",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5511999999999",
+        "rule_type": "block",
+        "instance_name": "my-whatsapp"
+    }
+)
+
+# Allow all numbers with prefix (global rule)
+response = requests.post(
+    "http://localhost:8882/api/v1/access/rules",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+55119*",
+        "rule_type": "allow"
+    }
+)
+```
+
+```javascript JavaScript
+// Block specific number
+const response = await fetch(
+  'http://localhost:8882/api/v1/access/rules',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      phone_number: '+5511999999999',
+      rule_type: 'block',
+      instance_name: 'my-whatsapp'
+    })
+  }
+);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 201 Created
+{
+  "id": 3,
+  "instance_name": "my-whatsapp",
+  "phone_number": "+5511999999999",
+  "rule_type": "block",
+  "created_at": "2025-11-04T10:30:00Z",
+  "updated_at": "2025-11-04T10:30:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Invalid phone number format"
+}
+```
+
+---
+
+## Delete Access Rule
+
+Delete an access control rule by ID.
+
+**Endpoint**: `DELETE /api/v1/access/rules/{rule_id}`
+
+<ParamField path="rule_id" type="integer" required>
+  ID of the rule to delete
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE http://localhost:8882/api/v1/access/rules/1 \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+rule_id = 1
+response = requests.delete(
+    f"http://localhost:8882/api/v1/access/rules/{rule_id}",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+if response.status_code == 204:
+    print("Rule deleted successfully")
+```
+
+```javascript JavaScript
+const ruleId = 1;
+const response = await fetch(
+  `http://localhost:8882/api/v1/access/rules/${ruleId}`,
+  {
+    method: 'DELETE',
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+```
+
+</CodeGroup>
+
+### Response
+
+```
+204 No Content
+```
+
+```json 404 Not Found
+{
+  "detail": "Rule not found"
+}
+```
+
+---
+
+## Rule Types
+
+### Allow Rules
+
+Allow rules permit specific phone numbers or prefixes to interact with your instances.
+
+**Example Use Cases**:
+- Whitelist specific customers
+- Allow all numbers from a specific area code
+- Enable communication with verified contacts only
+
+```json
+{
+  "phone_number": "+5511999999999",
+  "rule_type": "allow",
+  "instance_name": "support-whatsapp"
+}
+```
+
+### Block Rules
+
+Block rules prevent specific phone numbers or prefixes from interacting with your instances.
+
+**Example Use Cases**:
+- Blacklist spam numbers
+- Block specific area codes
+- Prevent unwanted contacts
+
+```json
+{
+  "phone_number": "+5511888888888",
+  "rule_type": "block",
+  "instance_name": "my-whatsapp"
+}
+```
+
+---
+
+## Wildcard Patterns
+
+Use the `*` wildcard at the end of phone numbers to match prefixes:
+
+| Pattern | Matches | Example |
+|---------|---------|---------|
+| `+55119*` | All numbers starting with +55119 | +5511999999999, +5511988888888 |
+| `+5511*` | All numbers in area code 11 (Brazil) | +5511999999999, +5511888888888 |
+| `+55*` | All Brazilian numbers | +5511999999999, +5521888888888 |
+| `+1*` | All US/Canada numbers | +14155551234, +16475551234 |
+
+<Note>
+Wildcards can only be used at the end of the phone number. The `*` must be the last character.
+</Note>
+
+---
+
+## Rule Scopes
+
+### Global Rules
+
+Global rules apply to ALL instances. Useful for organization-wide policies.
+
+```json
+{
+  "phone_number": "+5511999999999",
+  "rule_type": "block"
+  // No instance_name = global rule
+}
+```
+
+### Instance-Scoped Rules
+
+Instance-scoped rules apply only to a specific instance. Useful for instance-specific policies.
+
+```json
+{
+  "phone_number": "+5511999999999",
+  "rule_type": "block",
+  "instance_name": "sales-whatsapp"
+}
+```
+
+---
+
+## Use Cases
+
+### Block Spam Numbers
+
+```python
+import requests
+
+spam_numbers = [
+    "+5511111111111",
+    "+5511222222222",
+    "+5511333333333"
+]
+
+for phone in spam_numbers:
+    requests.post(
+        "http://localhost:8882/api/v1/access/rules",
+        headers={"x-api-key": "YOUR_API_KEY"},
+        json={
+            "phone_number": phone,
+            "rule_type": "block"
+        }
+    )
+    print(f"Blocked: {phone}")
+```
+
+### Whitelist VIP Customers
+
+```python
+# Allow only specific VIP customers on support instance
+vip_customers = ["+5511999999999", "+5511888888888"]
+
+for phone in vip_customers:
+    requests.post(
+        "http://localhost:8882/api/v1/access/rules",
+        headers={"x-api-key": "YOUR_API_KEY"},
+        json={
+            "phone_number": phone,
+            "rule_type": "allow",
+            "instance_name": "vip-support"
+        }
+    )
+```
+
+### Block Entire Area Code
+
+```python
+# Block all numbers from area code 99 (hypothetical spam area)
+requests.post(
+    "http://localhost:8882/api/v1/access/rules",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+5599*",
+        "rule_type": "block"
+    }
+)
+```
+
+### Allow Specific Country
+
+```python
+# Allow only Brazilian numbers (+55)
+requests.post(
+    "http://localhost:8882/api/v1/access/rules",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "phone_number": "+55*",
+        "rule_type": "allow"
+    }
+)
+```
+
+---
+
+## Rule Evaluation
+
+Rules are evaluated with the following priority:
+
+1. **Instance-scoped rules** are checked first
+2. **Global rules** are checked if no instance-scoped match
+3. **Most specific match wins** (exact number > wildcard prefix)
+4. **If no rule matches**, access is allowed by default
+
+### Example Evaluation
+
+Given these rules:
+```json
+[
+  {"phone_number": "+5511999999999", "rule_type": "block", "instance_name": "sales"},
+  {"phone_number": "+55119*", "rule_type": "allow", "instance_name": null},
+  {"phone_number": "+5511888888888", "rule_type": "allow", "instance_name": "sales"}
+]
+```
+
+Results:
+- `+5511999999999` on `sales` instance: **BLOCKED** (exact match takes priority)
+- `+5511999999999` on `support` instance: **ALLOWED** (global wildcard +55119*)
+- `+5511888888888` on `sales` instance: **ALLOWED** (exact allow rule)
+- `+5511777777777` on `sales` instance: **ALLOWED** (global wildcard +55119*)
+- `+5521999999999` on any instance: **ALLOWED** (no matching rule, default allow)
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Wildcards Wisely" icon="asterisk">
+    Wildcards are powerful but can be overly broad:
+
+    ```python
+    # Good: Specific area code
+    "+5511*"  # São Paulo
+
+    # Too Broad: Entire country
+    "+55*"  # All Brazil
+    ```
+  </Card>
+
+  <Card title="Test Rules" icon="flask">
+    Test rules before deploying:
+
+    ```python
+    # List rules to verify
+    rules = get_rules(instance="sales")
+    for rule in rules:
+        print(f"{rule['phone_number']}: {rule['rule_type']}")
+    ```
+  </Card>
+
+  <Card title="Use Instance Scopes" icon="filter">
+    Separate policies per instance:
+
+    ```python
+    # VIP instance: strict whitelist
+    # Support instance: more permissive
+    # Sales instance: block known spam
+    ```
+  </Card>
+
+  <Card title="Monitor and Update" icon="rotate">
+    Regularly review and update rules:
+
+    ```python
+    # Remove old rules
+    # Add new spam numbers
+    # Adjust wildcards as needed
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Instance Management" icon="server" href="/omni/api/instances">
+    Configure messaging instances
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages across channels
+  </Card>
+
+  <Card title="Message Traces" icon="chart-line" href="/omni/api/traces">
+    Track and debug messages
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

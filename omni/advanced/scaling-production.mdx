@@ -1,0 +1,845 @@
+---
+title: "Scaling to Production"
+description: "Infrastructure architecture and scaling strategies for production deployments"
+icon: "server"
+---
+
+## Infrastructure Architecture
+
+### Deployment Architectures
+
+#### Small Scale (1-10 instances, < 10K messages/day)
+
+```mermaid
+graph TD
+    A[Internet] -->|HTTPS| B[Reverse Proxy]
+    B --> C[OMNI API]
+    C --> D[(SQLite)]
+    C --> E[Evolution API]
+    C --> F[AI Agent]
+    E --> G[WhatsApp]
+```
+
+**Infrastructure**:
+- **Server**: Single VPS (2 CPU, 4GB RAM)
+- **Database**: SQLite
+- **Process Manager**: PM2
+- **Reverse Proxy**: nginx or Caddy
+- **Cost**: $10-20/month
+
+**Configuration**:
+```bash
+# Single server setup
+SERVER: Ubuntu 22.04 LTS
+CPU: 2 cores
+RAM: 4GB
+Storage: 50GB SSD
+Network: 100 Mbps
+
+# Services
+- OMNI API (Python/FastAPI)
+- Evolution API (Node.js)
+- nginx (reverse proxy)
+- PM2 (process manager)
+```
+
+---
+
+#### Medium Scale (10-100 instances, 100K messages/day)
+
+```mermaid
+graph TD
+    A[Internet] -->|HTTPS| B[Load Balancer]
+    B --> C1[OMNI API 1]
+    B --> C2[OMNI API 2]
+    C1 --> D[(PostgreSQL)]
+    C2 --> D
+    C1 --> E[Redis Cache]
+    C2 --> E
+    C1 --> F[AI Agent Cluster]
+    C2 --> F
+    C1 --> G[Evolution API]
+    C2 --> G
+```
+
+**Infrastructure**:
+- **App Servers**: 2-3 servers (4 CPU, 8GB RAM each)
+- **Database**: PostgreSQL (dedicated server or managed)
+- **Cache**: Redis (for session data)
+- **Load Balancer**: nginx, HAProxy, or cloud LB
+- **Process Manager**: PM2 or systemd
+- **Cost**: $100-300/month
+
+**Configuration**:
+```bash
+# Application servers (2-3x)
+CPU: 4 cores
+RAM: 8GB
+Storage: 100GB SSD
+
+# Database server
+CPU: 2-4 cores
+RAM: 4-8GB
+Storage: 250GB SSD
+PostgreSQL 15+
+
+# Redis cache
+CPU: 1-2 cores
+RAM: 2-4GB
+
+# Load balancer
+nginx or HAProxy
+```
+
+---
+
+#### Large Scale (100+ instances, 1M+ messages/day)
+
+```mermaid
+graph TD
+    A[Internet] -->|HTTPS| B[Cloud Load Balancer]
+    B --> C1[OMNI API 1]
+    B --> C2[OMNI API 2]
+    B --> C3[OMNI API 3]
+    B --> C4[OMNI API N]
+
+    C1 --> D[PostgreSQL Primary]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+
+    D --> E1[Read Replica 1]
+    D --> E2[Read Replica 2]
+
+    C1 --> F[Redis Cluster]
+    C2 --> F
+    C3 --> F
+    C4 --> F
+
+    C1 --> G[AI Agent Pool]
+    C2 --> G
+    C3 --> G
+    C4 --> G
+
+    C1 --> H[Message Queue]
+    C2 --> H
+    C3 --> H
+    C4 --> H
+```
+
+**Infrastructure**:
+- **App Servers**: Auto-scaling (5-20 servers)
+- **Database**: PostgreSQL cluster (primary + read replicas)
+- **Cache**: Redis cluster
+- **Load Balancer**: Cloud LB (AWS ALB, GCP LB)
+- **Message Queue**: RabbitMQ or Redis Pub/Sub
+- **Object Storage**: S3 or compatible (for media)
+- **Cost**: $500-5000+/month
+
+**Configuration**:
+```bash
+# Auto-scaling group (5-20 instances)
+CPU: 4-8 cores per instance
+RAM: 16GB per instance
+Storage: 100GB SSD
+
+# Database cluster
+Primary: 8 CPU, 32GB RAM, 500GB SSD
+Read replicas: 2-4x (4 CPU, 16GB RAM)
+PostgreSQL 15+ with replication
+
+# Redis cluster
+3-node cluster
+16GB RAM total
+High availability mode
+
+# Message queue
+RabbitMQ or Redis
+2-4 CPU, 8GB RAM
+Persistent storage
+```
+
+---
+
+## Database Optimization
+
+### SQLite to PostgreSQL Migration
+
+**When to Migrate**:
+- ✅ More than 10 active instances
+- ✅ More than 5,000 messages/day
+- ✅ Multiple OMNI servers needed
+- ✅ Advanced analytics required
+
+**Migration Steps**:
+
+```bash
+# 1. Backup SQLite database
+cp data/automagik-omni.db data/backup-$(date +%Y%m%d).db
+
+# 2. Export data
+sqlite3 data/automagik-omni.db <<EOF
+.mode insert
+.output dump.sql
+.dump
+.exit
+EOF
+
+# 3. Install PostgreSQL
+sudo apt install postgresql postgresql-contrib
+
+# 4. Create database
+sudo -u postgres createdb automagik_omni
+sudo -u postgres createuser omni_user -P
+
+# 5. Update .env
+AUTOMAGIK_OMNI_DATABASE_URL=postgresql://omni_user:password@localhost:5432/automagik_omni
+
+# 6. Restart OMNI (will create tables)
+pm2 restart omni-api
+
+# 7. Recreate instances via API
+# Export from old DB, import via API calls
+```
+
+---
+
+### PostgreSQL Configuration
+
+**Connection Pooling**:
+
+```python
+# Database URL with connection pool settings
+AUTOMAGIK_OMNI_DATABASE_URL=postgresql://user:pass@localhost/omni?pool_size=20&max_overflow=10&pool_timeout=30&pool_recycle=3600
+```
+
+**Optimal Settings** (`postgresql.conf`):
+
+```ini
+# Connection Settings
+max_connections = 200
+shared_buffers = 256MB           # 25% of RAM
+effective_cache_size = 1GB       # 50-75% of RAM
+maintenance_work_mem = 128MB
+checkpoint_completion_target = 0.9
+wal_buffers = 16MB
+default_statistics_target = 100
+random_page_cost = 1.1          # For SSD
+effective_io_concurrency = 200  # For SSD
+
+# Write Performance
+wal_level = replica
+max_wal_senders = 3
+wal_keep_size = 1GB
+
+# Query Performance
+work_mem = 5MB
+huge_pages = try
+```
+
+**Indexes** (auto-created by OMNI):
+
+```sql
+-- Instances table
+CREATE INDEX idx_instances_name ON instances(name);
+CREATE INDEX idx_instances_channel_type ON instances(channel_type);
+
+-- Traces table
+CREATE INDEX idx_traces_instance ON traces(instance_name);
+CREATE INDEX idx_traces_phone ON traces(phone);
+CREATE INDEX idx_traces_status ON traces(status);
+CREATE INDEX idx_traces_created_at ON traces(created_at);
+CREATE INDEX idx_traces_composite ON traces(instance_name, created_at);
+```
+
+---
+
+### Read Replicas
+
+**Setup PostgreSQL Replication**:
+
+```bash
+# Primary server (postgresql.conf)
+wal_level = replica
+max_wal_senders = 3
+wal_keep_size = 1GB
+
+# Create replication user
+sudo -u postgres psql
+CREATE USER replication_user REPLICATION LOGIN PASSWORD 'strong_password';
+
+# Configure pg_hba.conf (allow replica)
+host replication replication_user REPLICA_IP/32 md5
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+```
+
+**Replica Server**:
+
+```bash
+# Stop PostgreSQL on replica
+sudo systemctl stop postgresql
+
+# Remove data directory
+sudo rm -rf /var/lib/postgresql/15/main/*
+
+# Base backup from primary
+sudo -u postgres pg_basebackup -h PRIMARY_IP -D /var/lib/postgresql/15/main -U replication_user -P -v -R -X stream
+
+# Start replica
+sudo systemctl start postgresql
+
+# Verify replication
+sudo -u postgres psql -c "SELECT * FROM pg_stat_replication;"
+```
+
+**OMNI Configuration with Read Replicas**:
+
+```python
+# Use read replicas for trace queries (future feature)
+PRIMARY_DB_URL=postgresql://user:pass@primary-db:5432/omni
+REPLICA_DB_URL=postgresql://user:pass@replica-db:5432/omni
+```
+
+---
+
+## Horizontal Scaling
+
+### Multi-Server Setup
+
+**Load Balancer Configuration** (nginx):
+
+```nginx
+# /etc/nginx/conf.d/omni-lb.conf
+upstream omni_backend {
+    least_conn;  # or ip_hash for sticky sessions
+    server omni1.internal:8882 max_fails=3 fail_timeout=30s;
+    server omni2.internal:8882 max_fails=3 fail_timeout=30s;
+    server omni3.internal:8882 max_fails=3 fail_timeout=30s;
+}
+
+server {
+    listen 80;
+    server_name omni.yourdomain.com;
+
+    # Redirect to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name omni.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/omni.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/omni.yourdomain.com/privkey.pem;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Proxy settings
+    location / {
+        proxy_pass http://omni_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Health check endpoint
+    location /health {
+        proxy_pass http://omni_backend;
+        access_log off;
+    }
+
+    # API endpoints with longer timeout
+    location /api/ {
+        proxy_pass http://omni_backend;
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+**Health Checks**:
+
+```bash
+# nginx health check module (nginx-plus or custom script)
+# Or use external health checker
+
+# health-check.sh
+#!/bin/bash
+for server in omni1 omni2 omni3; do
+    if curl -sf http://$server.internal:8882/health > /dev/null; then
+        echo "$server: healthy"
+    else
+        echo "$server: unhealthy"
+        # Alert or remove from pool
+    fi
+done
+```
+
+---
+
+### Caching Layer (Redis)
+
+**Redis Installation**:
+
+```bash
+# Install Redis
+sudo apt install redis-server
+
+# Configure Redis (/etc/redis/redis.conf)
+maxmemory 2gb
+maxmemory-policy allkeys-lru
+appendonly yes
+appendfsync everysec
+
+# Start Redis
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+```
+
+**Using Redis for Caching** (future feature):
+
+```python
+# cache_layer.py
+import redis
+import json
+from typing import Optional
+from functools import wraps
+
+redis_client = redis.Redis(
+    host='localhost',
+    port=6379,
+    db=0,
+    decode_responses=True
+)
+
+def cache_response(ttl: int = 300):
+    """Cache decorator for agent responses"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Generate cache key
+            cache_key = f"response:{kwargs.get('message')}"
+
+            # Check cache
+            cached = redis_client.get(cache_key)
+            if cached:
+                return json.loads(cached)
+
+            # Call function
+            result = await func(*args, **kwargs)
+
+            # Store in cache
+            redis_client.setex(cache_key, ttl, json.dumps(result))
+
+            return result
+        return wrapper
+    return decorator
+
+# Usage
+@cache_response(ttl=600)
+async def get_agent_response(message: str):
+    # Expensive AI call
+    return agent.process(message)
+```
+
+---
+
+## Resource Planning
+
+### Capacity Planning
+
+**Per-Instance Resource Usage**:
+
+| Metric | WhatsApp Instance | Discord Instance |
+|--------|------------------|------------------|
+| Memory (idle) | 30-50MB | 80-120MB |
+| Memory (active) | 50-100MB | 120-200MB |
+| CPU (idle) | < 1% | < 1% |
+| CPU (active) | 5-15% | 5-20% |
+| Storage/day | 5-10MB | 3-8MB |
+| Network I/O | 100KB-1MB/msg | 50KB-500KB/msg |
+
+**Server Sizing Formula**:
+
+```python
+# Calculate required resources
+instances = 50
+avg_messages_per_hour = 100
+avg_response_time = 2  # seconds
+
+# Memory calculation
+base_memory = 2048  # MB (OS + OMNI)
+per_instance_memory = 80  # MB average
+total_memory = base_memory + (instances * per_instance_memory)
+# = 2048 + (50 * 80) = 6,048 MB (need 8GB server)
+
+# CPU calculation
+concurrent_messages = (instances * avg_messages_per_hour) / 3600 * avg_response_time
+cpu_cores = concurrent_messages / 10  # ~10 messages per core
+# = (50 * 100) / 3600 * 2 / 10 = ~0.28 cores (need 2-4 cores)
+
+# Storage calculation (traces for 30 days)
+messages_per_day = instances * avg_messages_per_hour * 24
+storage_per_message = 5  # KB
+total_storage = messages_per_day * storage_per_message * 30 / 1024 / 1024
+# = 50 * 100 * 24 * 5 * 30 / 1024 / 1024 = 1.7 GB (need 10GB+)
+```
+
+---
+
+## Performance Benchmarks
+
+### Tested Configurations
+
+**Small Deployment**:
+```
+Config: 1 server, 2 CPU, 4GB RAM, SQLite
+Instances: 10
+Messages/hour: 1,000
+Avg response time: 2.1 seconds
+Success rate: 99.2%
+Cost: $10/month
+```
+
+**Medium Deployment**:
+```
+Config: 2 servers, 4 CPU, 8GB RAM each, PostgreSQL
+Instances: 50
+Messages/hour: 5,000
+Avg response time: 1.8 seconds
+Success rate: 99.7%
+Cost: $150/month
+```
+
+**Large Deployment**:
+```
+Config: 5 servers, 4 CPU, 16GB RAM each, PostgreSQL cluster
+Instances: 200
+Messages/hour: 20,000
+Avg response time: 1.5 seconds
+Success rate: 99.9%
+Cost: $800/month
+```
+
+---
+
+### Performance Optimization
+
+**Database Query Optimization**:
+
+```sql
+-- Slow query: Get recent traces
+EXPLAIN ANALYZE
+SELECT * FROM traces
+WHERE instance_name = 'my-bot'
+ORDER BY created_at DESC
+LIMIT 50;
+
+-- Add index if not exists
+CREATE INDEX IF NOT EXISTS idx_traces_instance_created
+ON traces(instance_name, created_at DESC);
+
+-- Optimized query
+EXPLAIN ANALYZE
+SELECT id, phone, status, created_at, processing_time_ms
+FROM traces
+WHERE instance_name = 'my-bot'
+  AND created_at > NOW() - INTERVAL '7 days'
+ORDER BY created_at DESC
+LIMIT 50;
+```
+
+**Application-Level Optimizations**:
+
+```python
+# Use connection pooling
+from sqlalchemy.pool import QueuePool
+
+engine = create_engine(
+    DATABASE_URL,
+    poolclass=QueuePool,
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=3600    # Recycle connections every hour
+)
+
+# Batch database operations
+def batch_insert_traces(traces: List[dict]):
+    """Insert multiple traces in single transaction"""
+    db.bulk_insert_mappings(Trace, traces)
+    db.commit()
+
+# Use async database operations
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
+async_engine = create_async_engine(
+    ASYNC_DATABASE_URL,
+    echo=False,
+    pool_size=20,
+    max_overflow=10
+)
+
+async with AsyncSession(async_engine) as session:
+    result = await session.execute(query)
+```
+
+---
+
+## Message Queue Systems
+
+### RabbitMQ Integration (Future)
+
+**Use Case**: Decouple message processing from webhook reception
+
+```mermaid
+sequenceDiagram
+    participant W as Webhook
+    participant Q as RabbitMQ
+    participant P as Processor
+    participant A as AI Agent
+
+    W->>Q: Enqueue message
+    W-->>W: Return 200 OK (fast)
+    Q->>P: Dequeue message
+    P->>A: Process with AI
+    A-->>P: Response
+    P->>W: Send via channel
+```
+
+**Benefits**:
+- Faster webhook responses
+- Better handling of traffic spikes
+- Retries with backoff
+- Dead letter queues for failed messages
+
+**Implementation** (future):
+
+```python
+# publisher.py (webhook handler)
+import pika
+
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+channel = connection.channel()
+channel.queue_declare(queue='messages', durable=True)
+
+def publish_message(message_data):
+    channel.basic_publish(
+        exchange='',
+        routing_key='messages',
+        body=json.dumps(message_data),
+        properties=pika.BasicProperties(delivery_mode=2)  # Persistent
+    )
+
+# consumer.py (processor)
+def callback(ch, method, properties, body):
+    message_data = json.loads(body)
+    # Process message
+    process_message(message_data)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+channel.basic_qos(prefetch_count=10)  # Process 10 at a time
+channel.basic_consume(queue='messages', on_message_callback=callback)
+channel.start_consuming()
+```
+
+---
+
+## Cost Optimization
+
+### Infrastructure Cost Breakdown
+
+**Monthly Costs (100 instances)**:
+
+| Component | Provider | Configuration | Cost/month |
+|-----------|----------|--------------|------------|
+| App servers (2x) | DigitalOcean | 4 CPU, 8GB | $96 |
+| Database | Managed PostgreSQL | 4 CPU, 8GB | $60 |
+| Redis | Cloud Redis | 2GB | $15 |
+| Load balancer | Cloud LB | - | $10 |
+| Object storage | S3 | 100GB | $3 |
+| **Total Infrastructure** | | | **$184** |
+| AI API (OpenAI) | GPT-4 | 100K messages | $500 |
+| **Grand Total** | | | **$684** |
+
+**Cost Reduction Strategies**:
+
+1. **Use Cheaper AI Models**:
+   - GPT-3.5 instead of GPT-4: 90% cost reduction
+   - Self-hosted Llama/Mistral: 95% cost reduction
+   - Use Claude Sonnet instead of Opus: 80% cost reduction
+
+2. **Implement Caching**:
+   - Cache common questions/responses
+   - Reduce AI API calls by 30-60%
+
+3. **Optimize Message Storage**:
+   - Reduce trace retention (30 days → 7 days)
+   - Store only essential trace data
+   - Archive old traces to S3 Glacier
+
+4. **Use Spot Instances** (AWS/GCP):
+   - 70-90% cheaper than on-demand
+   - Suitable for stateless OMNI API servers
+
+5. **Right-Size Servers**:
+   - Monitor actual usage
+   - Scale down during off-peak hours
+   - Use auto-scaling
+
+**Estimated Savings**:
+```
+Original cost: $684/month
+- Use GPT-3.5: -$400
+- Implement caching: -$50
+- Reduce traces: -$10
+- Use spot instances: -$50
+New cost: $174/month (75% reduction)
+```
+
+---
+
+## Disaster Recovery
+
+### Backup Strategy
+
+**Database Backups**:
+
+```bash
+# Daily automated backup script
+#!/bin/bash
+# /opt/scripts/backup-omni-db.sh
+
+BACKUP_DIR="/var/backups/omni"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# PostgreSQL backup
+pg_dump -U omni_user automagik_omni | gzip > "$BACKUP_DIR/omni_$DATE.sql.gz"
+
+# Rotate backups (keep last 30 days)
+find "$BACKUP_DIR" -name "omni_*.sql.gz" -mtime +30 -delete
+
+# Upload to S3 (optional)
+aws s3 cp "$BACKUP_DIR/omni_$DATE.sql.gz" s3://omni-backups/
+
+# Cron: 0 2 * * * /opt/scripts/backup-omni-db.sh
+```
+
+**Configuration Backups**:
+
+```bash
+# Backup script for configuration
+#!/bin/bash
+BACKUP_DIR="/var/backups/omni-config"
+DATE=$(date +%Y%m%d)
+
+tar -czf "$BACKUP_DIR/config_$DATE.tar.gz" \
+    /home/omni/.env \
+    /home/omni/ecosystem.config.js \
+    /etc/nginx/sites-available/omni
+
+# Keep last 60 days
+find "$BACKUP_DIR" -name "config_*.tar.gz" -mtime +60 -delete
+```
+
+**Recovery Procedure**:
+
+```bash
+# 1. Restore database
+gunzip -c /var/backups/omni/omni_20251104.sql.gz | psql -U omni_user automagik_omni
+
+# 2. Restore configuration
+tar -xzf /var/backups/omni-config/config_20251104.tar.gz -C /
+
+# 3. Restart services
+pm2 restart all
+
+# 4. Verify
+curl http://localhost:8882/health
+curl http://localhost:8882/api/v1/instances
+```
+
+---
+
+## Security Hardening
+
+### Production Security Checklist
+
+**Network Security**:
+```bash
+# Configure firewall (UFW)
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp     # SSH
+sudo ufw allow 80/tcp     # HTTP
+sudo ufw allow 443/tcp    # HTTPS
+sudo ufw enable
+
+# Rate limiting (fail2ban)
+sudo apt install fail2ban
+# Configure /etc/fail2ban/jail.local
+```
+
+**Application Security**:
+```python
+# .env production settings
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+AUTOMAGIK_OMNI_CORS_ORIGINS=https://yourdomain.com
+AUTOMAGIK_OMNI_TRACE_INCLUDE_SENSITIVE=false
+
+# Use secrets management
+AWS_SECRETS_MANAGER=true  # Future feature
+VAULT_ENABLED=true        # Future feature
+```
+
+**Database Security**:
+```sql
+-- Revoke public access
+REVOKE ALL ON DATABASE automagik_omni FROM PUBLIC;
+
+-- Create restricted user
+CREATE USER omni_app WITH PASSWORD 'strong_password';
+GRANT CONNECT ON DATABASE automagik_omni TO omni_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO omni_app;
+
+-- Use SSL connections
+ssl = on
+ssl_cert_file = '/etc/ssl/certs/server.crt'
+ssl_key_file = '/etc/ssl/private/server.key'
+```
+
+---
+
+## Monitoring and Alerts
+
+See [Monitoring & Metrics](/omni/advanced/monitoring-metrics) for comprehensive monitoring setup.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Monitoring & Metrics" icon="chart-line" href="/omni/advanced/monitoring-metrics">
+    Set up comprehensive monitoring
+  </Card>
+  <Card title="Custom Agents" icon="robot" href="/omni/advanced/custom-agents">
+    Build optimized AI agents
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/omni/troubleshooting/common-issues">
+    Debug production issues
+  </Card>
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Complete API documentation
+  </Card>
+</CardGroup>

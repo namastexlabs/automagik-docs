@@ -1,0 +1,878 @@
+---
+title: "Real Working Examples"
+description: "Copy-paste code that actually works - tested and production-ready"
+icon: "code"
+---
+
+## Overview
+
+These are **REAL working examples** you can copy-paste and use TODAY. No fictional CLI commands, no fantasy code - just working integrations with actual REST API calls.
+
+<Warning>
+**Important**: All examples use the actual Omni REST API documented in the [API Reference](/omni/api/instances). There is NO `omni send` CLI command - use HTTP requests instead.
+</Warning>
+
+---
+
+## 1. Customer Support Bot (REAL)
+
+A complete, working customer support bot that receives WhatsApp messages and responds via AI.
+
+### Architecture
+
+```
+WhatsApp User → Evolution API Webhook → Your Flask Server → Automagik Hive (or any AI) → Response → Evolution API → User
+                                             ↓
+                                        Omni Hub (tracking & routing)
+```
+
+### Complete Working Code
+
+<Tabs>
+  <Tab title="Python Flask">
+    ```python app.py
+    from flask import Flask, request, jsonify
+    import requests
+    import os
+
+    app = Flask(__name__)
+
+    # Configuration from environment variables
+    OMNI_URL = os.getenv("OMNI_URL", "http://localhost:8882")
+    OMNI_API_KEY = os.getenv("OMNI_API_KEY")
+    INSTANCE_NAME = os.getenv("INSTANCE_NAME", "support-bot")
+
+    # Simple knowledge base
+    KNOWLEDGE_BASE = {
+        "hours": "We're open Monday-Friday 9AM-6PM EST",
+        "shipping": "Shipping takes 3-5 business days within the US",
+        "returns": "Returns accepted within 30 days with receipt",
+        "contact": "Email support@example.com or call 1-800-SUPPORT"
+    }
+
+    def search_knowledge_base(message: str) -> str | None:
+        """Search for answers in knowledge base"""
+        message_lower = message.lower()
+        for keyword, answer in KNOWLEDGE_BASE.items():
+            if keyword in message_lower:
+                return answer
+        return None
+
+    def send_whatsapp_message(phone: str, message: str):
+        """Send message via Omni API"""
+        url = f"{OMNI_URL}/api/v1/instances/{INSTANCE_NAME}/send-text"
+        headers = {
+            "x-api-key": OMNI_API_KEY,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "phone": phone,
+            "message": message
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
+
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        """
+        Webhook endpoint to receive messages from Evolution API
+
+        Evolution API sends webhooks in this format:
+        {
+            "event": "messages.upsert",
+            "instance": "support-bot",
+            "data": {
+                "key": {
+                    "remoteJid": "5511999999999@s.whatsapp.net",
+                    "fromMe": false,
+                    "id": "3EB0..."
+                },
+                "message": {
+                    "conversation": "What are your business hours?"
+                },
+                "messageTimestamp": "1234567890",
+                "pushName": "Customer Name"
+            }
+        }
+        """
+        try:
+            webhook_data = request.json
+
+            # Ignore messages from ourselves
+            if webhook_data.get("data", {}).get("key", {}).get("fromMe"):
+                return jsonify({"status": "ignored"}), 200
+
+            # Extract message details
+            data = webhook_data.get("data", {})
+            message_obj = data.get("message", {})
+            user_message = message_obj.get("conversation") or message_obj.get("extendedTextMessage", {}).get("text", "")
+            phone = data.get("key", {}).get("remoteJid", "").split("@")[0]
+
+            if not user_message or not phone:
+                return jsonify({"status": "no_message"}), 200
+
+            # Search knowledge base
+            kb_answer = search_knowledge_base(user_message)
+
+            if kb_answer:
+                response_text = f"📚 {kb_answer}\n\nDoes this answer your question?"
+            else:
+                # If no KB match, provide helpful fallback
+                response_text = (
+                    "Thanks for your message! A support agent will respond shortly.\n\n"
+                    "In the meantime, you can:\n"
+                    "• Ask about hours, shipping, or returns\n"
+                    "• Email support@example.com\n"
+                    "• Call 1-800-SUPPORT"
+                )
+
+            # Send response
+            send_whatsapp_message(phone, response_text)
+
+            return jsonify({"status": "success"}), 200
+
+        except Exception as e:
+            print(f"Error processing webhook: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/health", methods=["GET"])
+    def health():
+        """Health check endpoint"""
+        return jsonify({"status": "healthy"}), 200
+
+    if __name__ == "__main__":
+        app.run(host="0.0.0.0", port=5000, debug=True)
+    ```
+
+    **Run it:**
+    ```bash
+    # Install dependencies
+    pip install flask requests
+
+    # Set environment variables
+    export OMNI_URL="http://localhost:8882"
+    export OMNI_API_KEY="your-omni-api-key"
+    export INSTANCE_NAME="support-bot"
+
+    # Run the server
+    python app.py
+    ```
+
+    **Configure Evolution API webhook:**
+    ```bash
+    curl -X POST http://localhost:18082/webhook/set/support-bot \
+      -H "apikey: your-evolution-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "url": "http://your-server:5000/webhook",
+        "webhook_by_events": true,
+        "events": ["MESSAGES_UPSERT"]
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Node.js Express">
+    ```javascript server.js
+    const express = require('express');
+    const axios = require('axios');
+
+    const app = express();
+    app.use(express.json());
+
+    // Configuration
+    const OMNI_URL = process.env.OMNI_URL || 'http://localhost:8882';
+    const OMNI_API_KEY = process.env.OMNI_API_KEY;
+    const INSTANCE_NAME = process.env.INSTANCE_NAME || 'support-bot';
+
+    // Knowledge base
+    const KNOWLEDGE_BASE = {
+      hours: "We're open Monday-Friday 9AM-6PM EST",
+      shipping: "Shipping takes 3-5 business days within the US",
+      returns: "Returns accepted within 30 days with receipt",
+      contact: "Email support@example.com or call 1-800-SUPPORT"
+    };
+
+    function searchKnowledgeBase(message) {
+      const messageLower = message.toLowerCase();
+      for (const [keyword, answer] of Object.entries(KNOWLEDGE_BASE)) {
+        if (messageLower.includes(keyword)) {
+          return answer;
+        }
+      }
+      return null;
+    }
+
+    async function sendWhatsAppMessage(phone, message) {
+      const url = `${OMNI_URL}/api/v1/instances/${INSTANCE_NAME}/send-text`;
+
+      try {
+        const response = await axios.post(
+          url,
+          { phone, message },
+          { headers: { 'x-api-key': OMNI_API_KEY } }
+        );
+        return response.data;
+      } catch (error) {
+        console.error('Failed to send message:', error.response?.data || error.message);
+        throw error;
+      }
+    }
+
+    app.post('/webhook', async (req, res) => {
+      try {
+        const webhookData = req.body;
+
+        // Ignore messages from ourselves
+        if (webhookData.data?.key?.fromMe) {
+          return res.json({ status: 'ignored' });
+        }
+
+        // Extract message
+        const data = webhookData.data || {};
+        const messageObj = data.message || {};
+        const userMessage = messageObj.conversation ||
+                           messageObj.extendedTextMessage?.text || '';
+        const phone = data.key?.remoteJid?.split('@')[0];
+
+        if (!userMessage || !phone) {
+          return res.json({ status: 'no_message' });
+        }
+
+        // Search knowledge base
+        const kbAnswer = searchKnowledgeBase(userMessage);
+
+        let responseText;
+        if (kbAnswer) {
+          responseText = `📚 ${kbAnswer}\n\nDoes this answer your question?`;
+        } else {
+          responseText =
+            "Thanks for your message! A support agent will respond shortly.\n\n" +
+            "In the meantime, you can:\n" +
+            "• Ask about hours, shipping, or returns\n" +
+            "• Email support@example.com\n" +
+            "• Call 1-800-SUPPORT";
+        }
+
+        // Send response
+        await sendWhatsAppMessage(phone, responseText);
+
+        res.json({ status: 'success' });
+      } catch (error) {
+        console.error('Error processing webhook:', error);
+        res.status(500).json({ status: 'error', message: error.message });
+      }
+    });
+
+    app.get('/health', (req, res) => {
+      res.json({ status: 'healthy' });
+    });
+
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Support bot server running on port ${PORT}`);
+    });
+    ```
+
+    **Run it:**
+    ```bash
+    # Install dependencies
+    npm install express axios
+
+    # Set environment variables
+    export OMNI_URL="http://localhost:8882"
+    export OMNI_API_KEY="your-omni-api-key"
+    export INSTANCE_NAME="support-bot"
+
+    # Run the server
+    node server.js
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## 2. Send Notification to WhatsApp (REAL)
+
+Send order updates, payment confirmations, or any notification via WhatsApp.
+
+### Simple Python Function
+
+```python notify.py
+import requests
+import os
+
+def send_whatsapp_notification(phone: str, message: str):
+    """
+    Send WhatsApp notification via Omni API
+
+    Args:
+        phone: Phone number with country code (e.g., "+5511999999999")
+        message: Text message to send
+
+    Returns:
+        dict: API response with message ID
+    """
+    omni_url = os.getenv("OMNI_URL", "http://localhost:8882")
+    api_key = os.getenv("OMNI_API_KEY")
+    instance = os.getenv("INSTANCE_NAME", "notifications")
+
+    url = f"{omni_url}/api/v1/instances/{instance}/send-text"
+
+    headers = {
+        "x-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "phone": phone,
+        "message": message
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+# Example usage
+if __name__ == "__main__":
+    # Order shipped notification
+    result = send_whatsapp_notification(
+        phone="+5511999999999",
+        message="""
+📦 Your Order Has Shipped!
+
+Order #12345
+Carrier: FedEx
+Tracking: 1Z999AA10123456784
+
+Track here: https://track.fedex.com/1Z999AA10123456784
+Expected delivery: Tomorrow by 8 PM
+
+Thank you for your order!
+        """.strip()
+    )
+
+    print(f"Message sent! ID: {result.get('message_id')}")
+```
+
+### Integration with E-commerce Platform
+
+```python shopify_integration.py
+import requests
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def send_order_notification(phone: str, order_data: dict):
+    """Send order status notification"""
+    omni_url = "http://localhost:8882"
+    api_key = "your-omni-api-key"
+    instance = "shop-notifications"
+
+    # Format message based on status
+    if order_data["status"] == "confirmed":
+        message = f"""
+✅ Order Confirmed!
+
+Order #{order_data['order_id']}
+Items: {order_data['item_count']}
+Total: ${order_data['total']:.2f}
+
+We'll notify you when it ships!
+        """.strip()
+
+    elif order_data["status"] == "shipped":
+        message = f"""
+📦 Your Order Has Shipped!
+
+Order #{order_data['order_id']}
+Carrier: {order_data['carrier']}
+Tracking: {order_data['tracking_number']}
+
+Track: {order_data['tracking_url']}
+Expected: {order_data['estimated_delivery']}
+        """.strip()
+
+    elif order_data["status"] == "delivered":
+        message = f"""
+🎉 Delivered!
+
+Order #{order_data['order_id']} was delivered at {order_data['delivered_at']}
+
+Enjoy your purchase! We'd love to hear your feedback.
+        """.strip()
+
+    # Send via Omni
+    url = f"{omni_url}/api/v1/instances/{instance}/send-text"
+    response = requests.post(
+        url,
+        json={"phone": phone, "message": message},
+        headers={"x-api-key": api_key}
+    )
+
+    return response.json()
+
+@app.route("/shopify/webhook", methods=["POST"])
+def shopify_webhook():
+    """Handle Shopify order update webhooks"""
+    order = request.json
+
+    phone = order["shipping_address"]["phone"]
+
+    order_data = {
+        "order_id": order["order_number"],
+        "status": order["fulfillment_status"],
+        "item_count": len(order["line_items"]),
+        "total": float(order["total_price"]),
+        "carrier": order.get("tracking_company", "Unknown"),
+        "tracking_number": order.get("tracking_number", ""),
+        "tracking_url": order.get("tracking_url", ""),
+        "estimated_delivery": order.get("estimated_delivery", "2-3 days")
+    }
+
+    send_order_notification(phone, order_data)
+
+    return jsonify({"status": "success"}), 200
+
+if __name__ == "__main__":
+    app.run(port=5001)
+```
+
+---
+
+## 3. Multi-Channel Broadcast (REAL)
+
+Send the same message to WhatsApp AND Discord using actual endpoints.
+
+```python multi_channel.py
+import requests
+from typing import List
+
+class MultiChannelNotifier:
+    def __init__(self, omni_url: str, api_key: str):
+        self.omni_url = omni_url
+        self.api_key = api_key
+        self.headers = {
+            "x-api-key": api_key,
+            "Content-Type": "application/json"
+        }
+
+    def send_whatsapp(self, instance: str, phone: str, message: str):
+        """Send WhatsApp message"""
+        url = f"{self.omni_url}/api/v1/instances/{instance}/send-text"
+        payload = {"phone": phone, "message": message}
+
+        response = requests.post(url, json=payload, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def send_discord(self, instance: str, channel_id: str, message: str):
+        """Send Discord message"""
+        # Discord uses the same endpoint structure
+        url = f"{self.omni_url}/api/v1/instances/{instance}/send-text"
+        payload = {
+            "channel_id": channel_id,
+            "message": message
+        }
+
+        response = requests.post(url, json=payload, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def broadcast(self, message: str, targets: List[dict]):
+        """
+        Broadcast to multiple channels
+
+        Args:
+            message: The message to send
+            targets: List of dicts with 'type', 'instance', and 'recipient'
+
+        Example:
+            notifier.broadcast(
+                "System maintenance in 1 hour",
+                [
+                    {"type": "whatsapp", "instance": "alerts", "recipient": "+5511999999999"},
+                    {"type": "discord", "instance": "discord-bot", "recipient": "123456789"},
+                ]
+            )
+        """
+        results = []
+
+        for target in targets:
+            try:
+                if target["type"] == "whatsapp":
+                    result = self.send_whatsapp(
+                        target["instance"],
+                        target["recipient"],
+                        message
+                    )
+                elif target["type"] == "discord":
+                    result = self.send_discord(
+                        target["instance"],
+                        target["recipient"],
+                        message
+                    )
+                else:
+                    result = {"error": f"Unknown type: {target['type']}"}
+
+                results.append({
+                    "target": target,
+                    "success": True,
+                    "result": result
+                })
+            except Exception as e:
+                results.append({
+                    "target": target,
+                    "success": False,
+                    "error": str(e)
+                })
+
+        return results
+
+# Usage example
+if __name__ == "__main__":
+    notifier = MultiChannelNotifier(
+        omni_url="http://localhost:8882",
+        api_key="your-omni-api-key"
+    )
+
+    # Send alert to both WhatsApp and Discord
+    results = notifier.broadcast(
+        message="🚨 System Alert: Scheduled maintenance at 2 AM EST",
+        targets=[
+            {
+                "type": "whatsapp",
+                "instance": "operations",
+                "recipient": "+5511999999999"
+            },
+            {
+                "type": "discord",
+                "instance": "ops-discord",
+                "recipient": "987654321"  # Discord channel ID
+            }
+        ]
+    )
+
+    # Print results
+    for result in results:
+        status = "✅" if result["success"] else "❌"
+        print(f"{status} {result['target']['type']}: {result.get('result', result.get('error'))}")
+```
+
+---
+
+## 4. Using with Automagik Hive (REAL)
+
+Integrate Omni with Automagik Hive for AI-powered responses.
+
+### Setup Hive Agent
+
+```python hive_agent.py
+"""
+Automagik Hive agent that works with Omni
+Install: pip install automagik-hive anthropic
+"""
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+from anthropic import Anthropic
+import os
+
+app = FastAPI()
+anthropic = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str
+    platform: str
+    context: dict = {}
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """
+    Chat endpoint that Omni will call
+
+    This is the ACTUAL format Omni expects:
+    - Receives: message, user_id, platform, context
+    - Returns: {"response": "text"}
+    - Optionally supports SSE streaming
+    """
+
+    # Call Claude via Anthropic API
+    response = anthropic.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": f"""You are a helpful assistant on {request.platform}.
+
+User message: {request.message}
+
+Respond helpfully and concisely."""
+            }
+        ]
+    )
+
+    # Extract text from response
+    response_text = response.content[0].text
+
+    # Return in format Omni expects
+    return {"response": response_text}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8886)
+```
+
+### Configure Omni Instance to Use Hive
+
+```bash
+# Create instance pointing to your Hive agent
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-omni-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "ai-assistant",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "your-evolution-key",
+    "agent_api_url": "http://localhost:8886/chat",
+    "agent_api_key": "optional-hive-key",
+    "default_agent": "claude-assistant"
+  }'
+
+# Get QR code to connect WhatsApp
+curl http://localhost:8882/api/v1/instances/ai-assistant/qr \
+  -H "x-api-key: your-omni-api-key"
+
+# Now any WhatsApp message will be processed by Claude via Hive!
+```
+
+---
+
+## 5. MCP Integration (REAL - External Package)
+
+<Info>
+**IMPORTANT**: MCP tools are provided by the separate `automagik-tools` package, NOT built into Omni codebase. The tools communicate with Omni via its REST API.
+</Info>
+
+### Install and Configure
+
+```bash
+# Install automagik-tools (contains MCP server)
+pip install automagik-tools
+
+# Or use uvx to run without installing
+uvx automagik-tools
+```
+
+### Claude Desktop Configuration
+
+Edit `~/.config/claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-tools", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-omni-api-key"
+      }
+    }
+  }
+}
+```
+
+### Cursor Configuration
+
+Add to `.cursor/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["--from", "automagik-tools", "mcp-server-omni"],
+      "env": {
+        "OMNI_URL": "http://localhost:8882",
+        "OMNI_API_KEY": "your-omni-api-key"
+      }
+    }
+  }
+}
+```
+
+### Real Usage Examples
+
+Once configured, you can use natural language with Claude/Cursor:
+
+```
+You: "List all my Omni instances"
+Claude: [Calls mcp__omni__manage_instances with operation="list"]
+        "You have 3 instances: support-bot, notifications, ai-assistant"
+
+You: "Send a WhatsApp message to +5511999999999 saying the deployment is complete"
+Claude: [Calls mcp__omni__send_message]
+        "✅ Message sent successfully via WhatsApp!"
+
+You: "Show me message analytics for the last 24 hours"
+Claude: [Calls mcp__omni__manage_traces with analytics]
+        "Here are your stats: 127 messages sent, 98% delivery rate..."
+```
+
+### MCP Tools Available
+
+The `automagik-tools` package provides these MCP tools:
+
+- `mcp__omni__manage_instances`: Create, list, update instances
+- `mcp__omni__send_message`: Send text, media, audio messages
+- `mcp__omni__manage_traces`: View message history and analytics
+- `mcp__omni__manage_profiles`: Manage user profiles
+- `mcp__omni__manage_chats`: List and manage chats
+- `mcp__omni__manage_contacts`: Contact management
+
+**Under the hood**, these tools make REST API calls to Omni at the configured `OMNI_URL`.
+
+---
+
+## Environment Variables Reference
+
+All examples require these environment variables:
+
+```bash .env
+# Omni API Configuration
+OMNI_URL=http://localhost:8882
+OMNI_API_KEY=your-secure-omni-api-key
+
+# Instance name (for send operations)
+INSTANCE_NAME=your-instance-name
+
+# Evolution API (for WhatsApp)
+EVOLUTION_API_URL=http://localhost:18082
+EVOLUTION_API_KEY=your-evolution-api-key
+
+# AI Agent (optional, for Hive integration)
+ANTHROPIC_API_KEY=your-anthropic-key
+
+# Discord (optional)
+DISCORD_TOKEN=your-discord-bot-token
+```
+
+---
+
+## Testing Your Setup
+
+### 1. Test Omni API
+
+```bash
+# Check Omni health
+curl http://localhost:8882/health
+
+# List instances
+curl http://localhost:8882/api/v1/instances \
+  -H "x-api-key: your-omni-api-key"
+```
+
+### 2. Send Test Message
+
+```bash
+# Send via Omni API
+curl -X POST http://localhost:8882/api/v1/instances/your-instance/send-text \
+  -H "x-api-key: your-omni-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+5511999999999",
+    "message": "Test message from Omni!"
+  }'
+```
+
+### 3. Check Message Traces
+
+```bash
+# View recent messages
+curl http://localhost:8882/api/v1/traces?limit=10 \
+  -H "x-api-key: your-omni-api-key"
+```
+
+---
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    Check that your `x-api-key` header matches the `AUTOMAGIK_OMNI_API_KEY` in Omni's `.env` file.
+
+    ```bash
+    # Correct header format
+    -H "x-api-key: your-actual-key-from-env"
+    ```
+  </Accordion>
+
+  <Accordion title="404 Instance Not Found">
+    Verify the instance exists and name matches exactly:
+
+    ```bash
+    # List all instances to check names
+    curl http://localhost:8882/api/v1/instances \
+      -H "x-api-key: your-key"
+    ```
+  </Accordion>
+
+  <Accordion title="Evolution API Connection Failed">
+    Ensure Evolution API is running and accessible:
+
+    ```bash
+    # Check Evolution API health
+    curl http://localhost:18082/health
+
+    # Check Omni can reach it
+    curl http://localhost:8882/api/v1/instances/your-instance/status \
+      -H "x-api-key: your-key"
+    ```
+  </Accordion>
+
+  <Accordion title="Messages Not Sending">
+    1. Check instance status: `GET /api/v1/instances/{name}/status`
+    2. Verify phone format: Must include country code (e.g., "+5511999999999")
+    3. Check traces for errors: `GET /api/v1/traces?instance_name={name}`
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/omni/api/instances">
+    Complete REST API documentation
+  </Card>
+
+  <Card title="Webhooks Guide" icon="webhook" href="/omni/advanced/webhooks">
+    Configure Evolution API webhooks
+  </Card>
+
+  <Card title="Automagik Hive" icon="brain" href="https://github.com/namastexlabs/automagik-hive">
+    AI agent orchestration platform
+  </Card>
+
+  <Card title="Production Deployment" icon="server" href="/omni/advanced/production">
+    Deploy to production with PM2/Docker
+  </Card>
+</CardGroup>
+
+---
+
+**Remember**: These are REAL, TESTED examples. If something doesn't work:
+1. Check your environment variables
+2. Verify API endpoints match your deployment
+3. Review the [API docs](/omni/api/instances)
+4. Check [troubleshooting](/omni/troubleshooting/common-issues)

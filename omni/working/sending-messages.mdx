@@ -1,0 +1,1133 @@
+---
+title: "Sending Messages"
+description: "Complete guide to sending text, media, audio, stickers, and reactions"
+icon: "paper-plane"
+---
+
+## Overview
+
+Automagik OMNI provides a unified API for sending messages across all platforms. This guide covers every message type with practical examples in cURL, Python, and JavaScript.
+
+---
+
+## Sending Text Messages
+
+### Basic Text Message
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-text \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "message": "Hello! How can I help you today?"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-text",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message": "Hello! How can I help you today?"
+        }
+    )
+
+    result = response.json()
+    print(f"Message sent! ID: {result['message_id']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-text',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          message: 'Hello! How can I help you today?'
+        })
+      }
+    );
+
+    const result = await response.json();
+    console.log(`Message sent! ID: ${result.message_id}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "status": "success",
+  "message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9",
+  "instance_name": "support-bot",
+  "phone": "+1234567890",
+  "timestamp": "2025-11-04T12:30:45Z"
+}
+```
+
+---
+
+### Text with Formatting
+
+<Tabs>
+  <Tab title="WhatsApp Formatting">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-text \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "message": "*Bold text*\n_Italic text_\n~Strikethrough~\n```Monospace```"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Discord Formatting">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/discord-bot/send-text \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "123456789012345678",
+        "message": "**Bold** *Italic* ~~Strikethrough~~ `Code` ```Code block```"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="With Emojis">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-text",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message": "🎉 Welcome! We're excited to help you! 🚀\n\n✅ Step 1: Sign up\n✅ Step 2: Complete profile\n⏳ Step 3: Start using"
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Sending Media Messages
+
+### Images
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-media \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "media_url": "https://example.com/images/product.jpg",
+        "media_type": "image",
+        "caption": "Check out our new product! 🎉"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-media",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "media_url": "https://example.com/images/product.jpg",
+            "media_type": "image",
+            "caption": "Check out our new product! 🎉"
+        }
+    )
+
+    print(response.json())
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-media',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          media_url: 'https://example.com/images/product.jpg',
+          media_type: 'image',
+          caption: 'Check out our new product! 🎉'
+        })
+      }
+    );
+
+    console.log(await response.json());
+    ```
+  </Tab>
+</Tabs>
+
+### Videos
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-media \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "media_url": "https://example.com/videos/tutorial.mp4",
+        "media_type": "video",
+        "caption": "Watch this quick tutorial on getting started"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-media",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "media_url": "https://example.com/videos/tutorial.mp4",
+            "media_type": "video",
+            "caption": "Watch this quick tutorial on getting started"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-media',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          media_url: 'https://example.com/videos/tutorial.mp4',
+          media_type: 'video',
+          caption: 'Watch this quick tutorial on getting started'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+### Documents
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-media \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "media_url": "https://example.com/docs/invoice-2025.pdf",
+        "media_type": "document",
+        "caption": "Your invoice for November 2025"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Send PDF document
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-media",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "media_url": "https://example.com/docs/invoice-2025.pdf",
+            "media_type": "document",
+            "caption": "Your invoice for November 2025"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Send Excel document
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-media',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          media_url: 'https://example.com/reports/sales.xlsx',
+          media_type: 'document',
+          caption: 'Monthly sales report'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Sending Audio Messages
+
+### Audio Files
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-audio \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "audio_url": "https://example.com/audio/voice-message.mp3"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-audio",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "audio_url": "https://example.com/audio/voice-message.mp3"
+        }
+    )
+
+    print(f"Audio sent: {response.json()['message_id']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-audio',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          audio_url: 'https://example.com/audio/voice-message.mp3'
+        })
+      }
+    );
+
+    console.log(await response.json());
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Supported formats**: MP3, OGG, WAV, M4A, AAC
+</Note>
+
+---
+
+## Sending Stickers
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-sticker \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "sticker_url": "https://example.com/stickers/thumbs-up.webp"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-sticker",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "sticker_url": "https://example.com/stickers/thumbs-up.webp"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-sticker',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          sticker_url: 'https://example.com/stickers/thumbs-up.webp'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Sticker requirements**: WEBP format, 512x512 pixels recommended for WhatsApp
+</Note>
+
+---
+
+## Sending Reactions
+
+### React to Messages
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-reaction \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9",
+        "emoji": "👍"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-reaction",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9",
+            "emoji": "👍"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-reaction',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          message_id: '3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9',
+          emoji: '👍'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+### Remove Reaction
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Send empty emoji to remove reaction
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-reaction",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9",
+            "emoji": ""
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Replying to Messages (Quoted Messages)
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-text \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "message": "Thanks for your question! Let me help with that.",
+        "quoted_message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-text",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message": "Thanks for your question! Let me help with that.",
+            "quoted_message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-text',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          message: 'Thanks for your question! Let me help with that.',
+          quoted_message_id: '3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9'
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delayed Sending
+
+### Schedule Message Delivery
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST http://localhost:8882/api/v1/instances/support-bot/send-text \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: your-omni-api-key" \
+      -d '{
+        "phone": "+1234567890",
+        "message": "This message will be sent after 5 seconds",
+        "delay": 5000
+      }'
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Send after 10 seconds
+    response = requests.post(
+        "http://localhost:8882/api/v1/instances/support-bot/send-text",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": "your-omni-api-key"
+        },
+        json={
+            "phone": "+1234567890",
+            "message": "This message will be sent after 10 seconds",
+            "delay": 10000  # milliseconds
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Send after 3 seconds
+    await fetch(
+      'http://localhost:8882/api/v1/instances/support-bot/send-text',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'your-omni-api-key'
+        },
+        body: JSON.stringify({
+          phone: '+1234567890',
+          message: 'This message will be sent after 3 seconds',
+          delay: 3000
+        })
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Delay parameter**: Specified in milliseconds (1000ms = 1 second)
+</Note>
+
+---
+
+## Batch Message Sending
+
+### Send to Multiple Recipients
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    import time
+
+    OMNI_URL = "http://localhost:8882"
+    API_KEY = "your-omni-api-key"
+    INSTANCE = "support-bot"
+
+    recipients = ["+1234567890", "+9876543210", "+5555555555"]
+    message = "Hello! This is a batch message from our team."
+
+    for phone in recipients:
+        response = requests.post(
+            f"{OMNI_URL}/api/v1/instances/{INSTANCE}/send-text",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": API_KEY
+            },
+            json={
+                "phone": phone,
+                "message": message
+            }
+        )
+
+        if response.status_code == 200:
+            print(f"✅ Sent to {phone}")
+        else:
+            print(f"❌ Failed to send to {phone}: {response.json()}")
+
+        # Rate limiting: wait 1 second between messages
+        time.sleep(1)
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const OMNI_URL = 'http://localhost:8882';
+    const API_KEY = 'your-omni-api-key';
+    const INSTANCE = 'support-bot';
+
+    const recipients = ['+1234567890', '+9876543210', '+5555555555'];
+    const message = 'Hello! This is a batch message from our team.';
+
+    for (const phone of recipients) {
+      try {
+        const response = await fetch(
+          `${OMNI_URL}/api/v1/instances/${INSTANCE}/send-text`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': API_KEY
+            },
+            body: JSON.stringify({ phone, message })
+          }
+        );
+
+        const result = await response.json();
+        console.log(`✅ Sent to ${phone}: ${result.message_id}`);
+      } catch (error) {
+        console.error(`❌ Failed to send to ${phone}:`, error);
+      }
+
+      // Rate limiting: wait 1 second between messages
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Personalized Batch Messages
+
+```python
+import requests
+
+OMNI_URL = "http://localhost:8882"
+API_KEY = "your-omni-api-key"
+
+customers = [
+    {"phone": "+1234567890", "name": "Alice", "order": "12345"},
+    {"phone": "+9876543210", "name": "Bob", "order": "12346"},
+    {"phone": "+5555555555", "name": "Charlie", "order": "12347"}
+]
+
+for customer in customers:
+    message = f"""
+Hi {customer['name']}! 👋
+
+Your order #{customer['order']} has been shipped and is on its way!
+
+Track your order: https://example.com/track/{customer['order']}
+
+Thanks for shopping with us!
+    """.strip()
+
+    response = requests.post(
+        f"{OMNI_URL}/api/v1/instances/support-bot/send-text",
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY
+        },
+        json={
+            "phone": customer['phone'],
+            "message": message
+        }
+    )
+
+    print(f"Sent to {customer['name']}: {response.status_code}")
+```
+
+---
+
+## Error Handling
+
+### Handling Common Errors
+
+```python
+import requests
+from requests.exceptions import RequestException
+
+def send_message_safe(phone, message, instance="support-bot"):
+    """Send message with comprehensive error handling"""
+    try:
+        response = requests.post(
+            f"http://localhost:8882/api/v1/instances/{instance}/send-text",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": "your-omni-api-key"
+            },
+            json={
+                "phone": phone,
+                "message": message
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Message sent: {result['message_id']}")
+            return result
+
+        elif response.status_code == 400:
+            error = response.json()
+            print(f"❌ Invalid request: {error['detail']}")
+            # Log and handle validation errors
+
+        elif response.status_code == 404:
+            print(f"❌ Instance '{instance}' not found")
+            # Maybe create instance or use different one
+
+        elif response.status_code == 503:
+            print(f"❌ Instance '{instance}' not connected")
+            # Maybe restart instance or notify admin
+
+        else:
+            print(f"❌ Unexpected error: {response.status_code}")
+            print(response.text)
+
+    except RequestException as e:
+        print(f"❌ Network error: {e}")
+        # Retry logic or queue for later
+
+    return None
+
+# Usage
+send_message_safe("+1234567890", "Hello!")
+```
+
+### Retry Logic
+
+```javascript
+async function sendMessageWithRetry(phone, message, maxRetries = 3) {
+  const OMNI_URL = 'http://localhost:8882';
+  const API_KEY = 'your-omni-api-key';
+  const INSTANCE = 'support-bot';
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `${OMNI_URL}/api/v1/instances/${INSTANCE}/send-text`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify({ phone, message })
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ Message sent on attempt ${attempt}`);
+        return result;
+      }
+
+      if (response.status === 503) {
+        console.log(`⚠️ Instance not connected (attempt ${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        continue;
+      }
+
+      // Non-retryable error
+      const error = await response.json();
+      console.error(`❌ Error: ${error.detail}`);
+      return null;
+
+    } catch (error) {
+      console.error(`❌ Network error on attempt ${attempt}:`, error);
+
+      if (attempt === maxRetries) {
+        console.error('Max retries reached. Message not sent.');
+        return null;
+      }
+
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+    }
+  }
+}
+
+// Usage
+await sendMessageWithRetry('+1234567890', 'Hello with retry!');
+```
+
+---
+
+## Advanced Patterns
+
+### Message Queue System
+
+```python
+import requests
+import time
+from queue import Queue
+from threading import Thread
+
+class MessageQueue:
+    def __init__(self, omni_url, api_key, instance_name):
+        self.omni_url = omni_url
+        self.api_key = api_key
+        self.instance_name = instance_name
+        self.queue = Queue()
+        self.running = False
+
+    def add_message(self, phone, message, message_type="text", **kwargs):
+        """Add message to queue"""
+        self.queue.put({
+            "phone": phone,
+            "message": message,
+            "type": message_type,
+            "extra": kwargs
+        })
+
+    def worker(self):
+        """Process messages from queue"""
+        while self.running:
+            if not self.queue.empty():
+                msg = self.queue.get()
+
+                endpoint = f"send-{msg['type']}"
+                payload = {
+                    "phone": msg['phone'],
+                    "message": msg['message'],
+                    **msg['extra']
+                }
+
+                try:
+                    response = requests.post(
+                        f"{self.omni_url}/api/v1/instances/{self.instance_name}/{endpoint}",
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-api-key": self.api_key
+                        },
+                        json=payload
+                    )
+
+                    if response.status_code == 200:
+                        print(f"✅ Sent to {msg['phone']}")
+                    else:
+                        print(f"❌ Failed: {response.status_code}")
+
+                except Exception as e:
+                    print(f"❌ Error: {e}")
+
+                # Rate limiting
+                time.sleep(1)
+
+            else:
+                time.sleep(0.1)
+
+    def start(self):
+        """Start processing queue"""
+        self.running = True
+        Thread(target=self.worker, daemon=True).start()
+
+    def stop(self):
+        """Stop processing"""
+        self.running = False
+
+# Usage
+queue = MessageQueue(
+    "http://localhost:8882",
+    "your-omni-api-key",
+    "support-bot"
+)
+
+queue.start()
+
+# Add messages
+queue.add_message("+1234567890", "Hello!")
+queue.add_message("+9876543210", "Welcome!")
+queue.add_message("+5555555555", "Thanks for signing up!")
+
+# Keep running
+time.sleep(10)
+queue.stop()
+```
+
+### Message Builder Class
+
+```javascript
+class MessageBuilder {
+  constructor(omniUrl, apiKey, instanceName) {
+    this.omniUrl = omniUrl;
+    this.apiKey = apiKey;
+    this.instanceName = instanceName;
+  }
+
+  async sendText(phone, message, options = {}) {
+    return this._send('send-text', {
+      phone,
+      message,
+      ...options
+    });
+  }
+
+  async sendImage(phone, imageUrl, caption = '') {
+    return this._send('send-media', {
+      phone,
+      media_url: imageUrl,
+      media_type: 'image',
+      caption
+    });
+  }
+
+  async sendVideo(phone, videoUrl, caption = '') {
+    return this._send('send-media', {
+      phone,
+      media_url: videoUrl,
+      media_type: 'video',
+      caption
+    });
+  }
+
+  async sendDocument(phone, docUrl, caption = '') {
+    return this._send('send-media', {
+      phone,
+      media_url: docUrl,
+      media_type: 'document',
+      caption
+    });
+  }
+
+  async sendAudio(phone, audioUrl) {
+    return this._send('send-audio', {
+      phone,
+      audio_url: audioUrl
+    });
+  }
+
+  async sendReaction(phone, messageId, emoji) {
+    return this._send('send-reaction', {
+      phone,
+      message_id: messageId,
+      emoji
+    });
+  }
+
+  async _send(endpoint, payload) {
+    const response = await fetch(
+      `${this.omniUrl}/api/v1/instances/${this.instanceName}/${endpoint}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    return response.json();
+  }
+}
+
+// Usage
+const messenger = new MessageBuilder(
+  'http://localhost:8882',
+  'your-omni-api-key',
+  'support-bot'
+);
+
+await messenger.sendText('+1234567890', 'Hello!');
+await messenger.sendImage('+1234567890', 'https://example.com/image.jpg', 'Check this out!');
+await messenger.sendReaction('+1234567890', 'message-id', '👍');
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Message not delivered">
+    **Problem**: Message shows as sent but not received
+
+    **Solutions**:
+    1. Check instance connection status
+    2. Verify phone number format (must include country code with +)
+    3. Check recipient's device is online
+    4. Review message traces for delivery status
+    5. Verify recipient hasn't blocked the number
+  </Accordion>
+
+  <Accordion title="Media upload fails">
+    **Problem**: Media messages fail with 400 error
+
+    **Solutions**:
+    1. Ensure media URL is publicly accessible
+    2. Check file size (WhatsApp limits: images 5MB, videos 16MB)
+    3. Verify correct media_type parameter
+    4. Test media URL in browser first
+    5. Use supported formats (JPEG, PNG for images; MP4 for videos)
+  </Accordion>
+
+  <Accordion title="'Instance not connected' error">
+    **Problem**: 503 error when sending messages
+
+    **Solutions**:
+    1. Check instance status:
+       ```bash
+       curl http://localhost:8882/api/v1/instances/your-instance/status \
+         -H "x-api-key: your-key"
+       ```
+    2. Restart instance if disconnected
+    3. For WhatsApp: rescan QR code
+    4. For Discord: verify bot token is valid
+  </Accordion>
+
+  <Accordion title="Reactions not working">
+    **Problem**: Reactions fail to send
+
+    **Solutions**:
+    1. Verify message_id is correct and from same chat
+    2. Ensure emoji is a valid Unicode emoji
+    3. Check platform supports reactions (WhatsApp, Discord)
+    4. Message must be from last 24 hours (WhatsApp limit)
+  </Accordion>
+
+  <Accordion title="Rate limiting errors">
+    **Problem**: 429 Too Many Requests error
+
+    **Solutions**:
+    1. Implement delays between messages (1-2 seconds)
+    2. Use exponential backoff for retries
+    3. Consider message queue for batch sending
+    4. Respect platform limits:
+       - WhatsApp: ~60 messages/minute
+       - Discord: ~120 messages/minute
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Manage Instances" icon="server" href="/omni/working/managing-instances">
+    Create and configure messaging instances
+  </Card>
+
+  <Card title="View Traces" icon="chart-line" href="/omni/working/viewing-traces">
+    Track message delivery and debug issues
+  </Card>
+
+  <Card title="Manage Profiles" icon="user" href="/omni/working/managing-profiles">
+    Update bot profiles and fetch user info
+  </Card>
+
+  <Card title="Analytics" icon="chart-bar" href="/omni/working/analytics-insights">
+    Analyze message performance and patterns
+  </Card>
+</CardGroup>

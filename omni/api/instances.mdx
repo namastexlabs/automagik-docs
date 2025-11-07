@@ -1,0 +1,889 @@
+---
+title: "Instance Management"
+description: "Create, configure, and monitor messaging instances across all channels"
+icon: "server"
+openapi: "GET /api/v1/instances"
+---
+
+## Overview
+
+Instances are the core building blocks of OMNI. Each instance represents a connection to a messaging platform (WhatsApp, Discord, Slack) and can be independently configured and managed.
+
+---
+
+## List All Instances
+
+Get all configured messaging instances with their connection status and health information.
+
+<ParamField query="skip" type="integer" default="0">
+  Number of instances to skip for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Maximum number of instances to return (max: 500)
+</ParamField>
+
+<ParamField query="include_status" type="boolean" default="true">
+  Include real-time connection status from Evolution API (WhatsApp only)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://localhost:8882/api/v1/instances?include_status=true" \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8882/api/v1/instances",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    params={"include_status": True, "limit": 50}
+)
+
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8882/api/v1/instances?include_status=true',
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+[
+  {
+    "id": 1,
+    "name": "my-whatsapp",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_KEY",
+    "whatsapp_instance": "my-whatsapp",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_AGENT_KEY",
+    "default_agent": "template-agent",
+    "agent_timeout": 60,
+    "is_default": true,
+    "is_active": true,
+    "profile_name": "My Business",
+    "profile_pic_url": "https://...",
+    "owner_jid": "5511999999999@s.whatsapp.net",
+    "created_at": "2025-11-01T00:00:00Z",
+    "updated_at": "2025-11-04T10:30:00Z",
+    "evolution_status": {
+      "state": "open",
+      "owner_jid": "5511999999999@s.whatsapp.net",
+      "profile_name": "My Business",
+      "profile_picture_url": "https://...",
+      "last_updated": "2025-11-04T10:30:00Z"
+    },
+    "agent_instance_type": "hive",
+    "agent_id": "team-123",
+    "agent_type": "team",
+    "agent_stream_mode": true,
+    "enable_auto_split": true
+  },
+  {
+    "id": 2,
+    "name": "discord-bot",
+    "channel_type": "discord",
+    "has_discord_bot_token": true,
+    "discord_client_id": "1234567890123456789",
+    "discord_guild_id": "9876543210987654321",
+    "discord_default_channel_id": "1111222233334444555",
+    "discord_voice_enabled": false,
+    "agent_api_url": "http://localhost:8886",
+    "is_default": false,
+    "is_active": true,
+    "created_at": "2025-11-02T00:00:00Z",
+    "updated_at": "2025-11-04T10:30:00Z"
+  }
+]
+```
+
+---
+
+## Create Instance
+
+Create a new messaging instance. Configuration varies by channel type (WhatsApp, Discord, etc.).
+
+### WhatsApp Instance
+
+<ParamField body="name" type="string" required>
+  Unique instance identifier (alphanumeric, hyphens, underscores)
+</ParamField>
+
+<ParamField body="channel_type" type="string" default="whatsapp">
+  Channel type: `whatsapp` or `discord`
+</ParamField>
+
+<ParamField body="evolution_url" type="string" required>
+  Evolution API URL (e.g., `http://localhost:18082`)
+</ParamField>
+
+<ParamField body="evolution_key" type="string" required>
+  Evolution API key for authentication
+</ParamField>
+
+<ParamField body="agent_api_url" type="string" required>
+  Your AI agent's API endpoint
+</ParamField>
+
+<ParamField body="agent_api_key" type="string" required>
+  API key for your AI agent
+</ParamField>
+
+<ParamField body="default_agent" type="string">
+  Default agent name to use
+</ParamField>
+
+<ParamField body="agent_timeout" type="integer" default="60">
+  Agent response timeout in seconds
+</ParamField>
+
+<ParamField body="phone_number" type="string">
+  Phone number for WhatsApp (with country code)
+</ParamField>
+
+<ParamField body="auto_qr" type="boolean" default="true">
+  Automatically generate QR code for connection
+</ParamField>
+
+<ParamField body="enable_auto_split" type="boolean" default="true">
+  Enable automatic message splitting on `\n\n`
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL - WhatsApp
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "name": "my-whatsapp",
+    "channel_type": "whatsapp",
+    "evolution_url": "http://localhost:18082",
+    "evolution_key": "YOUR_EVOLUTION_KEY",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_AGENT_KEY",
+    "default_agent": "template-agent",
+    "phone_number": "+5511999999999",
+    "auto_qr": true
+  }'
+```
+
+```python Python - WhatsApp
+response = requests.post(
+    "http://localhost:8882/api/v1/instances",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "name": "my-whatsapp",
+        "channel_type": "whatsapp",
+        "evolution_url": "http://localhost:18082",
+        "evolution_key": "YOUR_EVOLUTION_KEY",
+        "agent_api_url": "http://localhost:8886",
+        "agent_api_key": "YOUR_AGENT_KEY",
+        "default_agent": "template-agent",
+        "phone_number": "+5511999999999"
+    }
+)
+```
+
+```javascript JavaScript - WhatsApp
+const response = await fetch(
+  'http://localhost:8882/api/v1/instances',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      name: 'my-whatsapp',
+      channel_type: 'whatsapp',
+      evolution_url: 'http://localhost:18082',
+      evolution_key: 'YOUR_EVOLUTION_KEY',
+      agent_api_url: 'http://localhost:8886',
+      agent_api_key: 'YOUR_AGENT_KEY'
+    })
+  }
+);
+```
+
+</CodeGroup>
+
+### Discord Instance
+
+<ParamField body="discord_bot_token" type="string" required>
+  Discord bot token from Discord Developer Portal
+</ParamField>
+
+<ParamField body="discord_client_id" type="string">
+  Discord application client ID
+</ParamField>
+
+<ParamField body="discord_guild_id" type="string">
+  Discord server (guild) ID to connect to
+</ParamField>
+
+<ParamField body="discord_default_channel_id" type="string">
+  Default channel ID for messages
+</ParamField>
+
+<ParamField body="discord_voice_enabled" type="boolean" default="false">
+  Enable voice features (experimental)
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL - Discord
+curl -X POST http://localhost:8882/api/v1/instances \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "name": "discord-bot",
+    "channel_type": "discord",
+    "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN",
+    "discord_client_id": "1234567890123456789",
+    "discord_guild_id": "9876543210987654321",
+    "agent_api_url": "http://localhost:8886",
+    "agent_api_key": "YOUR_AGENT_KEY"
+  }'
+```
+
+```python Python - Discord
+response = requests.post(
+    "http://localhost:8882/api/v1/instances",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "name": "discord-bot",
+        "channel_type": "discord",
+        "discord_bot_token": "YOUR_DISCORD_BOT_TOKEN",
+        "discord_guild_id": "9876543210987654321",
+        "agent_api_url": "http://localhost:8886",
+        "agent_api_key": "YOUR_AGENT_KEY"
+    }
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 201 Created
+{
+  "id": 1,
+  "name": "my-whatsapp",
+  "channel_type": "whatsapp",
+  "evolution_url": "http://localhost:18082",
+  "is_active": true,
+  "created_at": "2025-11-04T10:30:00Z",
+  "updated_at": "2025-11-04T10:30:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Instance 'my-whatsapp' already exists"
+}
+```
+
+```json 422 Unprocessable Entity
+{
+  "detail": "Invalid configuration: evolution_url is required for WhatsApp instances"
+}
+```
+
+---
+
+## Get Instance
+
+Retrieve detailed information about a specific instance.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to retrieve
+</ParamField>
+
+<ParamField query="include_status" type="boolean" default="true">
+  Include real-time connection status
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8882/api/v1/instances/my-whatsapp \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8882/api/v1/instances/my-whatsapp",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": 1,
+  "name": "my-whatsapp",
+  "channel_type": "whatsapp",
+  "evolution_url": "http://localhost:18082",
+  "is_active": true,
+  "profile_name": "My Business",
+  "owner_jid": "5511999999999@s.whatsapp.net",
+  "evolution_status": {
+    "state": "open",
+    "profile_name": "My Business",
+    "last_updated": "2025-11-04T10:30:00Z"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Instance 'my-whatsapp' not found"
+}
+```
+
+---
+
+## Update Instance
+
+Update configuration for an existing instance. Only provided fields will be updated.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to update
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT http://localhost:8882/api/v1/instances/my-whatsapp \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "agent_api_url": "http://localhost:9000",
+    "default_agent": "new-agent",
+    "agent_timeout": 120
+  }'
+```
+
+```python Python
+response = requests.put(
+    "http://localhost:8882/api/v1/instances/my-whatsapp",
+    headers={"x-api-key": "YOUR_API_KEY"},
+    json={
+        "agent_api_url": "http://localhost:9000",
+        "agent_timeout": 120
+    }
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": 1,
+  "name": "my-whatsapp",
+  "agent_api_url": "http://localhost:9000",
+  "agent_timeout": 120,
+  "updated_at": "2025-11-04T11:00:00Z"
+}
+```
+
+---
+
+## Delete Instance
+
+Permanently delete an instance and its configuration. This also attempts to delete the instance from external services (e.g., Evolution API).
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to delete
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE http://localhost:8882/api/v1/instances/my-whatsapp \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.delete(
+    "http://localhost:8882/api/v1/instances/my-whatsapp",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance 'my-whatsapp' deleted successfully"
+}
+```
+
+<Warning>
+This action is **irreversible**. The instance will be deleted from both OMNI and the external messaging service.
+</Warning>
+
+---
+
+## Get QR Code
+
+Get QR code for WhatsApp instance connection. Scan with WhatsApp mobile app to connect.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the WhatsApp instance
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8882/api/v1/instances/my-whatsapp/qr \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/qr",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+# Display QR code
+qr_data = response.json()
+print(qr_data["qr_code"])  # base64 image
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+  "code": "2@abc123xyz...",
+  "instance": "my-whatsapp",
+  "expires_in": 60
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "QR code not available for channel type: discord"
+}
+```
+
+<Info>
+QR codes expire after 60 seconds. If the user doesn't scan in time, request a new QR code.
+</Info>
+
+---
+
+## Get Connection Status
+
+Check if an instance is connected and retrieve connection details.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8882/api/v1/instances/my-whatsapp/status \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/status",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+
+status = response.json()
+if status["status"] == "connected":
+    print("Instance is connected!")
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Connected
+{
+  "instance": "my-whatsapp",
+  "status": "connected",
+  "channel_type": "whatsapp",
+  "channel_data": {
+    "state": "open",
+    "owner_jid": "5511999999999@s.whatsapp.net",
+    "profile_name": "My Business",
+    "profile_picture_url": "https://..."
+  }
+}
+```
+
+```json 200 Disconnected
+{
+  "instance": "my-whatsapp",
+  "status": "disconnected",
+  "channel_type": "whatsapp",
+  "message": "Instance is not connected. Scan QR code to connect."
+}
+```
+
+---
+
+## Connect Instance
+
+Manually trigger instance connection. Useful for reconnecting after disconnection.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to connect
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp/connect \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/connect",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance 'my-whatsapp' connected successfully"
+}
+```
+
+---
+
+## Disconnect Instance
+
+Gracefully disconnect an instance without deleting its configuration.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to disconnect
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp/disconnect \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/disconnect",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance 'my-whatsapp' disconnected successfully"
+}
+```
+
+---
+
+## Restart Instance
+
+Restart an instance connection. Useful for resolving connection issues.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to restart
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp/restart \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/restart",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Instance 'my-whatsapp' restarted successfully"
+}
+```
+
+---
+
+## Logout Instance
+
+Logout and clear session data. This requires rescanning QR code to reconnect.
+
+<ParamField path="instance_name" type="string" required>
+  Name of the instance to logout
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/my-whatsapp/logout \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/my-whatsapp/logout",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance 'my-whatsapp' logged out successfully",
+  "result": {
+    "status": "logged_out"
+  }
+}
+```
+
+<Warning>
+After logout, you'll need to scan a new QR code to reconnect the instance.
+</Warning>
+
+---
+
+## Get Supported Channels
+
+List all supported messaging platforms and their configuration requirements.
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8882/api/v1/instances/supported-channels \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.get(
+    "http://localhost:8882/api/v1/instances/supported-channels",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "supported_channels": [
+    {
+      "type": "whatsapp",
+      "name": "WhatsApp",
+      "status": "production",
+      "required_fields": [
+        "evolution_url",
+        "evolution_key",
+        "agent_api_url",
+        "agent_api_key"
+      ],
+      "optional_fields": [
+        "phone_number",
+        "auto_qr",
+        "webhook_base64"
+      ]
+    },
+    {
+      "type": "discord",
+      "name": "Discord",
+      "status": "production",
+      "required_fields": [
+        "discord_bot_token",
+        "agent_api_url",
+        "agent_api_key"
+      ],
+      "optional_fields": [
+        "discord_guild_id",
+        "discord_default_channel_id",
+        "discord_voice_enabled"
+      ]
+    }
+  ],
+  "total_channels": 2
+}
+```
+
+---
+
+## Discover Instances
+
+Discover and sync instances from external services (Evolution API, Discord, etc.).
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8882/api/v1/instances/discover \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+response = requests.post(
+    "http://localhost:8882/api/v1/instances/discover",
+    headers={"x-api-key": "YOUR_API_KEY"}
+)
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "message": "Instance discovery completed",
+  "instances": [
+    {
+      "name": "my-whatsapp",
+      "channel_type": "whatsapp",
+      "status": "connected",
+      "configured": true,
+      "active": true,
+      "channel_data": {
+        "state": "open",
+        "profile_name": "My Business"
+      }
+    },
+    {
+      "name": "discord-bot",
+      "channel_type": "discord",
+      "status": "connected",
+      "configured": true,
+      "active": true
+    }
+  ],
+  "total_discovered": 2
+}
+```
+
+---
+
+## Use Cases
+
+### Typical Workflow
+
+1. **Create Instance**: Set up connection to messaging platform
+2. **Get QR Code** (WhatsApp): Scan to authenticate
+3. **Check Status**: Verify connection is active
+4. **Send Messages**: Start communicating
+5. **Monitor**: Check status and traces regularly
+
+### Connection Monitoring
+
+```python
+import time
+
+def ensure_connected(instance_name):
+    """Ensure instance is connected, reconnect if needed."""
+    status = omni.get_status(instance_name)
+
+    if status["status"] != "connected":
+        print(f"Instance {instance_name} disconnected, reconnecting...")
+        omni.restart_instance(instance_name)
+        time.sleep(5)
+
+        # Check if connected
+        status = omni.get_status(instance_name)
+        if status["status"] != "connected":
+            # Show QR code for WhatsApp
+            qr = omni.get_qr_code(instance_name)
+            print("Scan QR code:", qr["qr_code"])
+```
+
+### Multi-Instance Management
+
+```python
+# Create multiple instances for different purposes
+instances = [
+    {"name": "sales-whatsapp", "channel_type": "whatsapp"},
+    {"name": "support-whatsapp", "channel_type": "whatsapp"},
+    {"name": "community-discord", "channel_type": "discord"}
+]
+
+for config in instances:
+    omni.create_instance(**config)
+
+# Check all statuses
+statuses = omni.list_instances()
+for instance in statuses:
+    print(f"{instance['name']}: {instance['is_active']}")
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Send Messages" icon="paper-plane" href="/omni/api/messages">
+    Send messages through your instances
+  </Card>
+
+  <Card title="Track Messages" icon="chart-line" href="/omni/api/traces">
+    Monitor and debug message traces
+  </Card>
+
+  <Card title="Manage Profiles" icon="user" href="/omni/api/profiles">
+    Update profile information
+  </Card>
+
+  <Card title="API Overview" icon="code" href="/omni/api/rest-overview">
+    Back to API overview
+  </Card>
+</CardGroup>

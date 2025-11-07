@@ -1,0 +1,900 @@
+---
+title: "Viewing Traces"
+description: "Track message history, debug issues, and query trace data"
+icon: "chart-line"
+---
+
+## Overview
+
+Message traces in Automagik OMNI capture the complete lifecycle of every message - from initial receipt through processing to final delivery. Traces are essential for debugging, monitoring, and understanding message flow patterns.
+
+---
+
+## Listing Message Traces
+
+### Basic Trace Query
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get recent traces
+    curl "http://localhost:8882/api/v1/traces?limit=10" \
+      -H "x-api-key: your-omni-api-key"
+
+    # With pagination
+    curl "http://localhost:8882/api/v1/traces?limit=50&offset=0" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={
+            "limit": 10,
+            "offset": 0
+        }
+    )
+
+    traces = response.json()
+    for trace in traces["traces"]:
+        print(f"ID: {trace['id']}")
+        print(f"  Instance: {trace['instance_name']}")
+        print(f"  Phone: {trace['phone']}")
+        print(f"  Status: {trace['trace_status']}")
+        print(f"  Created: {trace['created_at']}\n")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/traces?limit=10&offset=0',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const { traces } = await response.json();
+    traces.forEach(trace => {
+      console.log(`${trace.id}: ${trace.trace_status}`);
+      console.log(`  ${trace.instance_name} -> ${trace.phone}`);
+      console.log(`  ${trace.created_at}\n`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "traces": [
+    {
+      "id": "trace_abc123xyz",
+      "instance_name": "support-bot",
+      "phone": "+1234567890",
+      "message_type": "text",
+      "trace_status": "completed",
+      "created_at": "2025-11-04T12:00:00Z",
+      "updated_at": "2025-11-04T12:00:05Z",
+      "session_name": "session_xyz"
+    }
+  ],
+  "total": 150,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+## Filtering Traces
+
+### Filter by Instance
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "http://localhost:8882/api/v1/traces?instance_name=support-bot&limit=20" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={
+            "instance_name": "support-bot",
+            "limit": 20
+        }
+    )
+
+    traces = response.json()
+    print(f"Found {traces['total']} traces for support-bot")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const params = new URLSearchParams({
+      instance_name: 'support-bot',
+      limit: '20'
+    });
+
+    const response = await fetch(
+      `http://localhost:8882/api/v1/traces?${params}`,
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const data = await response.json();
+    console.log(`Found ${data.total} traces`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Filter by Phone Number
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "http://localhost:8882/api/v1/traces?phone=+1234567890" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Get all traces for a specific user
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={"phone": "+1234567890"}
+    )
+
+    traces = response.json()
+    print(f"User has {traces['total']} message interactions")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const response = await fetch(
+      'http://localhost:8882/api/v1/traces?phone=+1234567890',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const data = await response.json();
+    console.log(`User message count: ${data.total}`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Filter by Status
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get only failed traces
+    curl "http://localhost:8882/api/v1/traces?trace_status=failed" \
+      -H "x-api-key: your-omni-api-key"
+
+    # Get processing traces
+    curl "http://localhost:8882/api/v1/traces?trace_status=processing" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Get failed traces for debugging
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={
+            "trace_status": "failed",
+            "limit": 50
+        }
+    )
+
+    failed_traces = response.json()
+    for trace in failed_traces["traces"]:
+        print(f"Failed: {trace['id']}")
+        print(f"  Error: {trace.get('error_message', 'Unknown')}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Get completed traces
+    const response = await fetch(
+      'http://localhost:8882/api/v1/traces?trace_status=completed&limit=100',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const data = await response.json();
+    console.log(`Completed: ${data.total} messages`);
+    ```
+  </Tab>
+</Tabs>
+
+**Available statuses**: `received`, `processing`, `completed`, `failed`
+
+---
+
+### Filter by Date Range
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get traces from last 24 hours
+    curl "http://localhost:8882/api/v1/traces?start_date=2025-11-03T00:00:00Z&end_date=2025-11-04T23:59:59Z" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    from datetime import datetime, timedelta
+
+    # Get traces from last 7 days
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "limit": 100
+        }
+    )
+
+    traces = response.json()
+    print(f"Last 7 days: {traces['total']} messages")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Get traces from today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const params = new URLSearchParams({
+      start_date: today.toISOString(),
+      end_date: tomorrow.toISOString()
+    });
+
+    const response = await fetch(
+      `http://localhost:8882/api/v1/traces?${params}`,
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const data = await response.json();
+    console.log(`Today: ${data.total} messages`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Filter by Message Type
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Get only text messages
+    curl "http://localhost:8882/api/v1/traces?message_type=text" \
+      -H "x-api-key: your-omni-api-key"
+
+    # Get media messages
+    curl "http://localhost:8882/api/v1/traces?message_type=image" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    # Get all media traces (images, videos, documents)
+    media_types = ["image", "video", "document", "audio"]
+
+    all_media = []
+    for media_type in media_types:
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={"message_type": media_type}
+        )
+        all_media.extend(response.json()["traces"])
+
+    print(f"Total media messages: {len(all_media)}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    // Get audio messages only
+    const response = await fetch(
+      'http://localhost:8882/api/v1/traces?message_type=audio',
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const data = await response.json();
+    console.log(`Audio messages: ${data.total}`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Combined Filters
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Complex query: Failed media messages from specific instance in last 24h
+    from datetime import datetime, timedelta
+
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params={
+            "instance_name": "support-bot",
+            "trace_status": "failed",
+            "message_type": "image",
+            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
+            "has_media": True,
+            "limit": 50
+        }
+    )
+
+    failed_media = response.json()
+    print(f"Failed media uploads: {failed_media['total']}")
+
+    for trace in failed_media["traces"]:
+        print(f"\nTrace: {trace['id']}")
+        print(f"  Phone: {trace['phone']}")
+        print(f"  Time: {trace['created_at']}")
+        print(f"  Error: {trace.get('error_message', 'Unknown')}")
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Getting Specific Trace Details
+
+### Fetch Single Trace
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "http://localhost:8882/api/v1/traces/trace_abc123xyz" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    trace_id = "trace_abc123xyz"
+
+    response = requests.get(
+        f"http://localhost:8882/api/v1/traces/{trace_id}",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    trace = response.json()
+    print(f"Trace ID: {trace['id']}")
+    print(f"Instance: {trace['instance_name']}")
+    print(f"Status: {trace['trace_status']}")
+    print(f"Message: {trace.get('message', 'N/A')}")
+    print(f"Created: {trace['created_at']}")
+    print(f"Updated: {trace['updated_at']}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const traceId = 'trace_abc123xyz';
+
+    const response = await fetch(
+      `http://localhost:8882/api/v1/traces/${traceId}`,
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const trace = await response.json();
+    console.log(`Status: ${trace.trace_status}`);
+    console.log(`Phone: ${trace.phone}`);
+    console.log(`Type: ${trace.message_type}`);
+    ```
+  </Tab>
+</Tabs>
+
+### Detailed Response
+
+```json
+{
+  "id": "trace_abc123xyz",
+  "instance_name": "support-bot",
+  "phone": "+1234567890",
+  "message": "Hello! How can I help you?",
+  "message_type": "text",
+  "trace_status": "completed",
+  "session_name": "session_xyz",
+  "has_media": false,
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:00:05Z",
+  "processing_time_ms": 1250,
+  "error_message": null
+}
+```
+
+---
+
+## Viewing Trace Payloads
+
+### Get Input/Output Payloads
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "http://localhost:8882/api/v1/traces/trace_abc123xyz/payloads" \
+      -H "x-api-key: your-omni-api-key"
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+    trace_id = "trace_abc123xyz"
+
+    response = requests.get(
+        f"http://localhost:8882/api/v1/traces/{trace_id}/payloads",
+        headers={"x-api-key": "your-omni-api-key"}
+    )
+
+    payloads = response.json()
+
+    print("Input Payload:")
+    print(payloads["input_payload"])
+
+    print("\nOutput Payload:")
+    print(payloads["output_payload"])
+
+    print(f"\nProcessing Time: {payloads['processing_time_ms']}ms")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    const traceId = 'trace_abc123xyz';
+
+    const response = await fetch(
+      `http://localhost:8882/api/v1/traces/${traceId}/payloads`,
+      { headers: { 'x-api-key': 'your-omni-api-key' } }
+    );
+
+    const payloads = await response.json();
+    console.log('Input:', JSON.stringify(payloads.input_payload, null, 2));
+    console.log('Output:', JSON.stringify(payloads.output_payload, null, 2));
+    ```
+  </Tab>
+</Tabs>
+
+### Payload Response
+
+```json
+{
+  "trace_id": "trace_abc123xyz",
+  "input_payload": {
+    "phone": "+1234567890",
+    "message": "What are your business hours?",
+    "timestamp": "2025-11-04T12:00:00Z",
+    "platform": "whatsapp"
+  },
+  "output_payload": {
+    "response": "We're open Monday-Friday, 9 AM - 6 PM EST.",
+    "message_id": "3EB0C1D4A2F9E8B7C6D5A4B3C2D1E0F9",
+    "timestamp": "2025-11-04T12:00:05Z"
+  },
+  "processing_time_ms": 1250
+}
+```
+
+---
+
+## Searching Traces
+
+### Search by Content
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Search traces containing specific text
+    def search_traces(search_term, limit=50):
+        response = requests.get(
+            "http://localhost:8882/api/v1/traces",
+            headers={"x-api-key": "your-omni-api-key"},
+            params={"limit": limit}
+        )
+
+        all_traces = response.json()["traces"]
+
+        # Filter traces containing search term
+        matching_traces = [
+            trace for trace in all_traces
+            if search_term.lower() in str(trace.get("message", "")).lower()
+        ]
+
+        return matching_traces
+
+    # Search for traces mentioning "refund"
+    results = search_traces("refund")
+    print(f"Found {len(results)} traces mentioning 'refund'")
+
+    for trace in results:
+        print(f"\n{trace['id']}: {trace['phone']}")
+        print(f"  Message: {trace.get('message', 'N/A')}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function searchTraces(searchTerm, limit = 50) {
+      const response = await fetch(
+        `http://localhost:8882/api/v1/traces?limit=${limit}`,
+        { headers: { 'x-api-key': 'your-omni-api-key' } }
+      );
+
+      const { traces } = await response.json();
+
+      return traces.filter(trace =>
+        String(trace.message || '')
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Search for order-related traces
+    const orderTraces = await searchTraces('order');
+    console.log(`Found ${orderTraces.length} order-related traces`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Pagination
+
+### Navigating Large Result Sets
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def get_all_traces(instance_name=None):
+        """Fetch all traces with pagination"""
+        all_traces = []
+        offset = 0
+        limit = 100
+
+        while True:
+            params = {"limit": limit, "offset": offset}
+            if instance_name:
+                params["instance_name"] = instance_name
+
+            response = requests.get(
+                "http://localhost:8882/api/v1/traces",
+                headers={"x-api-key": "your-omni-api-key"},
+                params=params
+            )
+
+            data = response.json()
+            traces = data["traces"]
+
+            if not traces:
+                break
+
+            all_traces.extend(traces)
+            print(f"Fetched {len(all_traces)}/{data['total']} traces")
+
+            offset += limit
+
+        return all_traces
+
+    # Get all traces for an instance
+    all_traces = get_all_traces("support-bot")
+    print(f"Total traces: {len(all_traces)}")
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    ```javascript
+    async function getAllTraces(instanceName = null) {
+      const allTraces = [];
+      let offset = 0;
+      const limit = 100;
+
+      while (true) {
+        const params = new URLSearchParams({ limit, offset });
+        if (instanceName) {
+          params.append('instance_name', instanceName);
+        }
+
+        const response = await fetch(
+          `http://localhost:8882/api/v1/traces?${params}`,
+          { headers: { 'x-api-key': 'your-omni-api-key' } }
+        );
+
+        const { traces, total } = await response.json();
+
+        if (traces.length === 0) break;
+
+        allTraces.push(...traces);
+        console.log(`Fetched ${allTraces.length}/${total} traces`);
+
+        offset += limit;
+      }
+
+      return allTraces;
+    }
+
+    // Usage
+    const allTraces = await getAllTraces('support-bot');
+    console.log(`Total: ${allTraces.length}`);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Export Traces
+
+### Export to CSV
+
+```python
+import requests
+import csv
+from datetime import datetime
+
+def export_traces_to_csv(filename, instance_name=None, days=7):
+    """Export traces to CSV file"""
+
+    # Calculate date range
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+
+    # Fetch traces
+    params = {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "limit": 1000
+    }
+    if instance_name:
+        params["instance_name"] = instance_name
+
+    response = requests.get(
+        "http://localhost:8882/api/v1/traces",
+        headers={"x-api-key": "your-omni-api-key"},
+        params=params
+    )
+
+    traces = response.json()["traces"]
+
+    # Write to CSV
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = [
+            'id', 'instance_name', 'phone', 'message_type',
+            'trace_status', 'created_at', 'processing_time_ms'
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for trace in traces:
+            writer.writerow({
+                'id': trace['id'],
+                'instance_name': trace['instance_name'],
+                'phone': trace['phone'],
+                'message_type': trace['message_type'],
+                'trace_status': trace['trace_status'],
+                'created_at': trace['created_at'],
+                'processing_time_ms': trace.get('processing_time_ms', 0)
+            })
+
+    print(f"✅ Exported {len(traces)} traces to {filename}")
+
+# Usage
+export_traces_to_csv("traces_export.csv", instance_name="support-bot", days=30)
+```
+
+### Export to JSON
+
+```javascript
+async function exportTracesToJSON(filename, instanceName = null, days = 7) {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const params = new URLSearchParams({
+    start_date: startDate.toISOString(),
+    end_date: endDate.toISOString(),
+    limit: 1000
+  });
+
+  if (instanceName) {
+    params.append('instance_name', instanceName);
+  }
+
+  const response = await fetch(
+    `http://localhost:8882/api/v1/traces?${params}`,
+    { headers: { 'x-api-key': 'your-omni-api-key' } }
+  );
+
+  const data = await response.json();
+
+  // In Node.js environment
+  const fs = require('fs');
+  fs.writeFileSync(
+    filename,
+    JSON.stringify(data.traces, null, 2),
+    'utf-8'
+  );
+
+  console.log(`✅ Exported ${data.traces.length} traces to ${filename}`);
+}
+
+// Usage
+await exportTracesToJSON('traces_export.json', 'support-bot', 30);
+```
+
+---
+
+## Real-Time Trace Monitoring
+
+### Live Trace Stream
+
+```python
+import requests
+import time
+from datetime import datetime
+
+def monitor_traces_realtime(instance_name, interval_seconds=5):
+    """Monitor traces in real-time"""
+    last_check = datetime.now()
+
+    print(f"🔍 Monitoring traces for {instance_name}...\n")
+
+    while True:
+        try:
+            response = requests.get(
+                "http://localhost:8882/api/v1/traces",
+                headers={"x-api-key": "your-omni-api-key"},
+                params={
+                    "instance_name": instance_name,
+                    "start_date": last_check.isoformat(),
+                    "limit": 100
+                }
+            )
+
+            new_traces = response.json()["traces"]
+
+            for trace in new_traces:
+                status_icon = {
+                    "completed": "✅",
+                    "processing": "⏳",
+                    "failed": "❌",
+                    "received": "📥"
+                }.get(trace["trace_status"], "❓")
+
+                print(f"{status_icon} {trace['id']}")
+                print(f"   {trace['phone']} - {trace['message_type']}")
+                print(f"   {trace['created_at']}\n")
+
+            last_check = datetime.now()
+            time.sleep(interval_seconds)
+
+        except KeyboardInterrupt:
+            print("\n👋 Monitoring stopped")
+            break
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            time.sleep(interval_seconds)
+
+# Usage
+monitor_traces_realtime("support-bot", interval_seconds=10)
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No traces returned">
+    **Problem**: Query returns empty results
+
+    **Solutions**:
+    1. Verify instance name is correct
+    2. Check date range isn't too narrow
+    3. Remove filters and try basic query
+    4. Ensure traces exist:
+       ```bash
+       curl "http://localhost:8882/api/v1/traces?limit=1" \
+         -H "x-api-key: your-key"
+       ```
+  </Accordion>
+
+  <Accordion title="Trace payloads are empty">
+    **Problem**: Payload data missing from trace
+
+    **Solutions**:
+    1. Payloads may be disabled in config
+    2. Old traces might have expired payloads
+    3. Check trace status - failed traces may have incomplete payloads
+    4. Verify you have permission to view payloads
+  </Accordion>
+
+  <Accordion title="Pagination not working correctly">
+    **Problem**: Duplicate or missing traces when paginating
+
+    **Solutions**:
+    1. Use consistent sort order with offset/limit
+    2. Avoid modifications while paginating
+    3. Consider using cursor-based pagination if available
+    4. Fetch data in one request if dataset is small
+  </Accordion>
+
+  <Accordion title="Export fails for large datasets">
+    **Problem**: Timeout or memory issues when exporting
+
+    **Solutions**:
+    1. Export in smaller date ranges
+    2. Use pagination to process in batches
+    3. Export only necessary fields
+    4. Consider using streaming export if available
+    5. Increase timeout settings
+  </Accordion>
+
+  <Accordion title="Trace search is slow">
+    **Problem**: Queries take too long to return
+
+    **Solutions**:
+    1. Use specific filters (instance, date range)
+    2. Limit result set size
+    3. Avoid searching entire message content
+    4. Consider implementing local caching
+    5. Use analytics endpoints for aggregated data
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Analytics & Insights" icon="chart-bar" href="/omni/working/analytics-insights">
+    Use trace data for analytics and monitoring
+  </Card>
+
+  <Card title="Send Messages" icon="paper-plane" href="/omni/working/sending-messages">
+    Create new message traces
+  </Card>
+
+  <Card title="Manage Instances" icon="server" href="/omni/working/managing-instances">
+    Configure instances generating traces
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/omni/api/traces">
+    Complete traces API documentation
+  </Card>
+</CardGroup>
