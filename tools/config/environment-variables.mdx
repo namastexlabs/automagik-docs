@@ -1,0 +1,710 @@
+---
+title: "Environment Variables"
+description: "Configure Automagik Tools with environment variables"
+icon: "gear"
+---
+
+## Overview
+
+Automagik Tools uses environment variables for configuration. Set these in your shell, `.env` file, or deployment platform.
+
+<Warning>
+**Never commit secrets!** Add `.env` to your `.gitignore` and use environment-specific configuration for production.
+</Warning>
+
+---
+
+## Core Configuration
+
+### Server Configuration
+
+<ParamField path="AUTOMAGIK_TOOLS_HOST" type="string" default="localhost">
+  The host address for the Automagik Tools server
+
+  ```bash
+  AUTOMAGIK_TOOLS_HOST=0.0.0.0  # Listen on all interfaces
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_TOOLS_SSE_PORT" type="number" default="8884">
+  Port for SSE (Server-Sent Events) transport mode
+
+  ```bash
+  AUTOMAGIK_TOOLS_SSE_PORT=8884
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_TOOLS_HTTP_PORT" type="number" default="8885">
+  Port for HTTP transport mode
+
+  ```bash
+  AUTOMAGIK_TOOLS_HTTP_PORT=8885
+  ```
+</ParamField>
+
+<ParamField path="MCP_TRANSPORT" type="string" default="stdio">
+  Transport mode (automatically detected in most cases)
+
+  ```bash
+  MCP_TRANSPORT=stdio  # Options: stdio, sse, http
+  ```
+</ParamField>
+
+---
+
+## AI Provider Configuration
+
+### OpenAI (Required for Genie)
+
+<ParamField path="OPENAI_API_KEY" type="string" required>
+  OpenAI API key for intelligence features and Genie orchestrator
+
+  ```bash
+  OPENAI_API_KEY=sk-your-key-here
+  ```
+
+  <Warning>
+  **Required for Genie tool.** Genie uses OpenAI models for orchestration and memory management.
+  </Warning>
+</ParamField>
+
+<ParamField path="GENIE_MODEL" type="string" default="gpt-4.1">
+  OpenAI model used by Genie
+
+  ```bash
+  GENIE_MODEL=gpt-4.1
+  # Alternatives: gpt-4.1-mini, gpt-4o, gpt-3.5-turbo
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_TOOLS_OPENAI_MODEL" type="string" default="gpt-4.1-mini">
+  OpenAI model for processing OpenAPI tool responses
+
+  ```bash
+  AUTOMAGIK_TOOLS_OPENAI_MODEL=gpt-4.1-mini
+  ```
+</ParamField>
+
+---
+
+## Automagik Suite Integration
+
+### Core Configuration
+
+<ParamField path="AUTOMAGIK_API_KEY" type="string" optional>
+  API key for Automagik Suite (Spark, Hive, Forge, Omni)
+
+  ```bash
+  AUTOMAGIK_API_KEY=your-api-key-here
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_BASE_URL" type="string" default="http://localhost:8881">
+  Base URL for Automagik Suite API
+
+  ```bash
+  AUTOMAGIK_BASE_URL=http://localhost:8881
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_TIMEOUT" type="number" default="30">
+  Request timeout in seconds
+
+  ```bash
+  AUTOMAGIK_TIMEOUT=30
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_ENABLE_MARKDOWN" type="boolean" default="true">
+  Enable AI-powered markdown enhancement of responses
+
+  ```bash
+  AUTOMAGIK_ENABLE_MARKDOWN=true
+  # Set to false for raw JSON responses (better for Genie integration)
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_OPENAPI_URL" type="string" optional>
+  OpenAPI specification URL for Automagik Suite
+
+  ```bash
+  AUTOMAGIK_OPENAPI_URL=http://localhost:8881/api/v1/openapi.json
+  ```
+</ParamField>
+
+---
+
+## Genie Configuration
+
+### Core Settings
+
+<ParamField path="GENIE_MEMORY_DB" type="string" default="genie_memory.db">
+  SQLite database path for Genie's persistent memory
+
+  ```bash
+  GENIE_MEMORY_DB=genie_memory.db
+  ```
+</ParamField>
+
+<ParamField path="GENIE_STORAGE_DB" type="string" default="genie_storage.db">
+  SQLite database path for Genie's storage
+
+  ```bash
+  GENIE_STORAGE_DB=genie_storage.db
+  ```
+</ParamField>
+
+<ParamField path="GENIE_SESSION_ID" type="string" default="global_genie_session">
+  Session identifier for Genie conversations
+
+  ```bash
+  GENIE_SESSION_ID=global_genie_session
+  ```
+</ParamField>
+
+<ParamField path="GENIE_HISTORY_RUNS" type="number" default="3">
+  Number of conversation history runs to maintain
+
+  ```bash
+  GENIE_HISTORY_RUNS=3
+  ```
+</ParamField>
+
+<ParamField path="GENIE_SHOW_TOOL_CALLS" type="boolean" default="true">
+  Show detailed tool call information in responses
+
+  ```bash
+  GENIE_SHOW_TOOL_CALLS=true
+  ```
+</ParamField>
+
+### MCP Server Configuration
+
+<ParamField path="GENIE_MCP_CONFIGS" type="json" optional>
+  JSON configuration for connecting Genie to MCP servers
+
+  ```bash
+  GENIE_MCP_CONFIGS='{
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {}
+    },
+    "github": {
+      "command": "uvx",
+      "args": ["mcp-server-git"],
+      "env": {"GITHUB_TOKEN": "your-token"}
+    }
+  }'
+  ```
+
+  <Info>
+  See [Transport Configuration](/tools/config/transport-configuration) for detailed MCP server setup examples.
+  </Info>
+</ParamField>
+
+### Performance Settings
+
+<ParamField path="GENIE_MCP_CLEANUP_TIMEOUT" type="number" default="2.0">
+  Timeout for MCP connection cleanup in seconds
+
+  ```bash
+  GENIE_MCP_CLEANUP_TIMEOUT=2.0
+  ```
+</ParamField>
+
+<ParamField path="GENIE_SSE_CLEANUP_DELAY" type="number" default="0.2">
+  Delay before SSE cleanup in seconds
+
+  ```bash
+  GENIE_SSE_CLEANUP_DELAY=0.2
+  ```
+</ParamField>
+
+<ParamField path="GENIE_AGGRESSIVE_CLEANUP" type="boolean" default="true">
+  Enable aggressive resource cleanup
+
+  ```bash
+  GENIE_AGGRESSIVE_CLEANUP=true
+  ```
+</ParamField>
+
+---
+
+## Evolution API (WhatsApp)
+
+<ParamField path="EVOLUTION_API_KEY" type="string" optional>
+  Evolution API key for WhatsApp automation
+
+  ```bash
+  EVOLUTION_API_KEY=your_evolution_api_key_here
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_BASE_URL" type="string" default="https://api.evolution.com">
+  Evolution API base URL
+
+  ```bash
+  EVOLUTION_API_BASE_URL=https://api.evolution.com
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_INSTANCE" type="string" optional>
+  WhatsApp instance name
+
+  ```bash
+  EVOLUTION_API_INSTANCE=my_whatsapp_instance
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_FIXED_RECIPIENT" type="string" optional>
+  Fixed recipient phone number for security (removes number parameter from tools)
+
+  ```bash
+  EVOLUTION_API_FIXED_RECIPIENT=+1234567890@s.whatsapp.net
+  ```
+
+  <Warning>
+  Setting this restricts all messages to a single recipient. Useful for testing and security.
+  </Warning>
+</ParamField>
+
+<ParamField path="EVOLUTION_API_TIMEOUT" type="number" default="30">
+  Request timeout in seconds
+
+  ```bash
+  EVOLUTION_API_TIMEOUT=30
+  ```
+</ParamField>
+
+<ParamField path="EVOLUTION_API_MAX_RETRIES" type="number" default="3">
+  Maximum number of retry attempts
+
+  ```bash
+  EVOLUTION_API_MAX_RETRIES=3
+  ```
+</ParamField>
+
+---
+
+## Gemini Assistant
+
+<ParamField path="GEMINI_API_KEY" type="string" optional>
+  Google Gemini API key
+
+  ```bash
+  GEMINI_API_KEY=your_gemini_api_key_here
+  ```
+</ParamField>
+
+<ParamField path="GEMINI_MODEL" type="string" default="gemini-2.0-flash-exp">
+  Gemini model to use
+
+  ```bash
+  GEMINI_MODEL=gemini-2.0-flash-exp
+  # Alternatives: gemini-pro, gemini-1.5-pro
+  ```
+</ParamField>
+
+<ParamField path="GEMINI_SESSION_TIMEOUT" type="number" default="3600">
+  Session timeout in seconds
+
+  ```bash
+  GEMINI_SESSION_TIMEOUT=3600
+  ```
+</ParamField>
+
+<ParamField path="GEMINI_MAX_TOKENS" type="number" default="8192">
+  Maximum tokens per response
+
+  ```bash
+  GEMINI_MAX_TOKENS=8192
+  ```
+</ParamField>
+
+<ParamField path="GEMINI_TEMPERATURE" type="number" default="0.2">
+  Response temperature (0.0 - 2.0)
+
+  ```bash
+  GEMINI_TEMPERATURE=0.2
+  ```
+</ParamField>
+
+<ParamField path="GEMINI_MAX_SESSIONS" type="number" default="10">
+  Maximum concurrent sessions
+
+  ```bash
+  GEMINI_MAX_SESSIONS=10
+  ```
+</ParamField>
+
+---
+
+## Automagik Hive
+
+<ParamField path="HIVE_API_BASE_URL" type="string" default="http://localhost:8886">
+  Automagik Hive API base URL
+
+  ```bash
+  HIVE_API_BASE_URL=http://localhost:8886
+  ```
+</ParamField>
+
+<ParamField path="HIVE_API_KEY" type="string" optional>
+  Automagik Hive API key (only if authentication is required)
+
+  ```bash
+  HIVE_API_KEY=your_hive_api_key_here
+  ```
+</ParamField>
+
+<ParamField path="HIVE_TIMEOUT" type="number" default="30">
+  Request timeout in seconds
+
+  ```bash
+  HIVE_TIMEOUT=30
+  ```
+</ParamField>
+
+---
+
+## Logging and Debugging
+
+<ParamField path="LOG_LEVEL" type="string" default="INFO">
+  Global logging level
+
+  ```bash
+  LOG_LEVEL=DEBUG      # Detailed logs
+  LOG_LEVEL=INFO       # Normal logs (default)
+  LOG_LEVEL=WARNING    # Warnings only
+  LOG_LEVEL=ERROR      # Errors only
+  LOG_LEVEL=CRITICAL   # Critical errors only
+  ```
+</ParamField>
+
+<ParamField path="LOG_FOLDER" type="string" default="./logs">
+  Directory for log files
+
+  ```bash
+  LOG_FOLDER=./logs
+  ```
+</ParamField>
+
+<ParamField path="ENVIRONMENT" type="string" default="development">
+  Environment mode
+
+  ```bash
+  ENVIRONMENT=development
+  # Options: development, staging, production
+  ```
+</ParamField>
+
+---
+
+## Global Settings
+
+<ParamField path="AUTOMAGIK_TIMEZONE" type="string" default="UTC">
+  Global timezone for timestamps
+
+  ```bash
+  AUTOMAGIK_TIMEZONE=UTC
+  # Examples: America/New_York, Europe/London, Asia/Tokyo
+  ```
+</ParamField>
+
+<ParamField path="AUTOMAGIK_ENCRYPTION_KEY" type="string" optional>
+  Base64-encoded encryption key for secure data
+
+  ```bash
+  AUTOMAGIK_ENCRYPTION_KEY=eW91ci10ZXN0LWVuY3J5cHRpb24ta2V5LS0tLS0tLS0=
+  ```
+
+  <Warning>
+  Generate a secure key using: `openssl rand -base64 32`
+  </Warning>
+</ParamField>
+
+---
+
+## Using .env Files
+
+Create a `.env` file in your project root:
+
+```bash .env
+# =================================================================
+# Core Configuration
+# =================================================================
+OPENAI_API_KEY=sk-your-key-here
+AUTOMAGIK_TOOLS_HOST=localhost
+AUTOMAGIK_TOOLS_SSE_PORT=8884
+AUTOMAGIK_TOOLS_HTTP_PORT=8885
+
+# =================================================================
+# Automagik Suite Integration
+# =================================================================
+AUTOMAGIK_API_KEY=your-api-key-here
+AUTOMAGIK_BASE_URL=http://localhost:8881
+AUTOMAGIK_ENABLE_MARKDOWN=true
+
+# =================================================================
+# Genie Configuration
+# =================================================================
+GENIE_MODEL=gpt-4.1
+GENIE_MEMORY_DB=genie_memory.db
+GENIE_SESSION_ID=my_session
+
+# Example: Connect Genie to filesystem and GitHub
+GENIE_MCP_CONFIGS='{
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+  },
+  "github": {
+    "command": "uvx",
+    "args": ["mcp-server-git"],
+    "env": {"GITHUB_TOKEN": "ghp_your_token"}
+  }
+}'
+
+# =================================================================
+# WhatsApp Integration (Optional)
+# =================================================================
+EVOLUTION_API_KEY=your_evolution_api_key
+EVOLUTION_API_BASE_URL=https://api.evolution.com
+EVOLUTION_API_INSTANCE=my_whatsapp_instance
+
+# =================================================================
+# Logging
+# =================================================================
+LOG_LEVEL=INFO
+LOG_FOLDER=./logs
+ENVIRONMENT=development
+```
+
+<Tip>
+Download the complete example: [.env.example](https://github.com/namastexlabs/automagik-tools/blob/main/.env.example)
+</Tip>
+
+---
+
+## Environment-Specific Configuration
+
+<Tabs>
+  <Tab title="Development">
+    ```bash .env.development
+    ENVIRONMENT=development
+    LOG_LEVEL=DEBUG
+
+    # Local services
+    AUTOMAGIK_BASE_URL=http://localhost:8881
+    AUTOMAGIK_TOOLS_HOST=localhost
+    AUTOMAGIK_TOOLS_SSE_PORT=8884
+
+    # Enable markdown for readable output
+    AUTOMAGIK_ENABLE_MARKDOWN=true
+
+    # Genie with local MCP servers
+    GENIE_SHOW_TOOL_CALLS=true
+    GENIE_MCP_CONFIGS='{
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+      }
+    }'
+    ```
+  </Tab>
+
+  <Tab title="Production">
+    ```bash .env.production
+    ENVIRONMENT=production
+    LOG_LEVEL=WARNING
+
+    # Production services
+    AUTOMAGIK_BASE_URL=https://api.yourdomain.com
+    AUTOMAGIK_TOOLS_HOST=0.0.0.0
+    AUTOMAGIK_TOOLS_SSE_PORT=8884
+    AUTOMAGIK_TOOLS_HTTP_PORT=8885
+
+    # Use secret management for these
+    OPENAI_API_KEY=${OPENAI_API_KEY}
+    AUTOMAGIK_API_KEY=${AUTOMAGIK_API_KEY}
+    EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+
+    # Disable markdown for API integration
+    AUTOMAGIK_ENABLE_MARKDOWN=false
+
+    # Production Genie settings
+    GENIE_MODEL=gpt-4.1
+    GENIE_SHOW_TOOL_CALLS=false
+    ```
+  </Tab>
+
+  <Tab title="Testing">
+    ```bash .env.test
+    ENVIRONMENT=test
+    LOG_LEVEL=ERROR
+
+    # Test isolation
+    GENIE_MEMORY_DB=test_genie_memory.db
+    GENIE_STORAGE_DB=test_genie_storage.db
+    GENIE_SESSION_ID=test_session
+
+    # Mock services
+    AUTOMAGIK_BASE_URL=http://localhost:9999
+
+    # Minimal configuration
+    GENIE_MCP_CONFIGS='{}'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Verification
+
+Check your configuration is working:
+
+```bash
+# List available tools
+uvx automagik-tools list
+
+# Test with stdio transport
+uvx automagik-tools tool genie --transport stdio
+
+# Test with SSE transport
+uvx automagik-tools tool genie --transport sse --port 8000
+```
+
+Expected output:
+```
+✓ Loaded environment from .env
+✓ OpenAI API key configured
+✓ Starting Genie on stdio transport
+✓ Genie ready with 2 MCP servers
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Missing OPENAI_API_KEY error">
+    ```bash
+    Error: OPENAI_API_KEY environment variable is required for Genie
+    ```
+
+    **Solution**: Set your OpenAI API key
+    ```bash
+    export OPENAI_API_KEY=sk-your-key-here
+    # Or add to .env file
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    ```bash
+    Error: Address already in use: 0.0.0.0:8884
+    ```
+
+    **Solution**: Change the port
+    ```bash
+    export AUTOMAGIK_TOOLS_SSE_PORT=8890
+    # Or use a different port in the command
+    uvx automagik-tools tool genie --port 8890
+    ```
+  </Accordion>
+
+  <Accordion title="Genie MCP connection fails">
+    ```bash
+    Error: Failed to connect to MCP server 'filesystem'
+    ```
+
+    **Solution**: Verify MCP server configuration
+    ```bash
+    # Test the MCP server directly
+    npx -y @modelcontextprotocol/server-filesystem /tmp
+
+    # Check GENIE_MCP_CONFIGS is valid JSON
+    echo $GENIE_MCP_CONFIGS | python -m json.tool
+    ```
+  </Accordion>
+
+  <Accordion title="Automagik Suite connection fails">
+    ```bash
+    Error: Could not connect to Automagik Suite at http://localhost:8881
+    ```
+
+    **Solution**: Verify Automagik services are running
+    ```bash
+    # Check if Automagik is running
+    curl http://localhost:8881/health
+
+    # Update base URL if needed
+    export AUTOMAGIK_BASE_URL=http://your-host:8881
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Never Commit Secrets" icon="lock">
+    Add `.env` to `.gitignore` immediately
+
+    ```bash .gitignore
+    .env
+    .env.*
+    !.env.example
+    genie_memory.db
+    genie_storage.db
+    logs/
+    ```
+  </Card>
+
+  <Card title="Use Secret Management" icon="shield">
+    In production, use services like:
+    - AWS Secrets Manager
+    - HashiCorp Vault
+    - Kubernetes Secrets
+    - Docker Secrets
+    - Cloud provider solutions
+  </Card>
+
+  <Card title="Rotate API Keys" icon="rotate">
+    Regularly rotate all API keys:
+    - OpenAI API keys
+    - Automagik API keys
+    - Evolution API keys
+    - GitHub tokens
+  </Card>
+
+  <Card title="Principle of Least Privilege" icon="user-shield">
+    Grant minimal permissions:
+    - Read-only API keys when possible
+    - Scoped tokens
+    - Time-limited credentials
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Transport Configuration" icon="network-wired" href="/tools/config/transport-configuration">
+    Configure stdio, SSE, and HTTP transports
+  </Card>
+
+  <Card title="Authentication" icon="key" href="/tools/config/authentication">
+    Setup API keys and authentication
+  </Card>
+
+  <Card title="CLI Overview" icon="terminal" href="/tools/cli/overview">
+    Learn the command-line interface
+  </Card>
+
+  <Card title="Deployment" icon="rocket" href="/tools/config/deployment">
+    Deploy to production
+  </Card>
+</CardGroup>

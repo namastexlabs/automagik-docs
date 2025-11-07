@@ -1,0 +1,144 @@
+---
+title: "Team Collaboration"
+description: "Share tools across team via SSE"
+icon: "users"
+---
+
+## Real Example: Team Genie Server
+
+### Step 1: Start SSE Server
+
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 --host 0.0.0.0
+```
+
+### Real Output:
+
+```
+Starting tool: genie
+Server config: HOST=0.0.0.0, PORT=8000
+✅ Tool 'genie' loaded successfully
+🚀 Starting SSE server on 0.0.0.0:8000
+INFO     Starting MCP server 'Genie' with
+         transport 'sse' on
+         http://0.0.0.0:8000/sse
+INFO:     Started server process [1900943]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+Server runs. Accessible on network at http://0.0.0.0:8000/sse
+
+### Step 2: Team Members Connect
+
+Each team member adds to their Claude config:
+
+```json
+{
+  "mcpServers": {
+    "team-genie": {
+      "command": "curl",
+      "args": ["-N", "http://team-server:8000/sse"]
+    }
+  }
+}
+```
+
+Replace `team-server` with actual server IP/hostname.
+
+### Step 3: Test Connection
+
+From any team machine:
+
+```bash
+curl http://team-server:8000/sse
+```
+
+Should show SSE connection stream. Not tested with actual team setup yet.
+
+## Available Built-in Tools
+
+Confirmed available tools from `uvx automagik-tools list`:
+
+| Tool | Type | Description |
+|------|------|-------------|
+| omni | Auto-discovered | Multi-tenant omnichannel messaging (WhatsApp, Slack, Discord) |
+| wait | Auto-discovered | Simple wait functionality for agent workflows |
+| json-to-google-docs | Auto-discovered | Convert JSON to DOCX via Google Docs templates |
+| evolution-api | Auto-discovered | Complete WhatsApp messaging suite for Evolution API v2 |
+| genie | Auto-discovered | Tool orchestration and coordination |
+
+Start any tool via SSE:
+
+```bash
+uvx automagik-tools tool TOOL_NAME -t sse --port 8000 --host 0.0.0.0
+```
+
+## What Gets Shared
+
+When running tool via SSE:
+- Tool access: All team uses same tool instance
+- Single connection point
+- Centralized logging
+
+## What Doesn't Get Shared
+
+- API keys (must be set on server before starting)
+- Local files
+- Individual Claude configurations
+- Conversation history
+
+## Network Requirements
+
+- Port 8000 open (or custom port)
+- Team on same network or VPN
+- Firewall allows HTTP connections to SSE endpoint
+
+## Security
+
+**DO:**
+- Run on internal network only
+- Use VPN for remote access
+- Set firewall rules
+
+**DON'T:**
+- Expose to public internet without auth (no auth tested yet)
+- Share raw API keys in configs
+- Allow untrusted network access
+
+## What We Tested
+
+- Starting Genie on SSE transport: Works
+- Server binds to 0.0.0.0:8000: Works
+- Output shows SSE endpoint URL: Works
+
+## What We Didn't Test
+
+- Actual team member connections
+- Multiple simultaneous connections
+- SSE connection stability
+- Error handling
+- Authentication/authorization
+- Team usage patterns
+- Load handling
+
+These need testing before documenting.
+
+## Transport Options
+
+From help output, three transports available:
+
+```
+--transport  -t      TEXT     Transport type: stdio (default), http, sse
+                              [default: stdio]
+```
+
+- `stdio`: Local use, default
+- `sse`: Team sharing, tested startup only
+- `http`: Not tested
+
+## Next
+
+- [API Integration](/tools/workflows/api-integration) - Add more tools
+- [Multi-Tool Orchestration](/tools/workflows/multi-tool-orchestration) - Coordinate tools

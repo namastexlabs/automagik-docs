@@ -1,0 +1,496 @@
+---
+title: "VSCode + Cline Setup"
+description: "Connect automagik-tools to VSCode with Cline extension"
+icon: "code"
+---
+
+## Prerequisites
+
+- automagik-tools installed: `uvx automagik-tools list`
+- VSCode from [code.visualstudio.com](https://code.visualstudio.com)
+- Cline extension installed
+- API keys (if needed for specific tools)
+
+---
+
+## Install Cline Extension
+
+1. Open VSCode
+2. Press `Cmd/Ctrl + Shift + X` (Extensions)
+3. Search for "Cline"
+4. Click Install
+
+---
+
+## Configuration Location
+
+VSCode settings: `settings.json`
+
+Open with: `Cmd/Ctrl + Shift + P` → "Preferences: Open User Settings (JSON)"
+
+Or use Cline settings UI: `Cmd/Ctrl + Shift + P` → "Cline: Open Settings"
+
+---
+
+## Example 1: Genie Tool (No Auth)
+
+**Tested Configuration:**
+
+Add to your `settings.json`:
+
+```json
+{
+  "cline.mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Save settings.json
+2. Reload VSCode: `Cmd/Ctrl + Shift + P` → "Developer: Reload Window"
+3. Open Cline panel
+4. Ask: "what MCP tools are available?"
+5. Expected: Should list "genie" tools
+
+**Verification:**
+
+```bash
+# Test tool runs
+uvx automagik-tools tool genie -t stdio
+
+# Expected output:
+# INFO     Starting MCP server 'Genie' with transport 'stdio'
+```
+
+---
+
+## Example 2: Evolution API (With Auth)
+
+**Tested Configuration:**
+
+```json
+{
+  "cline.mcpServers": {
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Replace `YOUR_API_KEY_HERE` with actual key
+2. Reload VSCode window
+3. Ask Cline: "what evolution-api tools do you have?"
+4. Expected: Lists WhatsApp messaging tools
+
+**Verification:**
+
+```bash
+# Generate config
+uvx automagik-tools mcp-config evolution-api
+
+# Test with env vars
+EVOLUTION_API_BASE_URL="http://localhost:8080" \
+EVOLUTION_API_API_KEY="YOUR_KEY" \
+uvx automagik-tools tool evolution-api -t stdio
+```
+
+---
+
+## Example 3: Omni Tool (No Auth)
+
+**Tested Configuration:**
+
+```json
+{
+  "cline.mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Save and reload window
+2. Ask: "what omni capabilities do you have?"
+3. Expected: Shows omnichannel messaging tools
+
+---
+
+## Example 4: Multiple Tools
+
+**Tested Configuration:**
+
+```json
+{
+  "cline.mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    },
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+Ask Cline: "list all MCP servers"
+
+Expected: Shows all three tools
+
+---
+
+## Custom OpenAPI Tool
+
+**Test It Works:**
+
+```bash
+# Test conversion
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+
+# Expected:
+# INFO     Created FastMCP OpenAPI server with XXX routes
+# INFO     Starting MCP server
+```
+
+Press Ctrl+C to stop.
+
+**Tested Configuration:**
+
+```json
+{
+  "cline.mcpServers": {
+    "github-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.github.com/openapi.json"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "ghp_your_token_here"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Get token from https://github.com/settings/tokens
+2. Add to settings and reload
+3. Ask: "use github-api to list my repos"
+4. Expected: Cline uses GitHub API
+
+---
+
+## Troubleshooting
+
+### Problem: Cline can't find MCP server
+
+**Check Cline output:**
+
+- View → Output
+- Select "Cline" from dropdown
+- Look for MCP errors
+
+**Test tool:**
+
+```bash
+uvx automagik-tools tool genie -t stdio
+
+# Expected:
+# INFO     Starting MCP server 'Genie' with transport 'stdio'
+```
+
+**Solution:**
+
+```bash
+# Verify installation
+uvx automagik-tools list
+
+# Check settings file
+code ~/.config/Code/User/settings.json
+
+# Validate JSON
+cat ~/.config/Code/User/settings.json | python -m json.tool
+
+# Reload VSCode
+# Cmd/Ctrl + Shift + P → "Developer: Reload Window"
+```
+
+### Problem: Connection refused
+
+**Verify command:**
+
+```bash
+# Test each tool
+uvx automagik-tools tool TOOLNAME -t stdio
+
+# Should start without errors
+```
+
+If this fails, it won't work in VSCode/Cline.
+
+**Check VSCode terminal:**
+
+Open terminal in VSCode and run:
+
+```bash
+uvx automagik-tools list
+```
+
+Should show available tools.
+
+### Problem: Authentication errors
+
+**Test API:**
+
+```bash
+# Verify env vars
+echo $EVOLUTION_API_API_KEY
+
+# Test endpoint
+curl -H "X-API-KEY: YOUR_KEY" http://localhost:8080/health
+```
+
+**JSON syntax:**
+
+```bash
+# No trailing commas
+# Double quotes only
+# Valid JSON structure
+
+cat settings.json | python -m json.tool
+```
+
+---
+
+## Generate Config Helper
+
+Use built-in generator:
+
+```bash
+# For any tool
+uvx automagik-tools mcp-config TOOLNAME
+```
+
+**Example output:**
+
+```
+MCP Configuration for Cursor:
+{
+  "genie": {
+    "command": "uvx",
+    "args": ["automagik-tools@latest", "tool", "genie"]
+  }
+}
+
+To use this configuration:
+1. Copy the JSON above
+2. Open ~/.cursor/mcp.json (or create it)
+3. Add this configuration to the 'mcpServers' section
+4. Restart Cursor
+
+✅ Configuration generated successfully!
+```
+
+For VSCode/Cline, wrap in `"cline.mcpServers": { ... }`
+
+---
+
+## Settings File Locations
+
+<Tabs>
+  <Tab title="macOS">
+    **User Settings:**
+    ```bash
+    ~/Library/Application Support/Code/User/settings.json
+    ```
+
+    **Workspace Settings:**
+    ```bash
+    .vscode/settings.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    **User Settings:**
+    ```
+    %APPDATA%\Code\User\settings.json
+    ```
+
+    **Workspace Settings:**
+    ```
+    .vscode\settings.json
+    ```
+  </Tab>
+
+  <Tab title="Linux">
+    **User Settings:**
+    ```bash
+    ~/.config/Code/User/settings.json
+    ```
+
+    **Workspace Settings:**
+    ```bash
+    .vscode/settings.json
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Verification Checklist
+
+- [ ] Cline extension installed
+- [ ] `uvx automagik-tools list` works
+- [ ] Settings.json has valid JSON syntax
+- [ ] Tool runs: `uvx automagik-tools tool TOOLNAME -t stdio`
+- [ ] VSCode reloaded (Cmd/Ctrl+Shift+P → "Reload Window")
+- [ ] Check Cline output: View → Output → Cline
+- [ ] Ask Cline: "what MCP servers do you have?"
+- [ ] Tool appears in response
+- [ ] Can use tool in Cline panel
+
+---
+
+## Real Config Example
+
+**Working config from production:**
+
+```json
+{
+  "cline.mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    },
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    }
+  }
+}
+```
+
+Location: `~/.config/Code/User/settings.json` (Linux/macOS)
+
+Test: Open Cline, ask "what MCP servers are available?"
+
+---
+
+## Workspace-Specific Config
+
+For project-specific tools, create `.vscode/settings.json`:
+
+```json
+{
+  "cline.mcpServers": {
+    "project-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.myproject.com/openapi.json"
+      ],
+      "env": {
+        "API_KEY": "${PROJECT_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Then set env var:
+
+```bash
+export PROJECT_API_KEY="your_key"
+```
+
+---
+
+## Advanced: Custom Base URL
+
+For OpenAPI with different base URLs:
+
+```json
+{
+  "cline.mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://docs.example.com/openapi.json",
+        "--base-url",
+        "https://api.example.com"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+**Test:**
+
+```bash
+uvx automagik-tools openapi https://docs.example.com/openapi.json \
+  --base-url https://api.example.com \
+  -t stdio
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Custom OpenAPI" href="/tools/integration/custom-openapi">
+    Convert any API to MCP
+  </Card>
+
+  <Card title="Claude Setup" href="/tools/integration/claude-code-setup">
+    Configure for Claude Desktop
+  </Card>
+
+  <Card title="Cursor Setup" href="/tools/integration/cursor-setup">
+    Configure for Cursor IDE
+  </Card>
+
+  <Card title="Overview" href="/tools/integration/overview">
+    Back to integration overview
+  </Card>
+</CardGroup>
+
+<Tip>
+All configs tested with VSCode 1.90+ and Cline extension latest version.
+</Tip>

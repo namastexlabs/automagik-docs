@@ -1,0 +1,644 @@
+---
+title: "Gemini CLI Setup"
+description: "Configure automagik-tools for Google Gemini CLI"
+icon: "sparkles"
+---
+
+## Gemini CLI MCP Setup
+
+Connect automagik-tools to Google's Gemini CLI for AI-powered development with API access.
+
+<Info>
+Gemini CLI provides a powerful terminal interface with Google's latest AI models. Adding automagik-tools gives it instant API access through MCP.
+</Info>
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Gemini CLI">
+    ```bash
+    # Install via npm
+    npm install -g @google/generative-ai-cli
+
+    # Or via pip
+    pip install google-generativeai
+
+    # Verify installation
+    gemini --version
+    ```
+  </Step>
+
+  <Step title="Setup Gemini API Key">
+    Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+    ```bash
+    export GOOGLE_API_KEY=your_gemini_api_key_here
+    ```
+  </Step>
+
+  <Step title="Install automagik-tools">
+    ```bash
+    # Option 1: pip
+    pip install automagik-tools
+
+    # Option 2: uvx (instant)
+    uvx automagik-tools --version
+    ```
+  </Step>
+
+  <Step title="Get Additional API Credentials">
+    For the tools you'll use:
+    ```bash
+    # Example: OpenAI (for Genie)
+    export OPENAI_API_KEY=sk-your-key
+
+    # Example: Evolution API (WhatsApp)
+    export EVOLUTION_API_KEY=your-key
+    export EVOLUTION_API_BASE_URL=https://your-instance.com
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Option 1: Genie (Universal Orchestrator)
+
+<Steps>
+  <Step title="Locate Gemini Config">
+    Gemini CLI uses MCP configuration at:
+
+    <Tabs>
+      <Tab title="macOS/Linux">
+        ```bash
+        ~/.config/gemini/mcp_config.json
+        ```
+
+        Create directory if needed:
+        ```bash
+        mkdir -p ~/.config/gemini
+        ```
+      </Tab>
+
+      <Tab title="Windows">
+        ```
+        %APPDATA%\gemini\mcp_config.json
+        ```
+
+        Create directory if needed:
+        ```cmd
+        mkdir %APPDATA%\gemini
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Add Genie MCP Server">
+    Create or edit the config file:
+
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "uvx",
+          "args": [
+            "automagik-tools@latest",
+            "tool",
+            "genie"
+          ],
+          "env": {
+            "OPENAI_API_KEY": "sk-your-openai-key-here"
+          }
+        }
+      }
+    }
+    ```
+
+    <Info>
+    **Genie** is a universal orchestrator that coordinates complex workflows using OpenAI.
+    </Info>
+  </Step>
+
+  <Step title="Test Configuration">
+    Start Gemini CLI:
+    ```bash
+    gemini chat
+    ```
+
+    Try:
+    ```
+    Help me orchestrate a complex workflow
+    ```
+
+    Gemini should use the Genie tool via MCP!
+  </Step>
+</Steps>
+
+### Option 2: WhatsApp via Evolution API
+
+**Connect WhatsApp for messaging automation.**
+
+```json
+{
+  "mcpServers": {
+    "whatsapp": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "evolution-api"
+      ],
+      "env": {
+        "EVOLUTION_API_KEY": "your-evolution-api-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    }
+  }
+}
+```
+
+<Info>
+First, ensure you have Evolution API running. See [Evolution API docs](https://doc.evolution-api.com/) for setup.
+</Info>
+
+### Option 3: Custom OpenAPI
+
+**Convert any OpenAPI spec into MCP tools.**
+
+```json
+{
+  "mcpServers": {
+    "petstore": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://petstore3.swagger.io/api/v3/openapi.json"
+      ]
+    }
+  }
+}
+```
+
+Replace the PetStore URL with your own OpenAPI specification.
+
+See [Custom OpenAPI guide](/tools/integration/custom-openapi) for details.
+
+### Option 4: Multiple Tools
+
+**Connect multiple tools simultaneously.**
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key"
+      }
+    },
+    "whatsapp": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_KEY": "your-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    },
+    "custom-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Available Real Tools
+
+<Info>
+These are the **ONLY** tools available in automagik-tools. Verify by running:
+```bash
+uvx automagik-tools list
+```
+</Info>
+
+| Tool | Description | Required Env Vars |
+|------|-------------|-------------------|
+| **genie** | Universal orchestrator | `OPENAI_API_KEY` |
+| **evolution-api** | WhatsApp messaging | `EVOLUTION_API_KEY`, `EVOLUTION_API_BASE_URL` |
+| **omni** | Multi-channel messaging | Varies by channel |
+| **automagik** | Core automation | None |
+| **spark** | Task automation | None |
+| **automagik-hive** | Distributed tasks | None |
+| **gemini-assistant** | Gemini integration | `GOOGLE_API_KEY` |
+| **OpenAPI** | Custom API conversion | API-specific |
+
+---
+
+## Usage with Gemini CLI
+
+### Interactive Chat Mode
+
+```bash
+gemini chat
+```
+
+Then in the chat:
+
+```
+You: "Use Genie to orchestrate a multi-step data processing workflow"
+
+Gemini: [Uses genie tool via MCP]
+
+Gemini: I've set up the workflow with Genie:
+
+        1. Data validation pipeline
+        2. Processing queue setup
+        3. Output notification system
+
+        The orchestration is ready. Would you like me to execute it?
+```
+
+### WhatsApp Messaging
+
+```bash
+gemini chat
+```
+
+```
+You: "Send a WhatsApp message to +1234567890: Meeting at 3 PM today"
+
+Gemini: [Uses evolution-api tool via MCP]
+
+Gemini: Message sent successfully via WhatsApp!
+
+        Recipient: +1234567890
+        Message: Meeting at 3 PM today
+        Status: Delivered
+```
+
+### Custom API Integration
+
+```bash
+gemini query "Create a new pet named Fluffy using the PetStore API"
+```
+
+Gemini uses the OpenAPI-converted tool to execute the request.
+
+### One-Shot Commands
+
+```bash
+# Execute single command with tool access
+gemini query "Use Genie to help plan a deployment workflow"
+
+# WhatsApp notification
+gemini query "Send WhatsApp message to team: Deployment complete"
+
+# Custom API operation
+gemini query "List all available pets in the PetStore"
+```
+
+---
+
+## Authentication Setup
+
+### OpenAI API Key (for Genie)
+
+```bash
+# Get key from https://platform.openai.com/api-keys
+
+export OPENAI_API_KEY=sk-your-key-here
+
+# Add to shell profile for persistence
+echo 'export OPENAI_API_KEY=sk-your-key' >> ~/.bashrc
+```
+
+### Evolution API Setup (for WhatsApp)
+
+```bash
+# Deploy Evolution API first: https://doc.evolution-api.com/install
+# Then get credentials from your dashboard
+
+export EVOLUTION_API_KEY=your-key-here
+export EVOLUTION_API_BASE_URL=https://your-instance.com
+
+# Add to shell profile
+echo 'export EVOLUTION_API_KEY=your-key' >> ~/.bashrc
+echo 'export EVOLUTION_API_BASE_URL=https://your-instance.com' >> ~/.bashrc
+```
+
+### Google API Key (for Gemini CLI)
+
+```bash
+# Get from https://makersuite.google.com/app/apikey
+
+export GOOGLE_API_KEY=your-key-here
+
+# Add to shell profile
+echo 'export GOOGLE_API_KEY=your-key' >> ~/.bashrc
+```
+
+---
+
+## Usage Examples
+
+### Workflow Orchestration with Genie
+
+```bash
+gemini chat
+
+> Use Genie to orchestrate a CI/CD pipeline
+[Gemini uses genie tool via MCP]
+
+✓ Pipeline stages planned:
+  1. Code validation
+  2. Build process
+  3. Testing suite
+  4. Deployment sequence
+
+> Execute the pipeline
+[Genie orchestrates the workflow]
+
+✓ Pipeline complete
+  - All tests passed
+  - Build successful
+  - Deployed to staging
+```
+
+### WhatsApp Notifications
+
+```bash
+gemini query "Send WhatsApp to +1234567890: Deployment successful"
+```
+
+Output:
+```
+✓ WhatsApp message sent
+
+📱 Deployment Notification
+Sent to: +1234567890
+Message: Deployment successful
+Status: Delivered
+```
+
+### Custom API Operations
+
+```bash
+gemini chat
+
+> List all available pets in the PetStore
+[Gemini uses petstore OpenAPI tool]
+
+📋 Available Pets:
+1. Fluffy (Cat) - Available
+2. Max (Dog) - Pending
+3. Tweety (Bird) - Available
+
+> Add a new pet named Rocky
+[Gemini uses petstore createPet operation]
+
+✓ Pet created successfully
+  - ID: 12345
+  - Name: Rocky
+  - Status: Available
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP server not connecting">
+    **Error**: `Failed to connect to MCP server`
+
+    **Solutions**:
+    1. Verify automagik-tools installation:
+       ```bash
+       uvx automagik-tools --version
+       ```
+
+    2. Check tool exists:
+       ```bash
+       uvx automagik-tools list
+       ```
+
+    3. Verify config file location and syntax:
+       ```bash
+       cat ~/.config/gemini/mcp_config.json | python -m json.tool
+       ```
+
+    4. Ensure `"command": "uvx"` not `"node"` or `"python"`
+
+    5. Try restarting Gemini CLI
+  </Accordion>
+
+  <Accordion title="Authentication errors">
+    **Error**: `401 Unauthorized` or `403 Forbidden`
+
+    **Solutions**:
+    1. Verify tokens are set:
+       ```bash
+       echo $OPENAI_API_KEY
+       echo $EVOLUTION_API_KEY
+       echo $GOOGLE_API_KEY
+       ```
+
+    2. Test credentials manually:
+       ```bash
+       # OpenAI
+       curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+         https://api.openai.com/v1/models
+
+       # Evolution API
+       curl -H "apikey: $EVOLUTION_API_KEY" \
+         $EVOLUTION_API_BASE_URL/instance/fetchInstances
+       ```
+
+    3. Check for expired keys
+
+    4. Verify environment variables are exported
+  </Accordion>
+
+  <Accordion title="Tools not appearing">
+    **Symptom**: Gemini doesn't use tools
+
+    **Solutions**:
+    1. Ask Gemini: "What MCP tools do you have access to?"
+    2. Verify tool name from `uvx automagik-tools list`
+    3. Check config file exists and is valid JSON
+    4. Restart Gemini CLI after config changes
+    5. Try debug mode:
+       ```bash
+       gemini chat --debug
+       ```
+  </Accordion>
+
+  <Accordion title="Wrong tool configured">
+    **Error**: Tool not found
+
+    **Solution**:
+    Only use tools from this verified list:
+    ```bash
+    uvx automagik-tools list
+    ```
+
+    Real tools:
+    - genie
+    - evolution-api
+    - omni
+    - automagik
+    - spark
+    - automagik-hive
+    - gemini-assistant
+
+    Tools that DON'T exist:
+    - github ❌
+    - slack ❌
+    - linear ❌
+    - filesystem ❌
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Configuration File Location
+
+<Tabs>
+  <Tab title="macOS/Linux">
+    ```bash
+    ~/.config/gemini/mcp_config.json
+    ```
+
+    **Create if missing**:
+    ```bash
+    mkdir -p ~/.config/gemini
+    touch ~/.config/gemini/mcp_config.json
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\gemini\mcp_config.json
+    ```
+
+    **Create if missing**:
+    ```cmd
+    mkdir %APPDATA%\gemini
+    type nul > %APPDATA%\gemini\mcp_config.json
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+<Tip>
+**Store credentials securely** in environment variables:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export GOOGLE_API_KEY=your_gemini_key
+export OPENAI_API_KEY=sk-your-key
+export EVOLUTION_API_KEY=your-key
+export EVOLUTION_API_BASE_URL=https://your-instance.com
+
+# Reload shell
+source ~/.bashrc
+```
+</Tip>
+
+<Tip>
+**Verify tool names** before configuring:
+
+```bash
+# Always run this first
+uvx automagik-tools list
+
+# Use exact names from output
+```
+</Tip>
+
+<Tip>
+**Test tools independently**:
+
+```bash
+# Test Genie
+uvx automagik-tools tool genie --help
+
+# Test Evolution API
+uvx automagik-tools tool evolution-api --help
+
+# Test OpenAPI conversion
+uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json --help
+```
+</Tip>
+
+<Tip>
+**Use shell aliases** for common workflows:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias gemini-genie="gemini chat --tools genie"
+alias gemini-wa="gemini chat --tools whatsapp"
+
+# Usage
+gemini-genie "Orchestrate my deployment"
+```
+</Tip>
+
+---
+
+## Useful Commands
+
+```bash
+# Start interactive chat
+gemini chat
+
+# One-shot query
+gemini query "Your question here"
+
+# With specific model
+gemini chat --model gemini-pro
+
+# Debug mode
+gemini chat --debug
+
+# List available tools
+gemini query "What MCP tools do you have?"
+
+# Verify tool list
+uvx automagik-tools list
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Overview" icon="book" href="/tools/integration/overview">
+    Learn about MCP integration
+  </Card>
+
+  <Card title="Custom OpenAPI" icon="wand-magic-sparkles" href="/tools/integration/custom-openapi">
+    Generate tools from your API
+  </Card>
+
+  <Card title="Available Tools" icon="list" href="/tools/concepts/overview">
+    Complete list of real tools
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/tools/cli/overview">
+    Command line usage
+  </Card>
+</CardGroup>

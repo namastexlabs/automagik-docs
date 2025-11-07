@@ -1,0 +1,416 @@
+---
+title: "Spark"
+description: "Temporal automation and workflow orchestration"
+icon: "clock"
+---
+
+## What It Does
+
+Schedule recurring tasks, manage workflows, and automate time-based operations via Claude.
+
+## Run It
+
+```bash
+# For Claude Desktop
+uvx automagik-tools tool spark -t stdio
+
+# For team sharing
+uvx automagik-tools tool spark -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool spark -t http --port 8080
+```
+
+## Output
+
+When you run it, you see:
+
+```
+INFO Starting MCP server 'Spark' with transport 'stdio'
+```
+
+Server runs until you stop it (Ctrl+C).
+
+## Configuration
+
+Required environment variables:
+
+```bash
+export SPARK_API_KEY="your-api-key"
+```
+
+Optional:
+
+```bash
+export SPARK_BASE_URL="https://your-spark-instance.com"
+export SPARK_TIMEZONE="America/New_York"
+```
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "spark": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "spark", "-t", "stdio"],
+      "env": {
+        "SPARK_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+Test: Restart Claude, ask "what spark tools are available?"
+
+## Tool Info
+
+```bash
+uvx automagik-tools info spark
+```
+
+Output:
+```
+Tool: spark
+Version: 0.9.7
+Description: AutoMagik Spark workflow orchestration and AI agent management
+Category: workflow
+Author: Namastex Labs
+Tags: ai, workflow, orchestration, agents, automation
+```
+
+## What You Can Do
+
+Via Claude, you can:
+
+- Create scheduled workflows (cron syntax)
+- Manage recurring tasks
+- Execute workflows on-demand
+- Monitor workflow execution
+- Handle workflow events
+- Manage workflow templates
+- Track execution history
+
+The tool provides MCP functions for all Spark capabilities.
+
+## Example Usage
+
+In Claude:
+
+```
+You: "Schedule a daily backup at 3 AM"
+Claude: *uses spark tool*
+Claude: *creates workflow with cron: 0 3 * * **
+Claude: "Backup scheduled for 3 AM daily"
+```
+
+```
+You: "Create a workflow to deploy on Fridays at 5 PM"
+Claude: *uses spark tool*
+Claude: *creates workflow with cron: 0 17 * * FRI*
+Claude: "Deploy workflow scheduled for Fridays at 5 PM"
+```
+
+```
+You: "Run the test workflow now"
+Claude: *uses spark tool*
+Claude: *triggers immediate execution*
+Claude: "Test workflow started, execution ID: abc123"
+```
+
+## Cron Syntax
+
+Spark uses standard cron expressions:
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-6) (Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+Examples:
+- `0 3 * * *` - Daily at 3 AM
+- `*/15 * * * *` - Every 15 minutes
+- `0 9 * * MON-FRI` - Weekdays at 9 AM
+- `0 0 1 * *` - First day of each month at midnight
+- `0 17 * * FRI` - Every Friday at 5 PM
+
+In Claude:
+```
+"Schedule task to run every hour" → 0 * * * *
+"Schedule for weekdays at 9 AM" → 0 9 * * MON-FRI
+"Schedule monthly on the 1st" → 0 0 1 * *
+```
+
+## Setting Up Spark
+
+You need a Spark instance:
+
+**Cloud-hosted**:
+- Sign up at Spark cloud service
+- Get API key
+- Use cloud URL
+
+**Self-hosted**:
+```bash
+# Clone Spark
+git clone https://github.com/namastexlabs/spark
+cd spark
+
+# Install
+npm install
+
+# Configure
+cp .env.example .env
+# Edit .env with your settings
+
+# Run
+npm start
+```
+
+Spark runs on port 6274 by default.
+
+## Workflow Types
+
+**Scheduled workflows**:
+- Run at specific times (cron)
+- Recurring execution
+- Timezone-aware
+
+**Event-driven workflows**:
+- Triggered by webhooks
+- Respond to system events
+- Chain with other workflows
+
+**On-demand workflows**:
+- Manual execution
+- API-triggered
+- One-time runs
+
+## Troubleshooting
+
+**Problem**: Can't connect to Spark API
+```bash
+# Test API directly
+curl -X GET \
+  -H "Authorization: Bearer your-api-key" \
+  https://spark-instance.com/api/health
+
+# Should return: {"status": "healthy"}
+# If it fails:
+# 1. Check API key is valid
+# 2. Verify Spark is running
+# 3. Check API URL is correct
+```
+
+**Problem**: Scheduled workflows not running
+```bash
+# Check workflow status
+# In Claude: "List all scheduled workflows"
+# In Claude: "Show status of workflow ABC"
+
+# Common issues:
+# 1. Workflow is paused - resume it
+# 2. Cron syntax is invalid - fix expression
+# 3. Timezone mismatch - set correct timezone
+```
+
+**Problem**: Environment variables not loaded
+```bash
+# Verify they're set
+echo $SPARK_API_KEY
+
+# If empty:
+export SPARK_API_KEY="your-key"
+
+# Then restart the tool
+```
+
+**Problem**: Timezone issues
+```bash
+# Set timezone explicitly
+export SPARK_TIMEZONE="America/New_York"
+
+# Or in Claude:
+"Update workflow to use timezone America/New_York"
+```
+
+## Real-World Example
+
+Automated deployment pipeline:
+
+```json
+{
+  "mcpServers": {
+    "spark": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "spark", "-t", "stdio"],
+      "env": {
+        "SPARK_API_KEY": "...",
+        "SPARK_TIMEZONE": "America/New_York"
+      }
+    }
+  }
+}
+```
+
+In Claude:
+```
+You: "Deploy to production every Friday at 5 PM Eastern"
+
+Claude: *uses spark tool*
+  - Creates workflow: "production-deploy"
+  - Sets schedule: 0 17 * * FRI
+  - Sets timezone: America/New_York
+  - Configures deployment steps
+
+Claude: "Production deployment scheduled for Fridays at 5 PM Eastern"
+```
+
+## Workflow Management
+
+Via Claude, you can:
+
+```
+"List all workflows"
+"Show active workflows"
+"Get workflow details for ABC"
+"Pause workflow ABC"
+"Resume workflow ABC"
+"Delete workflow ABC"
+"Show execution history for ABC"
+"Get last 10 executions"
+```
+
+## Execution Monitoring
+
+Track workflow runs:
+
+```
+"Show running workflows"
+"Get execution status for run-123"
+"Show failed executions"
+"Retry failed execution run-123"
+"Show execution logs for run-123"
+```
+
+## Workflow Templates
+
+Create reusable templates:
+
+```
+"Create workflow template for daily backups"
+"List workflow templates"
+"Create workflow from template 'daily-backup'"
+"Update template 'deploy-production'"
+```
+
+## Combine with Other Tools
+
+**With Omni** (notifications):
+```bash
+uvx automagik-tools tool spark -t stdio &
+uvx automagik-tools tool omni -t stdio &
+```
+
+Workflows can trigger Omni notifications on completion/failure.
+
+**With Genie** (intelligent scheduling):
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 &
+uvx automagik-tools tool spark -t stdio &
+```
+
+Genie can create optimal schedules based on your requirements.
+
+## Workflow Dependencies
+
+Chain workflows:
+
+```
+"Create workflow A that runs workflow B when it completes"
+"Set workflow C to depend on workflows A and B"
+"Create workflow that triggers on webhook"
+```
+
+Spark handles:
+- Sequential execution
+- Parallel execution
+- Conditional execution
+- Error handling
+
+## Rate Limits
+
+Check your Spark plan:
+- Workflows per account
+- Executions per day
+- Concurrent executions
+
+Typical limits:
+- Free tier: 10 workflows, 100 executions/day
+- Pro tier: 100 workflows, 10,000 executions/day
+- Enterprise: Unlimited
+
+## Security
+
+**Protect your API key**:
+```bash
+# Never commit to git
+echo "SPARK_API_KEY" >> .gitignore
+
+# Use environment variables
+# Or secure secret management
+```
+
+**Webhook security**:
+- Validate signatures
+- Use HTTPS only
+- IP whitelisting
+
+## Execution Context
+
+Workflows execute with:
+- Environment variables
+- API credentials
+- System context
+- Previous execution data
+
+Configure in Spark dashboard or via Claude.
+
+## Error Handling
+
+Workflows support:
+- Retry on failure (configurable attempts)
+- Fallback workflows
+- Error notifications
+- Rollback capabilities
+
+Configure via Claude:
+```
+"Set workflow to retry 3 times on failure"
+"Send alert to Slack if workflow fails"
+"Execute rollback workflow on error"
+```
+
+## Cost
+
+Spark pricing (typical):
+- Free tier: 100 executions/month
+- Starter: 10,000 executions/month, $9/month
+- Pro: 100,000 executions/month, $49/month
+- Enterprise: Unlimited, custom pricing
+
+The MCP tool itself is free - you only pay for Spark service.
+
+## Spark Docs
+
+Full Spark documentation: Check Spark official docs
+
+The tool wraps Spark API as MCP functions that Claude can call.

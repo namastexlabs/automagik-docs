@@ -1,0 +1,472 @@
+---
+title: "Commands Reference"
+description: "Complete CLI command reference"
+icon: "book"
+---
+
+## `list` - List Available Tools
+
+```bash
+automagik-tools list
+```
+
+### Options
+
+None
+
+### Example
+
+```bash
+# List tools
+uvx automagik-tools list
+```
+
+### Output
+
+```
+                               Available Tools
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Tool Name           ┃ Type            ┃ Status    ┃ Description              ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ omni                │ Auto-discovered │ Available │ Multi-tenant omnichannel │
+│                     │                 │           │ messaging API tool for   │
+│                     │                 │           │ WhatsApp, Slack, Discord │
+│ wait                │ Auto-discovered │ Available │ Simple wait              │
+│                     │                 │           │ functionality for agent  │
+│                     │                 │           │ workflows                │
+│ genie               │ Auto-discovered │ Available │ Generic MCP tool         │
+│                     │                 │           │ orchestrator with        │
+│                     │                 │           │ persistent memory -      │
+│                     │                 │           │ connect any MCP servers  │
+└─────────────────────┴─────────────────┴───────────┴──────────────────────────┘
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `tool` - Serve Specific Tool
+
+```bash
+automagik-tools tool [OPTIONS] TOOL_NAME
+```
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `TOOL_NAME` | TEXT | Yes | Tool name to serve |
+
+### Options
+
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--host` | - | TEXT | localhost | Host to bind to (overrides HOST env var) |
+| `--port` | - | INTEGER | auto | Port to bind to (overrides PORT env var) |
+| `--transport` | `-t` | TEXT | stdio | Transport type: stdio (default), http, sse |
+| `--help` | - | - | - | Show this message and exit |
+
+### Examples
+
+```bash
+# Serve with stdio (default)
+uvx automagik-tools tool genie
+
+# Serve with SSE transport
+uvx automagik-tools tool genie --transport sse --port 8000
+
+# Serve with HTTP transport
+uvx automagik-tools tool genie -t http --port 8080
+
+# Bind to all interfaces
+uvx automagik-tools tool genie -t sse --host 0.0.0.0 --port 8000
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `hub` - Serve All Tools
+
+```bash
+automagik-tools hub [OPTIONS]
+```
+
+Serve all tools on a single server with path-based routing using the hub.
+
+### Options
+
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--host` | - | TEXT | localhost | Host to bind to (overrides HOST env var) |
+| `--port` | - | INTEGER | auto | Port to bind to (overrides PORT env var) |
+| `--transport` | `-t` | TEXT | stdio | Transport type: stdio (default), http, sse |
+| `--help` | - | - | - | Show this message and exit |
+
+### Examples
+
+```bash
+# Start hub with SSE
+uvx automagik-tools hub --transport sse --port 8884
+
+# Start hub with HTTP
+uvx automagik-tools hub -t http --port 8885
+
+# Bind to all interfaces
+uvx automagik-tools hub -t sse --host 0.0.0.0 --port 8884
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `openapi` - Serve Tool from OpenAPI
+
+```bash
+automagik-tools openapi [OPTIONS] URL
+```
+
+Serve a tool directly from an OpenAPI specification URL.
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `URL` | TEXT | Yes | OpenAPI specification URL |
+
+### Options
+
+| Option | Short | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--host` | - | TEXT | localhost | Host to bind to (overrides AUTOMAGIK_TOOLS_HOST env var) |
+| `--port` | - | INTEGER | auto | Port to bind to (overrides AUTOMAGIK_TOOLS_SSE_PORT env var) |
+| `--transport` | `-t` | TEXT | stdio | Transport type: stdio (default), http, sse |
+| `--api-key` | - | TEXT | - | API key for authentication |
+| `--base-url` | - | TEXT | - | Base URL for the API (if different from OpenAPI spec) |
+| `--help` | - | - | - | Show this message and exit |
+
+### Examples
+
+```bash
+# Basic usage
+uvx automagik-tools openapi https://api.example.com/openapi.json
+
+# With SSE transport
+uvx automagik-tools openapi https://api.github.com/openapi.json -t sse --port 8001
+
+# With authentication
+uvx automagik-tools openapi https://api.example.com/openapi.json --api-key your-key
+
+# With custom base URL
+uvx automagik-tools openapi https://api.example.com/openapi.json \
+  --base-url https://api.production.example.com \
+  --api-key your-key
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `info` - Tool Information
+
+```bash
+automagik-tools info [OPTIONS] TOOL_NAME
+```
+
+Show detailed information about a tool.
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `TOOL_NAME` | TEXT | Yes | Name of the tool |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--help` | Show this message and exit |
+
+### Examples
+
+```bash
+# Get tool info
+uvx automagik-tools info genie
+```
+
+### Output
+
+```
+Tool: genie
+Version: 2.0.0
+Description: Generic MCP tool orchestrator with persistent memory - connect any
+MCP servers
+Category: Uncategorized
+Author: automagik-tools
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `create-tool` - Create Tool from OpenAPI
+
+```bash
+automagik-tools create-tool [OPTIONS]
+```
+
+Create a new MCP tool from an OpenAPI specification.
+
+### Options
+
+| Option | Short | Type | Required | Description |
+|--------|-------|------|----------|-------------|
+| `--url` | `-u` | TEXT | Yes | OpenAPI specification URL |
+| `--name` | `-n` | TEXT | No | Tool name (optional) |
+| `--force` | `-f` | - | No | Overwrite existing tool |
+| `--help` | - | - | - | Show this message and exit |
+
+### Examples
+
+```bash
+# Create tool from OpenAPI spec
+uvx automagik-tools create-tool -u https://api.example.com/openapi.json
+
+# Create with custom name
+uvx automagik-tools create-tool -u https://api.example.com/openapi.json -n my-api
+
+# Overwrite existing tool
+uvx automagik-tools create-tool -u https://api.example.com/openapi.json -n my-api -f
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `mcp-config` - Generate MCP Configuration
+
+```bash
+automagik-tools mcp-config [OPTIONS] TOOL_NAME
+```
+
+Generate MCP configuration for a tool to use in Cursor or Claude.
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `TOOL_NAME` | TEXT | Yes | Tool name to generate config for |
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--format` | TEXT | cursor | Output format: cursor or claude |
+| `--help` | - | - | Show this message and exit |
+
+### Examples
+
+```bash
+# Generate config for Cursor (default)
+uvx automagik-tools mcp-config genie
+```
+
+### Output (Cursor format)
+
+```
+MCP Configuration for Cursor:
+{
+  "genie": {
+    "command": "uvx",
+    "args": [
+      "automagik-tools@latest",
+      "tool",
+      "genie"
+    ]
+  }
+}
+
+To use this configuration:
+1. Copy the JSON above
+2. Open ~/.cursor/mcp.json (or create it)
+3. Add this configuration to the 'mcpServers' section
+4. Restart Cursor
+
+✅ Configuration generated successfully!
+```
+
+```bash
+# Generate config for Claude
+uvx automagik-tools mcp-config genie --format claude
+```
+
+### Output (Claude format)
+
+```
+MCP Configuration for Claude:
+{
+  "genie": {
+    "command": "uvx",
+    "args": [
+      "automagik-tools@latest",
+      "tool",
+      "genie"
+    ]
+  }
+}
+
+To use this configuration:
+1. Copy the JSON above
+2. Open Claude Desktop settings
+3. Go to Developer > Edit Config
+4. Add this configuration to the 'mcpServers' section
+5. Restart Claude Desktop
+
+✅ Configuration generated successfully!
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## `version` - Version Information
+
+```bash
+automagik-tools version
+```
+
+Show version information.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--help` | Show this message and exit |
+
+### Example
+
+```bash
+# Show version
+uvx automagik-tools version
+```
+
+### Output
+
+```
+automagik-tools v0.9.9
+```
+
+### Exit Codes
+
+- `0` = success
+- `1` = error
+
+---
+
+## Global Options
+
+Available for all commands:
+
+```bash
+--help                  Show this message and exit
+--install-completion    Install completion for the current shell
+--show-completion       Show completion for the current shell, to copy it or
+                        customize the installation
+```
+
+### Shell Completion
+
+```bash
+# Install completion for Bash
+uvx automagik-tools --install-completion bash
+
+# Install completion for Zsh
+uvx automagik-tools --install-completion zsh
+
+# Show completion script
+uvx automagik-tools --show-completion bash
+```
+
+---
+
+## Environment Variables
+
+Commands respect these environment variables:
+
+| Variable | Description | Used By |
+|----------|-------------|---------|
+| `HOST` | Default host | `tool`, `hub`, `openapi` |
+| `PORT` | Default port | `tool`, `hub`, `openapi` |
+| `AUTOMAGIK_TOOLS_HOST` | Host override | `openapi` |
+| `AUTOMAGIK_TOOLS_SSE_PORT` | SSE port override | `openapi` |
+| `LOG_LEVEL` | Logging level | All commands |
+| `LOG_FOLDER` | Log directory | All commands |
+
+See [Environment Variables](/tools/config/environment-variables) for complete reference.
+
+---
+
+## Exit Codes
+
+| Code | Description |
+|------|-------------|
+| `0` | Success |
+| `1` | Error |
+
+Usage in scripts:
+
+```bash
+# Check exit code
+uvx automagik-tools list
+echo $?  # 0 = success, non-zero = error
+
+# Use in conditionals
+if uvx automagik-tools tool genie; then
+  echo "Success"
+else
+  echo "Failed with exit code: $?"
+fi
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Overview" icon="terminal" href="/tools/cli/overview">
+    Command-line interface guide
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/tools/config/environment-variables">
+    Configuration reference
+  </Card>
+
+  <Card title="Built-in Tools" icon="wrench" href="/tools/built-in-tools/genie">
+    Explore available tools
+  </Card>
+
+  <Card title="Deployment" icon="rocket" href="/tools/config/deployment">
+    Production deployment
+  </Card>
+</CardGroup>

@@ -1,0 +1,447 @@
+---
+title: "Plugin System"
+description: "Tool discovery and plugin architecture"
+icon: "plug"
+---
+
+## Plugin Architecture
+
+automagik-tools auto-discovers tools from designated directories.
+
+## Discovery Process
+
+1. Scan `automagik_tools/tools/*/` directory
+2. Import Python modules
+3. Find functions decorated with `@tool`
+4. Register tools in MCP registry
+
+## Search Locations
+
+Scanned in order:
+
+| Location | Purpose | Priority |
+|----------|---------|----------|
+| `~/.automagik/tools/plugins/` | User plugins | 1 (highest) |
+| `./tools/` | Project plugins | 2 |
+| `automagik_tools/tools/` | Built-in tools | 3 (lowest) |
+
+If multiple tools have the same name, higher priority wins.
+
+## Discovery Rules
+
+Files discovered:
+```python
+# Discovered
+my_tool.py          # Single file
+my_package/         # Package with __init__.py
+  __init__.py
+  tools.py
+
+# Ignored
+_private.py         # Starts with underscore
+test_tool.py        # Test files
+tool.pyc            # Bytecode
+.tool.py            # Hidden files
+```
+
+Functions discovered:
+```python
+# Discovered
+@tool(name="my_tool")
+def my_tool():
+    pass
+
+@tool()  # Name inferred from function
+def another_tool():
+    pass
+
+# Ignored
+def not_a_tool():  # No @tool decorator
+    pass
+
+def _private_tool():  # Starts with underscore
+    pass
+```
+
+## Create Plugin
+
+### Basic Plugin
+
+```python
+# ~/.automagik/tools/plugins/calculator.py
+from automagik_tools import tool
+
+@tool(name="add_numbers")
+def add_numbers(a: float, b: float) -> float:
+    """Add two numbers"""
+    return a + b
+
+@tool(name="multiply_numbers")
+def multiply_numbers(a: float, b: float) -> float:
+    """Multiply two numbers"""
+    return a * b
+```
+
+Run `uvx automagik-tools list` - tools appear automatically.
+
+### Advanced Plugin
+
+```python
+# ~/.automagik/tools/plugins/web_search.py
+from automagik_tools import tool, ToolContext
+from pydantic import BaseModel, Field
+from typing import List
+import httpx
+
+class SearchResult(BaseModel):
+    title: str
+    url: str
+    snippet: str
+    score: float = Field(ge=0.0, le=1.0)
+
+@tool(
+    name="web_search",
+    description="Search the web",
+    category="search",
+    requires_auth=True,
+    rate_limit={"calls": 100, "period": 3600}
+)
+async def web_search(
+    query: str = Field(..., description="Search query"),
+    max_results: int = Field(default=10, ge=1, le=100),
+    context: ToolContext = None
+) -> List[SearchResult]:
+    """Search the web and return results"""
+
+    api_key = context.get_credential("SEARCH_API_KEY")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.search.com/search",
+            params={"q": query, "max": max_results},
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        response.raise_for_status()
+
+    results = response.json()["results"]
+    return [
+        SearchResult(
+            title=r["title"],
+            url=r["url"],
+            snippet=r["snippet"],
+            score=r["relevance"]
+        )
+        for r in results
+    ]
+```
+
+## @tool Decorator
+
+```python
+@tool(
+    name: str = None,                    # Tool name (default: function name)
+    description: str = None,             # Description (default: docstring)
+    category: str = "custom",            # Category for organization
+    tags: List[str] = [],                # Tags for discovery
+    requires_auth: bool = False,         # Requires authentication
+    rate_limit: dict = None,             # Rate limiting config
+    timeout: float = 30.0,               # Execution timeout
+    retries: int = 0,                    # Auto-retry on failure
+    cache_ttl: int = 0,                  # Cache results (seconds)
+    version: str = "1.0.0"              # Tool version
+)
+def my_tool(...): ...
+```
+
+## ToolContext
+
+Injected when parameter type is `ToolContext`:
+
+```python
+from automagik_tools import ToolContext
+
+@tool()
+def my_tool(param: str, context: ToolContext):
+    # Access metadata
+    user_id = context.user_id
+    session_id = context.session_id
+
+    # Get credentials
+    api_key = context.get_credential("MY_API_KEY")
+
+    # Store/retrieve data
+    context.store("key", "value")
+    value = context.get("key")
+
+    # Logging
+    context.log("Processing...")
+    context.warn("Warning message")
+    context.error("Error occurred")
+```
+
+## Field Validation
+
+Use Pydantic `Field` for parameter validation:
+
+```python
+from pydantic import Field
+
+@tool()
+def my_tool(
+    email: str = Field(..., regex=r"^[\w\.-]+@[\w\.-]+\.\w+$"),
+    age: int = Field(..., ge=0, le=150),
+    name: str = Field(..., min_length=1, max_length=100),
+    role: str = Field(..., regex="^(admin|user|guest)$"),
+    tags: List[str] = Field(default=[], max_items=10)
+):
+    """Tool with validated parameters"""
+    pass
+```
+
+## Plugin Patterns
+
+### State Management
+
+```python
+from automagik_tools import tool
+import redis
+
+# Shared connection pool
+redis_client = redis.Redis(
+    host='localhost',
+    port=6379,
+    decode_responses=True
+)
+
+@tool()
+def cache_get(key: str) -> str:
+    """Get cached value"""
+    return redis_client.get(key)
+
+@tool()
+def cache_set(key: str, value: str, ttl: int = 3600) -> bool:
+    """Set cached value with TTL"""
+    return redis_client.setex(key, ttl, value)
+```
+
+### External Service Integration
+
+```python
+from automagik_tools import tool, ToolContext
+import httpx
+
+class WeatherAPI:
+    def __init__(self, api_key: str):
+        self.client = httpx.AsyncClient(
+            base_url="https://api.weather.com",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+
+    async def get_weather(self, city: str):
+        response = await self.client.get(f"/weather/{city}")
+        response.raise_for_status()
+        return response.json()
+
+weather_api = None
+
+def get_api(context: ToolContext) -> WeatherAPI:
+    global weather_api
+    if weather_api is None:
+        api_key = context.get_credential("WEATHER_API_KEY")
+        weather_api = WeatherAPI(api_key)
+    return weather_api
+
+@tool()
+async def get_weather(city: str, context: ToolContext) -> dict:
+    """Get current weather for a city"""
+    api = get_api(context)
+    return await api.get_weather(city)
+```
+
+## Plugin Structure
+
+### Single File
+
+```python
+# ~/.automagik/tools/plugins/simple.py
+from automagik_tools import tool
+
+@tool()
+def tool_one():
+    pass
+
+@tool()
+def tool_two():
+    pass
+```
+
+### Package
+
+```
+~/.automagik/tools/plugins/mypackage/
+├── __init__.py          # Entry point
+├── tools.py             # Tool definitions
+├── client.py            # API client
+├── models.py            # Data models
+└── utils.py             # Helpers
+```
+
+```python
+# __init__.py
+from .tools import tool_one, tool_two, tool_three
+
+__all__ = ["tool_one", "tool_two", "tool_three"]
+```
+
+```python
+# tools.py
+from automagik_tools import tool
+from .client import APIClient
+from .models import Result
+
+@tool()
+def tool_one() -> Result:
+    client = APIClient()
+    return client.fetch()
+```
+
+### Installable Plugin
+
+```
+my-tools-plugin/
+├── pyproject.toml
+├── README.md
+└── my_tools/
+    ├── __init__.py
+    └── tools.py
+```
+
+```toml
+# pyproject.toml
+[project]
+name = "my-tools-plugin"
+version = "1.0.0"
+dependencies = ["automagik-tools>=1.0.0"]
+
+[project.entry-points."automagik_tools.plugins"]
+my_tools = "my_tools:tools"
+```
+
+Install:
+```bash
+pip install my-tools-plugin
+uvx automagik-tools serve
+# ✓ Loaded plugin: my-tools-plugin (3 tools)
+```
+
+## Built-in Utilities
+
+### HTTP Client
+
+```python
+from automagik_tools.http import HTTPClient
+
+@tool()
+async def fetch_data(url: str) -> dict:
+    """Fetch data with automatic retry"""
+    async with HTTPClient() as client:
+        return await client.get(url)
+```
+
+### Caching
+
+```python
+from automagik_tools.cache import cache
+
+@tool()
+@cache(ttl=3600)  # Cache 1 hour
+async def expensive_operation(param: str) -> dict:
+    """Cached result"""
+    return result
+```
+
+### Rate Limiting
+
+```python
+from automagik_tools.ratelimit import rate_limit
+
+@tool()
+@rate_limit(calls=100, period=3600)  # 100/hour
+async def api_call() -> dict:
+    """Rate limited"""
+    return await make_request()
+```
+
+### Logging
+
+```python
+from automagik_tools.logging import get_logger
+
+logger = get_logger(__name__)
+
+@tool()
+def my_tool():
+    logger.info("Tool started")
+    logger.debug("Processing...")
+    logger.warning("Rate limit approaching")
+    logger.error("Something failed")
+```
+
+## Testing Plugins
+
+### Unit Tests
+
+```python
+# tests/test_my_plugin.py
+import pytest
+from automagik_tools import ToolContext
+from my_plugin import my_tool
+
+def test_my_tool():
+    context = ToolContext(
+        user_id="test_user",
+        credentials={"API_KEY": "test_key"}
+    )
+
+    result = my_tool("test_param", context=context)
+
+    assert result["success"] is True
+    assert "data" in result
+
+@pytest.mark.asyncio
+async def test_async_tool():
+    context = ToolContext(user_id="test_user")
+    result = await async_tool("param", context=context)
+    assert result is not None
+```
+
+### Integration Tests
+
+```bash
+# Test via server
+automagik-tools test my_tool \
+  --args '{"param": "value"}' \
+  --expected '{"success": true}'
+```
+
+## Hot Reload
+
+Enable automatic reload on file changes:
+
+```bash
+automagik-tools serve --hot-reload
+
+# Edit plugin
+# vim ~/.automagik/tools/plugins/my_tool.py
+
+# Server detects change
+# ✓ Plugin modified: my_tool.py
+# ✓ Reloading tool: my_tool
+# ✓ Tool updated
+```
+
+## Next Steps
+
+- [MCP Architecture](/tools/concepts/mcp-architecture): How plugins integrate with MCP
+- [OpenAPI Generation](/tools/concepts/openapi-generation): Generate tools from APIs
+- [Built-in Tools](/tools/built-in-tools/overview): Study built-in tool examples

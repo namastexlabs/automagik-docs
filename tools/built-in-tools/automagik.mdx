@@ -1,0 +1,347 @@
+---
+title: "Automagik"
+description: "Integration hub for Automagik Suite (Spark, Hive, Forge, Omni)"
+icon: "stars"
+---
+
+## What It Does
+
+Connects Claude to the Automagik Suite: Spark (workflows), Hive (agents), Forge (dev tools), and Omni (messaging).
+
+## Run It
+
+```bash
+# For Claude Desktop
+uvx automagik-tools tool automagik -t stdio
+
+# For team sharing
+uvx automagik-tools tool automagik -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool automagik -t http --port 8080
+```
+
+## Output
+
+When you run it, you see:
+
+```
+INFO Starting MCP server 'Automagik' with transport 'stdio'
+```
+
+Server runs until you stop it (Ctrl+C).
+
+## Configuration
+
+Required environment variables:
+
+```bash
+export AUTOMAGIK_API_KEY="your-api-key"
+export AUTOMAGIK_BASE_URL="https://your-automagik-instance.com"
+```
+
+Optional:
+
+```bash
+export AUTOMAGIK_TIMEOUT="30"  # Request timeout in seconds
+export AUTOMAGIK_ENABLE_MARKDOWN="true"  # Enable markdown enhancement
+```
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "automagik": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "automagik", "-t", "stdio"],
+      "env": {
+        "AUTOMAGIK_API_KEY": "your-key",
+        "AUTOMAGIK_BASE_URL": "https://your-instance.com"
+      }
+    }
+  }
+}
+```
+
+Test: Restart Claude, ask "what automagik tools are available?"
+
+## Tool Info
+
+```bash
+uvx automagik-tools info automagik
+```
+
+Output:
+```
+Tool: automagik
+Version: 2.0.0
+Description: Automagik - AI-powered agents and workflows with enhanced responses
+Category: ai-agents
+Author: Automagik Team
+Tags: ai, agents, workflows, ai-enhanced
+
+Environment Prefix: AUTOMAGIK_
+
+Required Environment Variables:
+  AUTOMAGIK_API_KEY: API key for authentication
+  AUTOMAGIK_BASE_URL: Base URL for the API (optional)
+
+Configuration Schema:
+  AUTOMAGIK_API_KEY: string (optional)
+    Description: API key for authentication
+  AUTOMAGIK_BASE_URL: string (optional)
+    Description: Base URL for the API
+  AUTOMAGIK_TIMEOUT: integer (optional)
+    Description: Request timeout in seconds
+  AUTOMAGIK_ENABLE_MARKDOWN: boolean (optional)
+    Description: Enable AI-powered markdown enhancement of responses
+  AUTOMAGIK_OPENAPI_URL: string (optional)
+    Description: OpenAPI specification URL
+```
+
+## What You Can Do
+
+Via Claude, you can:
+
+**Spark (Workflows)**:
+- Create and manage workflows
+- Schedule recurring tasks
+- Monitor workflow execution
+- Handle workflow events
+
+**Hive (Agents)**:
+- Spawn AI agent swarms
+- Manage agent lifecycles
+- Coordinate multi-agent tasks
+- Monitor agent performance
+
+**Forge (Dev Tools)**:
+- Trigger development workflows
+- Run tests and builds
+- Manage deployments
+- Track code changes
+
+**Omni (Messaging)**:
+- Send multi-channel notifications
+- Manage messaging instances
+- Track message delivery
+- Handle webhooks
+
+## Example Usage
+
+In Claude:
+
+```
+You: "Create a workflow to deploy the app every Friday"
+Claude: *uses automagik tool*
+Claude: *creates Spark workflow*
+Claude: "Workflow created and scheduled for Fridays at 5 PM"
+```
+
+```
+You: "Spawn 3 research agents to analyze competitors"
+Claude: *uses automagik tool*
+Claude: *spawns Hive agents*
+Claude: "3 research agents deployed and working on competitor analysis"
+```
+
+```
+You: "Run the test suite via Forge"
+Claude: *uses automagik tool*
+Claude: *triggers Forge tests*
+Claude: "Tests running... 45 passing, 2 failing"
+```
+
+## Setting Up Automagik Suite
+
+You need the Automagik Suite running:
+
+**Option 1: Cloud-hosted**:
+- Sign up at Automagik cloud
+- Get API key
+- Use cloud URL
+
+**Option 2: Self-hosted**:
+```bash
+# Clone Automagik Suite
+git clone https://github.com/automagik/suite
+cd suite
+
+# Install
+npm install
+
+# Configure
+cp .env.example .env
+# Edit .env with your settings
+
+# Start all services
+npm run start:all
+```
+
+This starts:
+- Spark (port 6274)
+- Hive (port 6275)
+- Forge (port 6276)
+- Omni (port 6277)
+
+## Suite Components
+
+**Spark** (Workflow Engine):
+- Cron-based scheduling
+- Event-driven triggers
+- Workflow orchestration
+- Task dependencies
+
+**Hive** (Agent Swarms):
+- Multi-agent coordination
+- Agent spawning/management
+- Swarm strategies
+- Agent communication
+
+**Forge** (Dev Tools):
+- Test automation
+- Build pipelines
+- Deployment workflows
+- Code analysis
+
+**Omni** (Messaging Hub):
+- Multi-channel messaging
+- Instance management
+- Message tracking
+- Analytics
+
+## Troubleshooting
+
+**Problem**: Can't connect to Automagik API
+```bash
+# Test API directly
+curl -X GET \
+  -H "Authorization: Bearer your-api-key" \
+  https://your-instance.com/api/health
+
+# Should return: {"status": "ok"}
+# If it fails:
+# 1. Check API key is valid
+# 2. Verify Automagik Suite is running
+# 3. Check API URL is correct
+```
+
+**Problem**: Tool can't access suite services
+```bash
+# Check all services are running
+curl http://localhost:6274/health  # Spark
+curl http://localhost:6275/health  # Hive
+curl http://localhost:6276/health  # Forge
+curl http://localhost:6277/health  # Omni
+
+# If any fail:
+# 1. Start the service
+# 2. Check logs in ~/.automagik/logs/
+# 3. Verify ports aren't in use
+```
+
+**Problem**: Environment variables not loaded
+```bash
+# Verify they're set
+echo $AUTOMAGIK_API_KEY
+echo $AUTOMAGIK_BASE_URL
+
+# If empty:
+export AUTOMAGIK_API_KEY="your-key"
+export AUTOMAGIK_BASE_URL="https://your-instance.com"
+
+# Then restart the tool
+```
+
+## Real-World Example
+
+Automated deployment pipeline:
+
+```json
+{
+  "mcpServers": {
+    "automagik": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "automagik", "-t", "stdio"],
+      "env": {
+        "AUTOMAGIK_API_KEY": "...",
+        "AUTOMAGIK_BASE_URL": "https://..."
+      }
+    }
+  }
+}
+```
+
+In Claude:
+```
+You: "Set up CI/CD: test on commit, deploy to staging if tests pass, notify team"
+
+Claude: *uses automagik tool*
+  1. Creates Forge test workflow
+  2. Sets up Spark deployment schedule
+  3. Configures Omni notifications
+  4. Links all together
+
+Claude: "CI/CD pipeline configured. Tests will run on every commit,
+auto-deploy to staging if they pass, and notify #dev-team on Slack"
+```
+
+## Combine with Other Tools
+
+**With Genie** (intelligent coordination):
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 &
+uvx automagik-tools tool automagik -t stdio &
+```
+
+Genie can orchestrate Automagik Suite operations with memory and intelligence.
+
+## Suite Access Levels
+
+Different API keys can have different access:
+
+- **Read-only**: View workflows, agents, deployments
+- **Standard**: Create/update workflows and agents
+- **Admin**: Full access including system config
+
+Set in your Automagik dashboard or environment:
+
+```bash
+export AUTOMAGIK_ACCESS_LEVEL="admin"
+```
+
+## Monitoring
+
+Track suite operations:
+
+In Claude:
+```
+"Show active workflows"
+"List running agents"
+"Get deployment status"
+"Show messaging analytics"
+```
+
+All data comes from the suite via this tool.
+
+## Cost
+
+Automagik Suite pricing (typical):
+- Free tier: 100 workflow runs/month, 10 agents
+- Pro tier: Unlimited workflows, 100 agents, $49/month
+- Enterprise: Unlimited everything, custom pricing
+
+The MCP tool itself is free - you only pay for the suite.
+
+## Documentation
+
+Each suite component has detailed docs:
+- Spark: Workflow orchestration
+- Hive: Agent swarm management
+- Forge: Development automation
+- Omni: Multi-channel messaging
+
+This tool provides Claude access to all of them through one unified interface.

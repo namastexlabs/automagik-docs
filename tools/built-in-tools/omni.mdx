@@ -1,0 +1,361 @@
+---
+title: "Omni"
+description: "Multi-channel messaging for WhatsApp, Slack, Discord"
+icon: "messages"
+---
+
+## What It Does
+
+Send messages to WhatsApp, Slack, Discord through one unified API.
+
+## Run It
+
+```bash
+# For Claude Desktop
+uvx automagik-tools tool omni -t stdio
+
+# For team sharing
+uvx automagik-tools tool omni -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool omni -t http --port 8080
+```
+
+## Output
+
+When you run it, you see:
+
+```
+INFO Starting MCP server 'OMNI Messaging' with transport 'stdio'
+```
+
+Server runs until you stop it (Ctrl+C).
+
+## Configuration
+
+Required environment variables:
+
+```bash
+export OMNI_API_KEY="your-api-key"
+```
+
+Optional (if self-hosting):
+
+```bash
+export OMNI_BASE_URL="https://your-omni-instance.com"
+```
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "omni", "-t", "stdio"],
+      "env": {
+        "OMNI_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+Test: Restart Claude, ask "what omni tools are available?"
+
+## Tool Info
+
+```bash
+uvx automagik-tools info omni
+```
+
+Output:
+```
+Tool: omni
+Version: 1.0.0
+Description: Multi-tenant omnichannel messaging API tool for WhatsApp, Slack, Discord
+Category: messaging
+Author: Namastex Labs
+Tags: whatsapp, slack, discord, messaging, omnichannel, traces, analytics
+```
+
+## What You Can Do
+
+Via Claude, you can:
+
+- Send messages to WhatsApp, Slack, Discord
+- Manage multiple messaging instances
+- Track message delivery and analytics
+- Handle message traces for debugging
+- Manage contacts across platforms
+- Send media files across channels
+
+The tool provides MCP functions for all Omni API capabilities.
+
+## Example Usage
+
+In Claude:
+
+```
+You: "Send a message to Slack channel #general saying 'Deployment complete'"
+Claude: *uses omni tool*
+Claude: "Message sent to Slack"
+```
+
+```
+You: "Send WhatsApp message to +1234567890 with text 'Order shipped'"
+Claude: *uses omni tool*
+Claude: "WhatsApp message sent"
+```
+
+```
+You: "List all messaging instances"
+Claude: *uses omni tool*
+Claude: *shows configured instances for WhatsApp, Slack, Discord*
+```
+
+## Setting Up Omni
+
+You need an Omni instance. Options:
+
+**Cloud-hosted**:
+- Sign up at Omni service
+- Get API key
+- Configure channels (WhatsApp, Slack, Discord)
+
+**Self-hosted**:
+```bash
+# Clone Omni repository
+git clone https://github.com/namastexlabs/omni
+cd omni
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Run
+npm start
+```
+
+## Configure Channels
+
+**WhatsApp**:
+- Connect via Evolution API or other WhatsApp provider
+- Add instance in Omni dashboard
+- Get instance credentials
+
+**Slack**:
+- Create Slack app
+- Add bot token to Omni
+- Configure permissions
+
+**Discord**:
+- Create Discord bot
+- Add bot token to Omni
+- Invite bot to server
+
+## Supported Platforms
+
+| Platform | Status | Features |
+|----------|--------|----------|
+| WhatsApp | ✅ | Text, media, groups |
+| Slack | ✅ | Text, files, threads |
+| Discord | ✅ | Text, embeds, channels |
+| Telegram | 🔜 | Coming soon |
+
+## Troubleshooting
+
+**Problem**: Can't connect to Omni API
+```bash
+# Test API directly
+curl -X GET \
+  -H "Authorization: Bearer your-api-key" \
+  https://omni-api.com/api/instances
+
+# Should return JSON with instances
+# If it fails:
+# 1. Check API key is valid
+# 2. Verify Omni instance is running
+# 3. Check API URL is correct
+```
+
+**Problem**: Messages not sending
+```bash
+# Check instance status
+# In Claude: "List Omni instances and their status"
+
+# If instance is disconnected:
+# 1. Check channel credentials
+# 2. Reconnect in Omni dashboard
+# 3. Verify API permissions
+```
+
+**Problem**: Environment variables not loaded
+```bash
+# Verify they're set
+echo $OMNI_API_KEY
+
+# If empty:
+export OMNI_API_KEY="your-key"
+
+# Then restart the tool
+```
+
+## Multi-Channel Broadcast
+
+Send to all platforms at once:
+
+In Claude:
+```
+"Send 'System maintenance in 1 hour' to all channels"
+```
+
+Omni sends to:
+- WhatsApp groups
+- Slack channels
+- Discord channels
+
+All configured in your Omni instance.
+
+## Message Traces
+
+Track message delivery:
+
+In Claude:
+```
+"Show me message traces for the last hour"
+"Get delivery status for message ID abc123"
+"Show failed messages"
+```
+
+Omni provides detailed traces for debugging.
+
+## Analytics
+
+Get messaging stats:
+
+In Claude:
+```
+"Show messaging analytics for today"
+"How many messages sent this week?"
+"Show messages by channel type"
+```
+
+## Real-World Example
+
+Multi-platform notification system:
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "omni", "-t", "stdio"],
+      "env": {
+        "OMNI_API_KEY": "..."
+      }
+    }
+  }
+}
+```
+
+In Claude:
+```
+You: "Alert all channels: Production is down"
+Claude: *uses omni to send to:*
+  - WhatsApp: On-call team
+  - Slack: #incidents channel
+  - Discord: ops-alerts channel
+Claude: "Alert sent to all 3 channels"
+```
+
+## Combine with Other Tools
+
+**With Genie** (intelligent routing):
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 &
+uvx automagik-tools tool omni -t stdio &
+```
+
+Genie decides which channel to use based on context.
+
+**With Spark** (scheduled notifications):
+```bash
+uvx automagik-tools tool spark -t stdio &
+uvx automagik-tools tool omni -t stdio &
+```
+
+Schedule recurring messages across all platforms.
+
+## API Limits
+
+Check your Omni plan for limits:
+- Messages per day
+- Channels per instance
+- Message size limits
+
+Typical limits:
+- Free tier: 1000 messages/day
+- Pro tier: 100,000 messages/day
+- Enterprise: Unlimited
+
+## Security
+
+**Protect your API key**:
+```bash
+# Never commit to git
+echo "OMNI_API_KEY" >> .gitignore
+
+# Use environment variables
+# Or secret management service
+```
+
+**Webhook security**:
+- Validate webhook signatures
+- Use HTTPS only
+- Whitelist IPs if possible
+
+## Instance Management
+
+Via Claude, you can:
+
+```
+"List all Omni instances"
+"Get status of WhatsApp instance"
+"Create new instance for Telegram"
+"Restart Discord instance"
+"Delete inactive instances"
+```
+
+## Contact Management
+
+Via Claude, you can:
+
+```
+"List contacts for WhatsApp instance"
+"Get contact info for +1234567890"
+"Search contacts by name"
+"Add new contact"
+```
+
+## Chat Management
+
+Via Claude, you can:
+
+```
+"List active chats"
+"Get chat history for WhatsApp group"
+"Archive old chats"
+"Search chats by keyword"
+```
+
+## Omni Docs
+
+Full API documentation: Check Omni official docs
+
+The tool wraps Omni API as MCP functions that Claude can call.

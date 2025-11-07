@@ -1,0 +1,588 @@
+---
+title: "Common Issues"
+description: "Solutions to frequently encountered problems with Automagik Tools"
+icon: "circle-exclamation"
+---
+
+## Installation Issues
+
+### uvx Command Not Found
+
+**Problem**: `uvx: command not found` when trying to run tools
+
+<AccordionGroup>
+  <Accordion title="Solution 1: Install uv">
+    ```bash
+    # Install uv using official installer
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Add to PATH (Linux/macOS)
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+
+    # For zsh users
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+
+    # Verify installation
+    uvx --version
+    ```
+  </Accordion>
+
+  <Accordion title="Solution 2: Install via pip">
+    ```bash
+    # Install using pip
+    pip install uv
+
+    # Verify
+    uvx --version
+    ```
+  </Accordion>
+
+  <Accordion title="Solution 3: Use Direct Installation">
+    ```bash
+    # Windows (PowerShell)
+    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+    # Verify
+    uvx --version
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Python Version Mismatch
+
+**Problem**: `Error: Python 3.10+ required, found Python 3.9`
+
+**Solution**:
+
+```bash
+# Check current Python version
+python3 --version
+
+# Install Python 3.10+ (Ubuntu/Debian)
+sudo apt update
+sudo apt install python3.10
+
+# macOS (using Homebrew)
+brew install python@3.10
+
+# Windows
+# Download from https://www.python.org/downloads/
+
+# Verify
+python3.10 --version
+```
+
+---
+
+### Permission Denied
+
+**Problem**: `Permission denied` when installing or running tools
+
+<Tabs>
+  <Tab title="Linux/macOS (Recommended)">
+    **Fix permissions without sudo**:
+
+    ```bash
+    # Ensure uv directory is owned by your user
+    sudo chown -R $USER:$USER ~/.cargo
+
+    # Run installation again
+    uvx automagik-tools
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Run PowerShell as Administrator
+    # Right-click PowerShell → "Run as Administrator"
+
+    # Then install
+    uvx automagik-tools
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Dependency Conflict
+
+**Problem**: `Unable to resolve dependencies` or package version conflicts
+
+**Solution**:
+
+```bash
+# Clear uv cache
+uv cache clean
+
+# Reinstall with clean cache
+uvx --refresh automagik-tools
+
+# If still failing, create isolated environment
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate  # Windows
+
+pip install automagik-tools
+```
+
+---
+
+## Runtime Errors
+
+### Tool Not Responding
+
+**Problem**: MCP tool executes but returns no response
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check API Connection">
+    ```bash
+    # Test if API is accessible
+    curl -I https://api.example.com
+
+    # If API requires authentication
+    curl -H "Authorization: Bearer $API_KEY" https://api.example.com
+
+    # Check if URL is correct in tool configuration
+    ```
+  </Accordion>
+
+  <Accordion title="Increase Timeout">
+    Update MCP configuration to allow longer timeouts:
+
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tool": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "spec.json"],
+          "timeout": 60000  // Increase to 60 seconds
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Check Logs">
+    ```bash
+    # Enable debug logging
+    uvx automagik-tools mcp --spec spec.json --debug
+
+    # Check MCP server logs
+    # Claude Code: ~/.claude/logs/
+    # Cursor: Help → Show Logs → MCP
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Memory Issues with Large Responses
+
+**Problem**: Tool crashes or hangs with large API responses
+
+**Solution**:
+
+```bash
+# Limit response size in OpenAPI spec
+# Add maxLength constraint to large fields
+
+# Example OpenAPI modification:
+{
+  "schema": {
+    "type": "string",
+    "maxLength": 10000  # Limit to 10KB
+  }
+}
+
+# Or use pagination if API supports it
+{
+  "parameters": [
+    {
+      "name": "limit",
+      "in": "query",
+      "schema": {
+        "type": "integer",
+        "default": 100,
+        "maximum": 1000
+      }
+    }
+  ]
+}
+```
+
+---
+
+### Network Timeout Errors
+
+**Problem**: `Request timeout` or `Connection timed out`
+
+**Solutions**:
+
+```bash
+# Check network connectivity
+ping api.example.com
+
+# Test API directly
+curl -v https://api.example.com/endpoint
+
+# Configure proxy if needed
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+
+# Disable proxy temporarily to test
+unset HTTP_PROXY
+unset HTTPS_PROXY
+
+# Increase timeout in tool config
+uvx automagik-tools mcp --spec spec.json --timeout 120
+```
+
+---
+
+### API Rate Limiting
+
+**Problem**: `429 Too Many Requests` or rate limit errors
+
+**Solution**:
+
+```bash
+# Implement rate limiting in usage
+# Wait between requests
+
+# Add retry logic in tool configuration
+{
+  "retry": {
+    "max_attempts": 3,
+    "backoff_seconds": 5
+  }
+}
+
+# Check API documentation for rate limits
+# Example: 100 requests per minute
+
+# Use API key with higher limits if available
+export API_KEY=your_premium_key
+```
+
+---
+
+## Configuration Issues
+
+### Environment Variables Not Loaded
+
+**Problem**: Tool can't find API keys or configuration
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Verify Environment Variables">
+    ```bash
+    # Check if variable is set
+    echo $API_KEY
+    echo $OPENAI_API_KEY
+
+    # Should output the key value
+    # If empty, variable is not set
+    ```
+  </Accordion>
+
+  <Accordion title="Set in MCP Configuration">
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tool": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "spec.json"],
+          "env": {
+            "API_KEY": "your-api-key-here",
+            "BASE_URL": "https://api.example.com"
+          }
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use .env File">
+    ```bash
+    # Create .env file
+    cat > .env << EOF
+    API_KEY=your-api-key-here
+    BASE_URL=https://api.example.com
+    EOF
+
+    # Load in shell
+    export $(cat .env | xargs)
+
+    # Or use direnv for automatic loading
+    # Install: brew install direnv (macOS)
+    echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Tool Not Found in AI Client
+
+**Problem**: MCP tool doesn't appear in Claude/Cursor tool list
+
+**Solutions**:
+
+<Steps>
+  <Step title="Verify MCP Configuration">
+    Check that the MCP server is properly configured:
+
+    ```bash
+    # Claude Code
+    cat ~/.claude/mcp.json
+
+    # Cursor
+    # Settings → MCP → Check server list
+    ```
+  </Step>
+
+  <Step title="Test MCP Server Directly">
+    ```bash
+    # Run in stdio mode and test
+    uvx automagik-tools mcp --spec spec.json
+
+    # Should output: "MCP server running in stdio mode"
+    # Press Ctrl+C to exit
+    ```
+  </Step>
+
+  <Step title="Restart AI Client">
+    ```bash
+    # Claude Code: Reload MCP servers
+    # Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux)
+    # Type: "Reload MCP Servers"
+
+    # Cursor: Reload window
+    # Cmd+R (macOS) or Ctrl+R (Windows/Linux)
+    ```
+  </Step>
+
+  <Step title="Check Logs for Errors">
+    ```bash
+    # Claude Code logs
+    tail -f ~/.claude/logs/mcp.log
+
+    # Look for error messages related to tool loading
+    ```
+  </Step>
+</Steps>
+
+---
+
+### Invalid OpenAPI Specification
+
+**Problem**: Tool fails to load with spec validation errors
+
+**Solution**:
+
+```bash
+# Validate OpenAPI spec
+uvx automagik-tools validate --spec spec.json
+
+# Common issues to fix:
+# 1. Missing required fields
+# 2. Invalid schema references
+# 3. Incorrect data types
+# 4. Missing server URL
+
+# Use OpenAPI validator online
+# https://editor.swagger.io
+# Paste your spec and check for errors
+
+# Fix common issues:
+{
+  "openapi": "3.0.0",  // Must be 3.0.0 or higher
+  "info": {
+    "title": "Required",
+    "version": "1.0.0"  // Required
+  },
+  "servers": [{
+    "url": "https://api.example.com"  // Required
+  }],
+  "paths": {}  // At least one path required
+}
+```
+
+---
+
+## Performance Issues
+
+### Slow Tool Execution
+
+**Problem**: Tools take very long to execute
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check API Response Time">
+    ```bash
+    # Measure API response time
+    time curl https://api.example.com/endpoint
+
+    # If API is slow, not much you can do
+    # Consider caching results
+    ```
+  </Accordion>
+
+  <Accordion title="Optimize OpenAPI Spec">
+    ```bash
+    # Remove unnecessary fields from responses
+    # Use smaller page sizes
+    # Filter results at API level
+
+    # Example: Only request needed fields
+    {
+      "parameters": [{
+        "name": "fields",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "example": "id,name,status"  // Only these fields
+        }
+      }]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Enable Caching">
+    ```bash
+    # Cache API responses
+    uvx automagik-tools mcp --spec spec.json --cache-ttl 300
+
+    # TTL in seconds (300 = 5 minutes)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### High Memory Usage
+
+**Problem**: Tool consuming excessive memory
+
+**Solution**:
+
+```bash
+# Limit response payload size
+# Add pagination to large collections
+# Stream large responses instead of loading all at once
+
+# In OpenAPI spec:
+{
+  "responses": {
+    "200": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "array",
+            "maxItems": 100  // Limit array size
+          }
+        }
+      }
+    }
+  }
+}
+
+# Use streaming where supported
+# Check API documentation for streaming endpoints
+```
+
+---
+
+## Platform-Specific Issues
+
+### Windows Path Issues
+
+**Problem**: Spec file not found on Windows
+
+**Solution**:
+
+```bash
+# Use forward slashes or escaped backslashes
+uvx automagik-tools mcp --spec "C:/path/to/spec.json"
+# or
+uvx automagik-tools mcp --spec "C:\\path\\to\\spec.json"
+
+# Use relative paths
+cd C:\project
+uvx automagik-tools mcp --spec ".\openapi.json"
+
+# Or use Windows Subsystem for Linux (WSL)
+wsl
+uvx automagik-tools mcp --spec spec.json
+```
+
+---
+
+### macOS Gatekeeper Issues
+
+**Problem**: macOS blocks execution with security warning
+
+**Solution**:
+
+```bash
+# Allow uv in System Preferences
+# System Preferences → Security & Privacy → General
+# Click "Allow" next to the warning about uv
+
+# Or remove quarantine attribute
+xattr -d com.apple.quarantine ~/.cargo/bin/uv
+
+# Verify
+uvx --version
+```
+
+---
+
+### Linux Library Missing
+
+**Problem**: `error while loading shared libraries`
+
+**Solution**:
+
+```bash
+# Install missing libraries (Ubuntu/Debian)
+sudo apt update
+sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
+
+# CentOS/RHEL
+sudo yum install -y gcc openssl-devel libffi-devel python3-devel
+
+# Arch Linux
+sudo pacman -S base-devel openssl libffi
+
+# Verify
+uvx automagik-tools --version
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Errors" icon="download" href="/tools/troubleshooting/installation-errors">
+    Detailed installation troubleshooting
+  </Card>
+  <Card title="MCP Connection Errors" icon="plug" href="/tools/troubleshooting/mcp-connection-errors">
+    MCP client configuration issues
+  </Card>
+  <Card title="OpenAPI Conversion" icon="file-code" href="/tools/troubleshooting/openapi-conversion-errors">
+    OpenAPI specification problems
+  </Card>
+  <Card title="FAQ" icon="question" href="/tools/troubleshooting/faq">
+    Frequently asked questions
+  </Card>
+</CardGroup>

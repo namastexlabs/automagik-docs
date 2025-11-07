@@ -1,0 +1,276 @@
+---
+title: "Genie"
+description: "MCP orchestrator with persistent memory"
+icon: "wand-magic-sparkles"
+---
+
+## What It Does
+
+Genie orchestrates other MCP servers and remembers everything across sessions.
+
+## Run It
+
+```bash
+# For Claude Desktop
+uvx automagik-tools tool genie -t stdio
+
+# For team sharing
+uvx automagik-tools tool genie -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool genie -t http --port 8080
+```
+
+## Output
+
+When you run it, you see:
+
+```
+INFO Starting MCP server 'Genie' with transport 'stdio'
+```
+
+Server runs until you stop it (Ctrl+C).
+
+## Configuration
+
+Genie requires OpenAI API for orchestration logic:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+Optional memory backend (defaults to in-memory):
+
+```bash
+export GENIE_MEMORY_BACKEND="sqlite"
+export GENIE_MEMORY_PATH="~/.automagik/genie.db"
+```
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "genie", "-t", "stdio"],
+      "env": {
+        "OPENAI_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+Test: Restart Claude, ask "what tools are available?"
+
+## What Genie Coordinates
+
+Genie can orchestrate any MCP server:
+
+- Evolution API (WhatsApp)
+- Omni (multi-channel messaging)
+- Spark (task scheduling)
+- Custom MCP servers
+- Any tool that speaks MCP protocol
+
+## Example Usage
+
+Start Genie and another tool:
+
+```bash
+# Terminal 1: Start Genie
+uvx automagik-tools tool genie -t sse --port 8000
+
+# Terminal 2: Start Evolution API
+uvx automagik-tools tool evolution-api -t stdio
+```
+
+In Claude:
+
+```
+You: "Use Evolution API to send a WhatsApp message"
+Genie: *coordinates with Evolution API*
+Genie: *sends message*
+Genie: *stores result in memory*
+```
+
+## Memory
+
+Genie remembers:
+- Previous conversations
+- Tool usage patterns
+- Successful coordination strategies
+- Failed attempts (to avoid repeating)
+
+Memory persists between sessions if you configure a backend:
+
+```bash
+export GENIE_MEMORY_BACKEND="sqlite"
+export GENIE_MEMORY_PATH="~/.automagik/genie.db"
+```
+
+## Tool Info
+
+```bash
+uvx automagik-tools info genie
+```
+
+Output:
+```
+Tool: genie
+Version: 2.0.0
+Description: Generic MCP tool orchestrator with persistent memory - connect any MCP servers
+Category: Uncategorized
+Author: automagik-tools
+```
+
+## Troubleshooting
+
+**Problem**: Genie won't start
+```bash
+# Check OpenAI API key
+echo $OPENAI_API_KEY
+
+# Should output: sk-...
+# If empty, set it:
+export OPENAI_API_KEY="sk-..."
+```
+
+**Problem**: Genie can't coordinate other tools
+```bash
+# Verify other tools are running
+ps aux | grep automagik-tools
+
+# Check they're using compatible transports
+# Genie on SSE can coordinate stdio tools
+# But not vice versa
+```
+
+**Problem**: Memory not persisting
+```bash
+# Check memory backend is configured
+echo $GENIE_MEMORY_BACKEND
+
+# Should output: sqlite or postgresql
+# If empty, it's using in-memory (doesn't persist)
+
+# Set persistent backend:
+export GENIE_MEMORY_BACKEND="sqlite"
+export GENIE_MEMORY_PATH="~/.automagik/genie.db"
+```
+
+**Problem**: Slow responses
+```bash
+# Genie calls OpenAI for each coordination decision
+# This takes 1-3 seconds per decision
+# Consider:
+# 1. Using gpt-4o-mini instead of gpt-4
+# 2. Caching common patterns
+# 3. Direct tool calls for simple tasks
+```
+
+## Advanced: Multiple MCPs
+
+Genie can coordinate multiple MCP servers simultaneously:
+
+```bash
+# Start Genie
+uvx automagik-tools tool genie -t sse --port 8000
+
+# Start multiple tools
+uvx automagik-tools tool evolution-api -t stdio &
+uvx automagik-tools tool omni -t stdio &
+uvx automagik-tools tool spark -t stdio &
+```
+
+In Claude: "Send WhatsApp via Evolution API, then schedule a follow-up with Spark, and notify all channels via Omni"
+
+Genie coordinates all three tools automatically.
+
+## When to Use Genie
+
+**Use Genie when**:
+- Coordinating multiple MCP tools
+- Need memory across sessions
+- Want intelligent routing decisions
+- Building complex workflows
+
+**Don't use Genie when**:
+- Using single tool (add directly to Claude)
+- Need fast responses (Genie adds latency)
+- Simple automations (use tool directly)
+- Budget-sensitive (Genie costs OpenAI API calls)
+
+## Real-World Example
+
+Customer support bot that remembers context:
+
+```bash
+# Start tools
+uvx automagik-tools tool genie -t sse --port 8000 &
+uvx automagik-tools tool evolution-api -t stdio &
+```
+
+Config:
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "genie", "-t", "sse"],
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "GENIE_MEMORY_BACKEND": "sqlite",
+        "GENIE_MEMORY_PATH": "/home/user/.automagik/support-bot.db"
+      }
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "evolution-api", "-t", "stdio"],
+      "env": {
+        "EVOLUTION_API_KEY": "...",
+        "EVOLUTION_API_BASE_URL": "https://..."
+      }
+    }
+  }
+}
+```
+
+First interaction:
+```
+Customer: "My order is delayed"
+Genie: *stores context: customer issue = delayed order*
+Genie: *coordinates Evolution API*
+Response: "I see. Can you provide your order number?"
+```
+
+Follow-up (days later):
+```
+Customer: "Still no update"
+Genie: *recalls previous conversation*
+Genie: *knows this is about delayed order*
+Response: "Let me check on your delayed order #12345..."
+```
+
+## Cost Estimate
+
+Genie uses OpenAI API for coordination:
+
+- Simple coordination: ~500 tokens = $0.002
+- Complex multi-tool: ~2000 tokens = $0.008
+- With memory recall: +500 tokens = +$0.002
+
+Budget example (1000 coordinations/day):
+- Using gpt-4o-mini: ~$3/day
+- Using gpt-4o: ~$15/day
+- Using gpt-4: ~$60/day
+
+Set model in environment:
+```bash
+export OPENAI_MODEL="gpt-4o-mini"  # cheapest
+export OPENAI_MODEL="gpt-4o"        # balanced
+export OPENAI_MODEL="gpt-4"         # most capable
+```

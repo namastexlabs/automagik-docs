@@ -1,0 +1,744 @@
+---
+title: "Installation Errors"
+description: "Troubleshooting setup and dependency installation issues"
+icon: "download"
+---
+
+## Overview
+
+This guide covers common errors encountered during the installation and setup of Automagik Tools, including platform-specific issues and dependency conflicts.
+
+---
+
+## uv Installation Issues
+
+### Cannot Install uv
+
+**Problem**: Installation script fails or hangs
+
+<AccordionGroup>
+  <Accordion title="Network Issues">
+    ```bash
+    # Check internet connectivity
+    ping astral.sh
+
+    # Try with different DNS
+    # Google DNS
+    sudo echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+
+    # Retry installation
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  </Accordion>
+
+  <Accordion title="Corporate Proxy">
+    ```bash
+    # Set proxy before installation
+    export HTTP_PROXY=http://proxy.company.com:8080
+    export HTTPS_PROXY=http://proxy.company.com:8080
+
+    # Install with proxy
+    curl -x $HTTP_PROXY -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Configure git for proxy (if needed)
+    git config --global http.proxy $HTTP_PROXY
+    git config --global https.proxy $HTTPS_PROXY
+    ```
+  </Accordion>
+
+  <Accordion title="Firewall Blocking">
+    ```bash
+    # Check if firewall is blocking
+    telnet astral.sh 443
+
+    # If blocked, contact IT or use alternative method
+    # Install via pip instead
+    pip install uv
+
+    # Or download directly
+    wget https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz
+    tar -xzf uv-x86_64-unknown-linux-gnu.tar.gz
+    sudo mv uv /usr/local/bin/
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### uv Installed but Not in PATH
+
+**Problem**: `uvx: command not found` after successful installation
+
+**Solutions by Platform**:
+
+<Tabs>
+  <Tab title="Linux/macOS (Bash)">
+    ```bash
+    # Add to PATH permanently
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+
+    # Verify
+    which uvx
+    uvx --version
+    ```
+  </Tab>
+
+  <Tab title="macOS (Zsh)">
+    ```bash
+    # Add to zsh config
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+
+    # Verify
+    which uvx
+    uvx --version
+    ```
+  </Tab>
+
+  <Tab title="Windows (PowerShell)">
+    ```powershell
+    # Add to PATH using PowerShell
+    $env:Path += ";$env:USERPROFILE\.cargo\bin"
+
+    # Make permanent
+    [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::User)
+
+    # Verify (restart PowerShell first)
+    uvx --version
+    ```
+  </Tab>
+
+  <Tab title="Windows (Command Prompt)">
+    ```cmd
+    :: Add to PATH manually
+    :: Windows Settings → System → About → Advanced System Settings
+    :: Environment Variables → User Variables → Path → Edit
+    :: Add: %USERPROFILE%\.cargo\bin
+
+    :: Or use setx
+    setx PATH "%PATH%;%USERPROFILE%\.cargo\bin"
+
+    :: Restart Command Prompt and verify
+    uvx --version
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Python Environment Issues
+
+### Wrong Python Version
+
+**Problem**: System Python is too old (< 3.10)
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Check current version
+    python3 --version
+
+    # Add deadsnakes PPA for newer Python
+    sudo apt update
+    sudo apt install -y software-properties-common
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt update
+
+    # Install Python 3.11
+    sudo apt install -y python3.11 python3.11-venv python3.11-dev
+
+    # Set as default (optional)
+    sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+    # Verify
+    python3 --version
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Using Homebrew
+    brew install python@3.11
+
+    # Add to PATH
+    echo 'export PATH="/usr/local/opt/python@3.11/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+
+    # Verify
+    python3.11 --version
+
+    # Or use pyenv for version management
+    brew install pyenv
+    pyenv install 3.11.0
+    pyenv global 3.11.0
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Download from python.org
+    # https://www.python.org/downloads/
+
+    # Or use Windows Store
+    # Search "Python 3.11" in Microsoft Store
+
+    # Or use Chocolatey
+    choco install python311
+
+    # Verify
+    python --version
+    ```
+  </Tab>
+
+  <Tab title="CentOS/RHEL">
+    ```bash
+    # Enable EPEL repository
+    sudo yum install -y epel-release
+
+    # Install Python 3.11
+    sudo yum install -y python311 python311-devel
+
+    # Verify
+    python3.11 --version
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Multiple Python Versions Conflict
+
+**Problem**: Multiple Python installations causing confusion
+
+**Solution**:
+
+```bash
+# List all Python installations
+which -a python python3 python3.10 python3.11
+
+# Create virtual environment with specific version
+python3.11 -m venv ~/.venvs/automagik-tools
+source ~/.venvs/automagik-tools/bin/activate
+
+# Install in isolated environment
+pip install automagik-tools
+
+# Use with full path
+~/.venvs/automagik-tools/bin/python -m automagik_tools
+```
+
+---
+
+### Missing Python Development Headers
+
+**Problem**: `Python.h: No such file or directory` during compilation
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    sudo apt update
+    sudo apt install -y python3-dev python3.11-dev build-essential
+    ```
+  </Tab>
+
+  <Tab title="CentOS/RHEL">
+    ```bash
+    sudo yum install -y python3-devel gcc gcc-c++ make
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Install Xcode Command Line Tools
+    xcode-select --install
+
+    # Or install full Xcode from App Store
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Install Microsoft C++ Build Tools
+    # Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+    # Or install Visual Studio Community Edition
+    # Select "Desktop development with C++" workload
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Dependency Installation Errors
+
+### SSL Certificate Errors
+
+**Problem**: `SSL: CERTIFICATE_VERIFY_FAILED` during installation
+
+**Solutions**:
+
+```bash
+# Update certificates (macOS)
+/Applications/Python\ 3.11/Install\ Certificates.command
+
+# Ubuntu/Debian
+sudo apt update
+sudo apt install -y ca-certificates
+sudo update-ca-certificates
+
+# CentOS/RHEL
+sudo yum install -y ca-certificates
+sudo update-ca-trust
+
+# As last resort (not recommended for production)
+pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org automagik-tools
+```
+
+---
+
+### Compilation Errors
+
+**Problem**: `error: command 'gcc' failed` or compilation errors
+
+**Solutions by Platform**:
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    # Install build essentials
+    sudo apt update
+    sudo apt install -y \
+      build-essential \
+      libssl-dev \
+      libffi-dev \
+      python3-dev \
+      pkg-config \
+      cargo
+
+    # Retry installation
+    uvx automagik-tools
+    ```
+  </Tab>
+
+  <Tab title="macOS">
+    ```bash
+    # Install Xcode Command Line Tools
+    xcode-select --install
+
+    # Install OpenSSL via Homebrew
+    brew install openssl
+
+    # Set environment variables
+    export LDFLAGS="-L/usr/local/opt/openssl/lib"
+    export CPPFLAGS="-I/usr/local/opt/openssl/include"
+
+    # Retry installation
+    uvx automagik-tools
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```powershell
+    # Install Visual Studio Build Tools
+    # Download from: https://visualstudio.microsoft.com/downloads/
+    # Select "C++ build tools"
+
+    # Or use pre-built wheels
+    pip install --only-binary :all: automagik-tools
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Wheel Building Failed
+
+**Problem**: `Failed building wheel for <package>`
+
+**Solution**:
+
+```bash
+# Upgrade pip, setuptools, and wheel
+pip install --upgrade pip setuptools wheel
+
+# Try installing with no binary (forces source build)
+pip install --no-binary :all: automagik-tools
+
+# Or use binary only (no compilation)
+pip install --only-binary :all: automagik-tools
+
+# Clear pip cache and retry
+pip cache purge
+pip install automagik-tools
+```
+
+---
+
+### Conflicting Dependencies
+
+**Problem**: `ERROR: Cannot install automagik-tools because these package versions have conflicting dependencies`
+
+**Solution**:
+
+```bash
+# Create clean virtual environment
+python3 -m venv venv-clean
+source venv-clean/bin/activate  # Linux/macOS
+# venv-clean\Scripts\activate  # Windows
+
+# Install in clean environment
+pip install automagik-tools
+
+# If still fails, check specific conflicts
+pip install automagik-tools --verbose
+
+# Install with constraint file
+pip install automagik-tools -c constraints.txt
+```
+
+---
+
+## Platform-Specific Issues
+
+### Windows: Microsoft Visual C++ Required
+
+**Problem**: `error: Microsoft Visual C++ 14.0 or greater is required`
+
+**Solution**:
+
+<Steps>
+  <Step title="Download Build Tools">
+    Download Visual Studio Build Tools:
+    https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  </Step>
+
+  <Step title="Install C++ Build Tools">
+    Run installer and select:
+    - Desktop development with C++
+    - MSVC v142 or later
+    - Windows 10 SDK
+  </Step>
+
+  <Step title="Restart and Retry">
+    ```powershell
+    # Restart PowerShell
+    # Retry installation
+    uvx automagik-tools
+    ```
+  </Step>
+</Steps>
+
+---
+
+### macOS: Command Line Tools Missing
+
+**Problem**: `xcrun: error: invalid active developer path`
+
+**Solution**:
+
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# Click "Install" in the popup
+
+# Verify installation
+xcode-select -p
+# Should output: /Library/Developer/CommandLineTools
+
+# If still issues, reset path
+sudo xcode-select --reset
+```
+
+---
+
+### Linux: Permission Denied
+
+**Problem**: Permission errors during installation
+
+**Solutions**:
+
+```bash
+# Don't use sudo with pip/uv
+# Instead, install in user space
+
+# For pip
+pip install --user automagik-tools
+
+# For uv (already installs in user space)
+uvx automagik-tools
+
+# If files owned by root, fix ownership
+sudo chown -R $USER:$USER ~/.local
+sudo chown -R $USER:$USER ~/.cargo
+
+# Fix directory permissions
+chmod -R u+rwX ~/.local
+chmod -R u+rwX ~/.cargo
+```
+
+---
+
+## Architecture Issues
+
+### ARM vs x86_64 Mismatch
+
+**Problem**: `Platform mismatch` or architecture errors
+
+<Tabs>
+  <Tab title="macOS (Apple Silicon)">
+    ```bash
+    # Check architecture
+    uname -m
+    # Should show: arm64
+
+    # Ensure using native Python
+    which python3
+    # Should be in /opt/homebrew (native ARM)
+    # Not /usr/local (x86_64 via Rosetta)
+
+    # Install ARM-native Python if needed
+    arch -arm64 brew install python@3.11
+
+    # Install tools with native arch
+    arch -arm64 pip install automagik-tools
+    ```
+  </Tab>
+
+  <Tab title="Linux (ARM)">
+    ```bash
+    # Check architecture
+    uname -m
+    # arm64 or aarch64
+
+    # Ensure correct Python for architecture
+    python3 -c "import platform; print(platform.machine())"
+
+    # Install with correct arch
+    pip install automagik-tools
+    ```
+  </Tab>
+
+  <Tab title="Windows (ARM)">
+    ```powershell
+    # Check architecture
+    $env:PROCESSOR_ARCHITECTURE
+
+    # Install ARM64 Python from python.org
+    # https://www.python.org/downloads/windows/
+
+    # Verify
+    python -c "import platform; print(platform.machine())"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Virtual Environment Issues
+
+### venv Creation Failed
+
+**Problem**: Cannot create virtual environment
+
+**Solution**:
+
+```bash
+# Ensure venv module is installed
+# Ubuntu/Debian
+sudo apt install -y python3-venv
+
+# Create with explicit Python version
+python3.11 -m venv myenv
+
+# Activate
+source myenv/bin/activate  # Linux/macOS
+myenv\Scripts\activate     # Windows
+
+# Verify correct Python
+which python
+python --version
+```
+
+---
+
+### venv Not Activating
+
+**Problem**: Virtual environment activation doesn't work
+
+<Tabs>
+  <Tab title="Windows PowerShell">
+    ```powershell
+    # Enable script execution
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+    # Activate
+    .\venv\Scripts\Activate.ps1
+
+    # Verify
+    (venv) appears in prompt
+    ```
+  </Tab>
+
+  <Tab title="Windows Command Prompt">
+    ```cmd
+    :: Use .bat instead of .ps1
+    venv\Scripts\activate.bat
+
+    :: Verify
+    (venv) appears in prompt
+    ```
+  </Tab>
+
+  <Tab title="Linux/macOS">
+    ```bash
+    # Ensure activation script is executable
+    chmod +x venv/bin/activate
+
+    # Activate
+    source venv/bin/activate
+
+    # Verify
+    which python
+    # Should point to venv/bin/python
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Offline Installation
+
+### Installing Without Internet
+
+**Problem**: Need to install in air-gapped environment
+
+**Solution**:
+
+<Steps>
+  <Step title="Download Packages">
+    On machine with internet:
+
+    ```bash
+    # Download all dependencies
+    pip download automagik-tools -d packages/
+
+    # Creates directory with .whl files
+    ```
+  </Step>
+
+  <Step title="Transfer Files">
+    Copy `packages/` directory to offline machine
+  </Step>
+
+  <Step title="Install Offline">
+    On offline machine:
+
+    ```bash
+    # Install from local packages
+    pip install --no-index --find-links=packages/ automagik-tools
+
+    # Verify
+    python -m automagik_tools --version
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Upgrading Issues
+
+### Cannot Upgrade to Latest Version
+
+**Problem**: Stuck on old version despite upgrade attempt
+
+**Solution**:
+
+```bash
+# Force reinstall latest version
+pip install --upgrade --force-reinstall automagik-tools
+
+# Or with uv
+uvx --refresh automagik-tools
+
+# Clear cache and reinstall
+pip cache purge
+pip uninstall -y automagik-tools
+pip install automagik-tools
+
+# Verify version
+python -m automagik_tools --version
+```
+
+---
+
+### Downgrade to Specific Version
+
+**Problem**: Latest version has issues, need older version
+
+**Solution**:
+
+```bash
+# List available versions
+pip index versions automagik-tools
+
+# Install specific version
+pip install automagik-tools==1.0.0
+
+# Or with version constraint
+pip install "automagik-tools<2.0.0"
+
+# Pin in requirements.txt
+echo "automagik-tools==1.0.0" >> requirements.txt
+pip install -r requirements.txt
+```
+
+---
+
+## Uninstallation Issues
+
+### Cannot Uninstall Completely
+
+**Problem**: Uninstall leaves behind files
+
+**Solution**:
+
+```bash
+# Uninstall package
+pip uninstall -y automagik-tools
+
+# Remove cached files
+pip cache purge
+
+# Remove uv cache
+uv cache clean
+
+# Remove config and data directories (optional)
+rm -rf ~/.automagik-tools
+rm -rf ~/.config/automagik-tools
+rm -rf ~/.cache/automagik-tools
+
+# On Windows
+rmdir /s /q %APPDATA%\automagik-tools
+rmdir /s /q %LOCALAPPDATA%\automagik-tools
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="circle-exclamation" href="/tools/troubleshooting/common-issues">
+    General troubleshooting guide
+  </Card>
+  <Card title="MCP Connection Errors" icon="plug" href="/tools/troubleshooting/mcp-connection-errors">
+    MCP integration problems
+  </Card>
+  <Card title="OpenAPI Conversion" icon="file-code" href="/tools/troubleshooting/openapi-conversion-errors">
+    API specification issues
+  </Card>
+  <Card title="Installation Guide" icon="book" href="/tools/quickstart">
+    Back to installation guide
+  </Card>
+</CardGroup>

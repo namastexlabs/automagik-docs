@@ -1,0 +1,904 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Automagik Tools"
+icon: "question"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Automagik Tools?">
+    **Automagik Tools** converts any REST API into AI-native MCP (Model Context Protocol) tools that can be used by Claude, Cursor, and other AI coding assistants.
+
+    **Key Features:**
+    - Convert OpenAPI specs to MCP tools
+    - Zero code required
+    - Works with any REST API
+    - Supports multiple authentication methods
+    - Compatible with all MCP clients
+
+    **Use Cases:**
+    - Give AI access to your internal APIs
+    - Integrate third-party services with AI
+    - Build custom AI workflows
+    - Automate API interactions
+  </Accordion>
+
+  <Accordion title="What is MCP (Model Context Protocol)?">
+    **MCP** is an open protocol that enables AI assistants to connect to external tools and data sources.
+
+    **Think of it like this:**
+    - AI assistants = Apps on your phone
+    - MCP = USB-C port
+    - MCP tools = USB-C accessories
+    - Any AI can use any MCP tool (standardized interface)
+
+    **Benefits:**
+    - Universal: Works with all MCP-compatible AI clients
+    - Extensible: Add any API as a tool
+    - Secure: Run locally, you control data
+    - Open: No vendor lock-in
+
+    **Learn more:** [MCP Documentation](https://modelcontextprotocol.io/)
+  </Accordion>
+
+  <Accordion title="Is Automagik Tools free?">
+    **Yes!** Automagik Tools is completely free and open source.
+
+    **No costs:**
+    - No subscription fees
+    - No API usage limits
+    - No hidden charges
+    - 100% free forever
+
+    **Potential costs (separate):**
+    - Your API provider charges (if API requires payment)
+    - AI assistant API costs (Claude, OpenAI, etc.)
+    - Infrastructure costs (if self-hosting API)
+
+    But the tool itself is free!
+  </Accordion>
+
+  <Accordion title="Which AI clients work with Automagik Tools?">
+    **All MCP-compatible AI clients**, including:
+
+    **Official Support:**
+    - Claude Code (Desktop and CLI)
+    - Cursor
+    - VSCode + Cline extension
+    - Roo Code
+    - Zed
+
+    **Community Support:**
+    - Continue.dev
+    - Windsurf
+    - Any client implementing MCP protocol
+
+    **Coming Soon:**
+    - GitHub Copilot (when MCP support added)
+    - JetBrains AI (when MCP support added)
+
+    If an AI client supports MCP, it works with Automagik Tools!
+  </Accordion>
+
+  <Accordion title="Do I need to know how to code?">
+    **No!** Automagik Tools is designed for zero-code usage.
+
+    **What you need:**
+    1. OpenAPI specification (swagger.json)
+    2. Basic terminal/command line knowledge
+    3. API credentials (if API requires authentication)
+
+    **What you DON'T need:**
+    - Programming skills
+    - API development knowledge
+    - Server setup experience
+
+    **Example workflow:**
+    ```bash
+    # 1. Get OpenAPI spec
+    curl https://api.example.com/openapi.json > spec.json
+
+    # 2. Run MCP server
+    uvx automagik-tools mcp --spec spec.json
+
+    # 3. Use in AI client (configured once)
+    # Ask AI: "List all users"
+    ```
+
+    That's it! The AI handles the rest.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Technical Questions
+
+<AccordionGroup>
+  <Accordion title="How does OpenAPI to MCP conversion work?">
+    **Automagik Tools** analyzes your OpenAPI spec and generates MCP tools automatically.
+
+    **Conversion Process:**
+
+    1. **Parse OpenAPI Spec**
+       - Reads endpoints, parameters, schemas
+       - Validates structure
+
+    2. **Generate MCP Tools**
+       - Each API endpoint → One MCP tool
+       - Parameters → Tool arguments
+       - Authentication → Automatic handling
+
+    3. **Expose via MCP Protocol**
+       - Tools available to AI clients
+       - AI can call tools like functions
+       - Results returned to AI
+
+    **Example:**
+    ```json
+    // OpenAPI endpoint
+    GET /users/{id}
+
+    // Becomes MCP tool
+    get_user(user_id: string) → User object
+    ```
+
+    AI can now say: "Get user with ID 123" and the tool executes automatically.
+  </Accordion>
+
+  <Accordion title="What OpenAPI versions are supported?">
+    **Supported:**
+    - OpenAPI 3.0.x ✅ (Recommended)
+    - OpenAPI 3.1.x ✅ (Full support)
+    - Swagger 2.0 ⚠️ (Via conversion)
+
+    **Swagger 2.0 Support:**
+    ```bash
+    # Convert Swagger 2.0 to OpenAPI 3.0
+    npm install -g swagger2openapi
+    swagger2openapi swagger.json -o openapi.json
+
+    # Then use with Automagik Tools
+    uvx automagik-tools mcp --spec openapi.json
+    ```
+
+    **Not Supported:**
+    - OpenAPI 1.x (obsolete)
+    - RAML
+    - API Blueprint
+    - GraphQL (different protocol)
+
+    Most modern APIs provide OpenAPI 3.0 specs.
+  </Accordion>
+
+  <Accordion title="Can I use with APIs that don't have OpenAPI specs?">
+    **Yes**, but you'll need to create the spec yourself.
+
+    **Options:**
+
+    **1. Generate from API documentation:**
+    - Use tools like Postman to generate OpenAPI
+    - Many API testing tools export OpenAPI
+
+    **2. Create manually:**
+    - Minimal spec is easy to write
+    - Start with basic endpoints
+    - Add complexity as needed
+
+    **3. Use AI to generate:**
+    - Give API documentation to Claude/GPT
+    - Ask: "Generate OpenAPI spec for this API"
+    - Review and validate output
+
+    **Example minimal spec:**
+    ```json
+    {
+      "openapi": "3.0.0",
+      "info": {"title": "My API", "version": "1.0.0"},
+      "servers": [{"url": "https://api.example.com"}],
+      "paths": {
+        "/users": {
+          "get": {
+            "operationId": "getUsers",
+            "responses": {
+              "200": {"description": "Success"}
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    See [Creating OpenAPI Specs](/tools/advanced/custom-tools) for guide.
+  </Accordion>
+
+  <Accordion title="How are API authentication credentials handled?">
+    **Securely via environment variables.**
+
+    **Process:**
+
+    1. **Define in OpenAPI spec:**
+    ```json
+    {
+      "components": {
+        "securitySchemes": {
+          "apiKey": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key"
+          }
+        }
+      }
+    }
+    ```
+
+    2. **Set environment variable:**
+    ```bash
+    export API_KEY=your-secret-key-here
+    ```
+
+    3. **Configure in MCP:**
+    ```json
+    {
+      "env": {
+        "API_KEY": "your-key-here"
+      }
+    }
+    ```
+
+    **Security Notes:**
+    - Credentials never stored in code
+    - Only you have access
+    - Runs locally on your machine
+    - Not sent to AI providers (unless API is called)
+
+    **Supported auth types:**
+    - API Keys
+    - Bearer tokens
+    - Basic authentication
+    - Custom headers
+  </Accordion>
+
+  <Accordion title="What's the difference between stdio and SSE modes?">
+    **Two ways to run MCP server:**
+
+    **stdio Mode (Default):**
+    ```bash
+    uvx automagik-tools mcp --spec spec.json
+    # Uses standard input/output
+    ```
+
+    **Best for:**
+    - Local AI clients (Claude Code, Cursor)
+    - Single user
+    - Maximum compatibility
+    - No network setup
+
+    **How it works:**
+    - AI client spawns MCP server process
+    - Communication via stdin/stdout
+    - Server exists only during session
+
+    ---
+
+    **SSE Mode (Server-Sent Events):**
+    ```bash
+    uvx automagik-tools mcp --spec spec.json --sse --port 8000
+    # Runs as HTTP server
+    ```
+
+    **Best for:**
+    - Remote AI clients
+    - Multiple users
+    - Web-based AI tools
+    - Persistent server
+
+    **How it works:**
+    - Server runs independently
+    - Clients connect via HTTP
+    - Multiple clients can share server
+
+    **When to use each:**
+    - Local use → stdio
+    - Remote use → SSE
+    - Not sure → stdio (simpler)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Usage Questions
+
+<AccordionGroup>
+  <Accordion title="How do I get started?">
+    <Steps>
+      <Step title="Install">
+        ```bash
+        # Install uv (if not installed)
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+
+        # Verify installation
+        uvx --version
+        ```
+      </Step>
+
+      <Step title="Get OpenAPI Spec">
+        ```bash
+        # Download from API
+        curl https://api.example.com/openapi.json > spec.json
+
+        # Or use Swagger UI endpoint
+        curl https://api.example.com/swagger/v1/swagger.json > spec.json
+
+        # Verify spec is valid
+        uvx automagik-tools validate --spec spec.json
+        ```
+      </Step>
+
+      <Step title="Configure MCP Client">
+        **Claude Code** (`~/.claude/mcp.json`):
+        ```json
+        {
+          "mcpServers": {
+            "my-api": {
+              "command": "uvx",
+              "args": ["automagik-tools", "mcp", "--spec", "/path/to/spec.json"],
+              "env": {
+                "API_KEY": "your-key-here"
+              }
+            }
+          }
+        }
+        ```
+
+        Reload MCP servers in Claude Code
+      </Step>
+
+      <Step title="Use in AI">
+        ```
+        Ask Claude: "What tools are available?"
+        See your API tools listed
+        Ask: "Get user with ID 123"
+        Tool executes automatically!
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="How do I convert my API to MCP tools?">
+    **Quick conversion guide:**
+
+    **If you have OpenAPI spec:**
+    ```bash
+    # Already have spec.json
+    uvx automagik-tools mcp --spec spec.json
+    ```
+
+    **If you don't have OpenAPI spec:**
+
+    **Option 1: Generate from Postman**
+    1. Import API to Postman
+    2. File → Export → OpenAPI 3.0
+    3. Save as spec.json
+
+    **Option 2: Use API documentation**
+    - Give docs to AI assistant
+    - Ask: "Generate OpenAPI spec from this documentation"
+    - Save output as spec.json
+    - Validate with: `uvx automagik-tools validate --spec spec.json`
+
+    **Option 3: Write minimal spec**
+    ```json
+    {
+      "openapi": "3.0.0",
+      "info": {"title": "API", "version": "1.0.0"},
+      "servers": [{"url": "https://api.example.com"}],
+      "paths": {
+        "/endpoint": {
+          "get": {
+            "operationId": "getEndpoint",
+            "responses": {"200": {"description": "OK"}}
+          }
+        }
+      }
+    }
+    ```
+
+    See [Converting APIs](/tools/usage/converting-apis) for detailed guide.
+  </Accordion>
+
+  <Accordion title="Can I use multiple APIs simultaneously?">
+    **Yes!** Configure multiple MCP servers.
+
+    ```json
+    {
+      "mcpServers": {
+        "github-api": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/path/to/github-spec.json"],
+          "env": {"GITHUB_TOKEN": "ghp_..."}
+        },
+        "stripe-api": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/path/to/stripe-spec.json"],
+          "env": {"STRIPE_KEY": "sk_test_..."}
+        },
+        "internal-api": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/path/to/internal-spec.json"],
+          "env": {"API_KEY": "internal-key"}
+        }
+      }
+    }
+    ```
+
+    **AI can now use all APIs:**
+    ```
+    "Create a GitHub issue, then send Stripe invoice, and log to internal API"
+    ```
+
+    All three APIs work together seamlessly!
+  </Accordion>
+
+  <Accordion title="How do I update a tool after API changes?">
+    **Simple: Update the OpenAPI spec**
+
+    <Steps>
+      <Step title="Get Updated Spec">
+        ```bash
+        # Download new spec
+        curl https://api.example.com/openapi.json > spec.json
+
+        # Or update manually if you maintain spec
+        ```
+      </Step>
+
+      <Step title="Validate Changes">
+        ```bash
+        # Validate new spec
+        uvx automagik-tools validate --spec spec.json
+
+        # Check for breaking changes
+        diff old-spec.json spec.json
+        ```
+      </Step>
+
+      <Step title="Restart MCP Server">
+        **stdio mode:**
+        - AI client auto-restarts on next use
+
+        **SSE mode:**
+        ```bash
+        # Stop old server (Ctrl+C)
+        # Start with new spec
+        uvx automagik-tools mcp --spec spec.json --sse --port 8000
+        ```
+      </Step>
+
+      <Step title="Reload in AI Client">
+        **Claude Code:**
+        ```
+        Cmd+Shift+P → "Reload MCP Servers"
+        ```
+
+        **Cursor:**
+        ```
+        Cmd+R (Reload window)
+        ```
+      </Step>
+    </Steps>
+
+    Tools now reflect updated API!
+  </Accordion>
+
+  <Accordion title="Can I customize tool names and descriptions?">
+    **Yes**, via OpenAPI spec modifications.
+
+    **Tool Naming:**
+    ```json
+    {
+      "paths": {
+        "/users": {
+          "get": {
+            "operationId": "listAllActiveUsers",  // Tool name
+            "summary": "Get all active users in the system",  // Tool description
+            "description": "Returns paginated list of users with status='active'"
+          }
+        }
+      }
+    }
+    ```
+
+    **Parameter Descriptions:**
+    ```json
+    {
+      "parameters": [{
+        "name": "limit",
+        "in": "query",
+        "description": "Maximum number of results (1-100)",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      }]
+    }
+    ```
+
+    **AI sees:**
+    - Tool: `listAllActiveUsers`
+    - Description: "Get all active users in the system"
+    - Parameter: `limit` - "Maximum number of results (1-100)"
+
+    Better names = AI uses tools more effectively!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Integration Questions
+
+<AccordionGroup>
+  <Accordion title="Can I use with local/self-hosted LLMs?">
+    **Yes**, if they support MCP protocol.
+
+    **Compatible local LLMs:**
+    - LM Studio (with MCP support)
+    - Ollama (via MCP bridge)
+    - LocalAI (MCP compatible)
+    - Any model with MCP integration
+
+    **Setup:**
+    ```bash
+    # Run MCP server
+    uvx automagik-tools mcp --spec spec.json
+
+    # Configure in your local LLM
+    # (Configuration varies by LLM)
+
+    # Example for LM Studio:
+    # Settings → Tools → Add MCP Server
+    # Command: uvx automagik-tools mcp --spec spec.json
+    ```
+
+    **Benefits:**
+    - Full privacy (everything local)
+    - No API costs
+    - Offline capable
+    - Your data never leaves machine
+  </Accordion>
+
+  <Accordion title="How do I integrate with existing systems?">
+    **Automagik Tools works alongside your existing setup.**
+
+    **Common Integration Patterns:**
+
+    **1. CI/CD Pipelines:**
+    ```bash
+    # Use in GitHub Actions
+    - name: Generate API tools
+      run: |
+        uvx automagik-tools mcp --spec openapi.json
+    ```
+
+    **2. Development Workflows:**
+    ```bash
+    # Add to package.json scripts
+    {
+      "scripts": {
+        "mcp": "uvx automagik-tools mcp --spec openapi.json"
+      }
+    }
+    ```
+
+    **3. Docker Containers:**
+    ```dockerfile
+    FROM python:3.11
+    RUN pip install uv
+    COPY openapi.json /app/
+    CMD ["uvx", "automagik-tools", "mcp", "--spec", "/app/openapi.json", "--sse"]
+    ```
+
+    **4. Internal Tools:**
+    - Point to internal API specs
+    - Use private network endpoints
+    - Secure with VPN/firewall
+  </Accordion>
+
+  <Accordion title="Can I monitor tool usage?">
+    **Currently: Basic logging only**
+
+    **Available:**
+    ```bash
+    # Enable debug logging
+    uvx automagik-tools mcp --spec spec.json --debug
+
+    # Shows:
+    # - Tool calls
+    # - Parameters passed
+    # - API responses
+    # - Errors
+    ```
+
+    **Coming Soon:**
+    - Usage analytics
+    - Performance metrics
+    - Error tracking
+    - Cost monitoring
+
+    **Workaround for now:**
+    - Use API provider's dashboard
+    - Monitor network traffic
+    - Log at application level
+  </Accordion>
+
+  <Accordion title="How do I share tools with my team?">
+    **Share OpenAPI spec + MCP configuration**
+
+    **Method 1: Git Repository**
+    ```bash
+    # Project structure
+    project/
+    ├── openapi.json          # API spec
+    ├── mcp-config.json       # MCP configuration
+    └── README.md             # Setup instructions
+
+    # Team members clone and configure
+    git clone repo
+    # Follow README to set up MCP
+    ```
+
+    **Method 2: Shared Configuration**
+    ```json
+    // Shared mcp.json template
+    {
+      "mcpServers": {
+        "team-api": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "${PROJECT_ROOT}/openapi.json"],
+          "env": {
+            "API_KEY": "${YOUR_API_KEY_HERE}"  // Each person sets their own
+          }
+        }
+      }
+    }
+    ```
+
+    **Method 3: Internal Documentation**
+    - Document setup process
+    - Provide example specs
+    - Share best practices
+    - Create team templates
+
+    **Method 4: SSE Server (Advanced)**
+    ```bash
+    # Run shared MCP server
+    uvx automagik-tools mcp --spec spec.json --sse --port 8000 --host 0.0.0.0
+
+    # Team connects to: http://internal-server:8000
+    # Everyone uses same tools
+    ```
+  </Accordion>
+
+  <Accordion title="Is it production-ready?">
+    **Yes for most use cases**, with considerations:
+
+    **Production-Ready For:**
+    - Internal tools and APIs
+    - Development automation
+    - Personal productivity
+    - Small team usage
+    - Prototype/MVP development
+
+    **Consider For Production:**
+
+    ✅ **Pros:**
+    - Stable core functionality
+    - Open source (can review code)
+    - Active development
+    - MCP is standardized protocol
+
+    ⚠️ **Considerations:**
+    - Rate limiting (implement at API level)
+    - Error handling (monitor and log)
+    - Security (use proper authentication)
+    - Scalability (use SSE for multiple users)
+    - Updates (test before deploying)
+
+    **Production Checklist:**
+    - [ ] API has rate limits
+    - [ ] Authentication secured
+    - [ ] Error handling tested
+    - [ ] Monitoring in place
+    - [ ] Backup OpenAPI specs
+    - [ ] Documentation for team
+    - [ ] Rollback plan ready
+
+    **Large Scale?**
+    - Consider dedicated infrastructure
+    - Implement caching
+    - Load balancing for SSE
+    - API gateway for access control
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting Questions
+
+<AccordionGroup>
+  <Accordion title="Why aren't my tools showing up?">
+    **Check these in order:**
+
+    1. **Verify MCP config is correct:**
+    ```bash
+    cat ~/.claude/mcp.json
+    # Check for syntax errors
+    python -m json.tool < ~/.claude/mcp.json
+    ```
+
+    2. **Test spec is valid:**
+    ```bash
+    uvx automagik-tools validate --spec spec.json
+    ```
+
+    3. **Verify server starts:**
+    ```bash
+    uvx automagik-tools mcp --spec spec.json
+    # Should output: "MCP server running in stdio mode"
+    ```
+
+    4. **Check AI client logs:**
+    - Claude Code: `~/.claude/logs/`
+    - Cursor: Help → Show Logs → MCP
+
+    5. **Reload MCP servers:**
+    - Claude Code: Cmd+Shift+P → "Reload MCP Servers"
+    - Cursor: Cmd+R
+
+    Still not working? See [MCP Connection Errors](/tools/troubleshooting/mcp-connection-errors)
+  </Accordion>
+
+  <Accordion title="Why do API calls fail with authentication errors?">
+    **Check authentication setup:**
+
+    1. **Verify credentials are set:**
+    ```bash
+    echo $API_KEY
+    # Should output your key, not empty
+    ```
+
+    2. **Check OpenAPI security scheme:**
+    ```json
+    {
+      "components": {
+        "securitySchemes": {
+          "apiKey": {
+            "type": "apiKey",
+            "in": "header",         // or "query"
+            "name": "X-API-Key"     // Correct header name?
+          }
+        }
+      },
+      "security": [{
+        "apiKey": []  // Applied globally
+      }]
+    }
+    ```
+
+    3. **Set in MCP config:**
+    ```json
+    {
+      "env": {
+        "API_KEY": "your-actual-key"  // Use real key, not placeholder
+      }
+    }
+    ```
+
+    4. **Test API directly:**
+    ```bash
+    curl -H "X-API-Key: $API_KEY" https://api.example.com/endpoint
+    # Should succeed
+    ```
+
+    See [Authentication Guide](/tools/advanced/authentication) for details.
+  </Accordion>
+
+  <Accordion title="How do I debug tool execution?">
+    **Enable debug mode:**
+
+    ```bash
+    # Run with debug logging
+    uvx automagik-tools mcp --spec spec.json --debug
+
+    # Shows detailed information:
+    # - Tool calls with parameters
+    # - HTTP requests/responses
+    # - Error stack traces
+    # - Timing information
+    ```
+
+    **Check AI client logs:**
+    ```bash
+    # Claude Code
+    tail -f ~/.claude/logs/mcp-your-tool.log
+
+    # Cursor
+    # Help → Show Logs → MCP Logs
+    ```
+
+    **Test tool directly:**
+    ```bash
+    # Call API endpoint manually
+    curl -X POST https://api.example.com/endpoint \
+      -H "Content-Type: application/json" \
+      -H "X-API-Key: $API_KEY" \
+      -d '{"param": "value"}'
+
+    # Verify API works outside of MCP
+    ```
+
+    **Common issues:**
+    - Wrong parameter types
+    - Missing required parameters
+    - Invalid authentication
+    - API rate limiting
+    - Network connectivity
+
+    See [Common Issues](/tools/troubleshooting/common-issues) for more.
+  </Accordion>
+
+  <Accordion title="What if my OpenAPI spec is invalid?">
+    **Validate and fix:**
+
+    1. **Check with validator:**
+    ```bash
+    uvx automagik-tools validate --spec spec.json
+    # Shows specific errors
+    ```
+
+    2. **Use online validator:**
+    - https://editor.swagger.io/
+    - Paste your spec
+    - Fix red errors
+    - Download fixed version
+
+    3. **Common issues:**
+    - Missing required fields (openapi, info, paths)
+    - Invalid schema references
+    - Wrong data types
+    - Syntax errors (JSON/YAML)
+
+    4. **Fix incrementally:**
+    - Start with minimal valid spec
+    - Add endpoints one by one
+    - Validate after each change
+    - Identify what breaks
+
+    See [OpenAPI Conversion Errors](/tools/troubleshooting/openapi-conversion-errors) for detailed fixes.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="/tools/introduction">
+    Complete documentation
+  </Card>
+  <Card title="Common Issues" icon="circle-exclamation" href="/tools/troubleshooting/common-issues">
+    Troubleshooting guide
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs/automagik-tools">
+    Report bugs and request features
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help from the community
+  </Card>
+</CardGroup>
+
+---
+
+**Still have questions?** Ask in [Discord](https://discord.gg/xcW8c7fF3R) or open a [GitHub Issue](https://github.com/namastexlabs/automagik-tools/issues)!

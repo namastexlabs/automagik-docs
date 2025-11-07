@@ -1,0 +1,502 @@
+---
+title: "Roo Code Setup"
+description: "Configure automagik-tools for Roo Code"
+icon: "robot"
+---
+
+## Roo Code MCP Setup
+
+Connect automagik-tools to Roo Code, the AI-powered coding assistant. Get instant API access in your development workflow.
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Roo Code">
+    Download and install Roo Code from [roocode.dev](https://roocode.dev)
+  </Step>
+
+  <Step title="Install automagik-tools">
+    ```bash
+    # Option 1: pip
+    pip install automagik-tools
+
+    # Option 2: uvx (instant, no install)
+    uvx automagik-tools --version
+    ```
+  </Step>
+
+  <Step title="Get API Credentials">
+    For the tools you'll use:
+    ```bash
+    # Example: OpenAI (for Genie)
+    export OPENAI_API_KEY=sk-your-key
+
+    # Example: Evolution API (WhatsApp)
+    export EVOLUTION_API_KEY=your-key
+    export EVOLUTION_API_BASE_URL=https://your-instance.com
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Option 1: Genie (Universal Orchestrator)
+
+<Steps>
+  <Step title="Open Roo Code Settings">
+    - Click the Roo icon in your editor
+    - Navigate to **Settings** or **Preferences**
+    - Find **MCP Servers** section
+  </Step>
+
+  <Step title="Add Genie MCP Server">
+    Click **Add Server** and configure:
+
+    ```json
+    {
+      "name": "genie",
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "genie"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-openai-key-here"
+      }
+    }
+    ```
+
+    <Info>
+    **Genie** is a universal orchestrator that can handle multiple API requests intelligently. It uses OpenAI to coordinate complex workflows.
+    </Info>
+  </Step>
+
+  <Step title="Save and Restart">
+    - Save the configuration
+    - Restart Roo Code for changes to take effect
+  </Step>
+
+  <Step title="Test">
+    In Roo Code's chat, try:
+    ```
+    "Help me orchestrate a complex workflow"
+    ```
+
+    Roo should use the Genie tool via MCP!
+  </Step>
+</Steps>
+
+### Option 2: WhatsApp via Evolution API
+
+**Connect WhatsApp for messaging automation.**
+
+<Steps>
+  <Step title="Setup Evolution API">
+    First, ensure you have Evolution API running. See [Evolution API docs](https://doc.evolution-api.com/) for setup.
+  </Step>
+
+  <Step title="Configure MCP Server">
+    ```json
+    {
+      "name": "whatsapp",
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "evolution-api"
+      ],
+      "env": {
+        "EVOLUTION_API_KEY": "your-evolution-api-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Test WhatsApp">
+    In Roo Code:
+    ```
+    "Send a WhatsApp message to +1234567890: Hello from Roo Code!"
+    ```
+  </Step>
+</Steps>
+
+### Option 3: Custom API via OpenAPI
+
+**Convert any OpenAPI spec into MCP tools.**
+
+```json
+{
+  "name": "petstore",
+  "command": "uvx",
+  "args": [
+    "automagik-tools@latest",
+    "openapi",
+    "https://petstore3.swagger.io/api/v3/openapi.json"
+  ]
+}
+```
+
+<Info>
+Replace the PetStore URL with your own OpenAPI specification URL. This works with any API that has an OpenAPI/Swagger spec.
+</Info>
+
+See [Custom OpenAPI guide](/tools/integration/custom-openapi) for details.
+
+### Option 4: Multiple Tools
+
+**Connect multiple tools simultaneously.**
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "genie",
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key"
+      }
+    },
+    {
+      "name": "whatsapp",
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_KEY": "your-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    },
+    {
+      "name": "custom-api",
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Available Real Tools
+
+<Info>
+These are the **ONLY** tools available in automagik-tools. Verify by running:
+```bash
+uvx automagik-tools list
+```
+</Info>
+
+| Tool | Description | Required Env Vars |
+|------|-------------|-------------------|
+| **genie** | Universal orchestrator | `OPENAI_API_KEY` |
+| **evolution-api** | WhatsApp messaging | `EVOLUTION_API_KEY`, `EVOLUTION_API_BASE_URL` |
+| **omni** | Multi-channel messaging | Varies by channel |
+| **automagik** | Core automation | None |
+| **spark** | Task automation | None |
+| **automagik-hive** | Distributed tasks | None |
+| **gemini-assistant** | Gemini integration | `GOOGLE_API_KEY` |
+| **OpenAPI** | Custom API conversion | API-specific |
+
+---
+
+## Usage in Roo Code
+
+### Orchestration with Genie
+
+```
+You: "Plan a multi-step workflow to process data and send notifications"
+
+Roo: [Uses genie tool via MCP]
+
+Roo: "I've planned the workflow:
+     1. Data validation and cleaning
+     2. Processing pipeline setup
+     3. Notification triggers configured
+
+     Would you like me to execute this plan?"
+```
+
+### WhatsApp Automation
+
+```
+You: "Send a WhatsApp message to the team with today's deployment status"
+
+Roo: [Uses evolution-api tool via MCP]
+
+Roo: "Message sent via WhatsApp:
+
+     ✅ Deployment Status - January 4, 2025
+     - API: Deployed successfully
+     - Database: Migration complete
+     - Frontend: Live on production
+
+     All systems operational!"
+```
+
+### Custom API Integration
+
+```
+You: "Create a new pet in the PetStore API"
+
+Roo: [Uses petstore OpenAPI tool via MCP]
+
+Roo: "Created pet:
+     - ID: 12345
+     - Name: Fluffy
+     - Status: Available
+
+     API response successful!"
+```
+
+---
+
+## Authentication Setup
+
+### OpenAI API Key (for Genie)
+
+<Steps>
+  <Step title="Get API Key">
+    Visit https://platform.openai.com/api-keys
+
+    - Click **Create new secret key**
+    - Name it "Roo Code Genie Integration"
+    - Copy the key (starts with `sk-`)
+  </Step>
+
+  <Step title="Add to Roo Config">
+    ```json
+    {
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### Evolution API Setup (for WhatsApp)
+
+<Steps>
+  <Step title="Deploy Evolution API">
+    Follow the [Evolution API installation guide](https://doc.evolution-api.com/install)
+  </Step>
+
+  <Step title="Get Credentials">
+    - Get your API key from Evolution API dashboard
+    - Note your instance URL
+  </Step>
+
+  <Step title="Add to Roo Config">
+    ```json
+    {
+      "env": {
+        "EVOLUTION_API_KEY": "your-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP server not connecting">
+    **Error**: `Failed to connect to MCP server`
+
+    **Solutions**:
+    1. Verify automagik-tools installation:
+       ```bash
+       uvx automagik-tools --version
+       # Should output version number
+       ```
+
+    2. Check tool exists:
+       ```bash
+       uvx automagik-tools list
+       ```
+
+    3. Verify configuration syntax (valid JSON)
+
+    4. Ensure `"command": "uvx"` not `"node"` or `"python"`
+
+    5. Restart Roo Code completely
+  </Accordion>
+
+  <Accordion title="Authentication failures">
+    **Error**: `401 Unauthorized` or `403 Forbidden`
+
+    **Solutions**:
+    1. Verify API keys are correct and not expired
+    2. Check environment variable names match exactly
+    3. Test credentials manually:
+       ```bash
+       # OpenAI
+       curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+         https://api.openai.com/v1/models
+
+       # Evolution API
+       curl -H "apikey: $EVOLUTION_API_KEY" \
+         $EVOLUTION_API_BASE_URL/instance/fetchInstances
+       ```
+  </Accordion>
+
+  <Accordion title="Tools not appearing">
+    **Symptom**: Roo doesn't seem to have access to tools
+
+    **Solutions**:
+    1. Ask Roo: "What MCP tools do you have access to?"
+    2. Verify the tool name from `uvx automagik-tools list`
+    3. Check for configuration errors in logs
+    4. Ensure proper restart after config changes
+    5. Try removing and re-adding the server
+  </Accordion>
+
+  <Accordion title="Wrong tool configured">
+    **Error**: Tool not found or doesn't exist
+
+    **Solution**:
+    Only use tools from this verified list:
+    ```bash
+    uvx automagik-tools list
+    ```
+
+    Output shows:
+    - genie
+    - evolution-api
+    - omni
+    - automagik
+    - spark
+    - automagik-hive
+    - gemini-assistant
+
+    Any other tool name will fail!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Configuration File Location
+
+Roo Code typically stores MCP configuration in:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    ~/Library/Application Support/Roo/config.json
+    ```
+
+    Or access via: Roo Settings → MCP Servers → Edit Config
+  </Tab>
+
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Roo\config.json
+    ```
+
+    Or access via: Roo Settings → MCP Servers → Edit Config
+  </Tab>
+
+  <Tab title="Linux">
+    ```bash
+    ~/.config/Roo/config.json
+    ```
+
+    Or access via: Roo Settings → MCP Servers → Edit Config
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+<Tip>
+**Use environment variables** for sensitive credentials:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export OPENAI_API_KEY=sk-xxx
+export EVOLUTION_API_KEY=your-key
+export EVOLUTION_API_BASE_URL=https://your-instance.com
+```
+
+Then reference in config:
+```json
+{
+  "env": {
+    "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+  }
+}
+```
+</Tip>
+
+<Tip>
+**Verify tool names** before configuring:
+
+```bash
+# Always run this first
+uvx automagik-tools list
+
+# Then use exact names from output
+```
+</Tip>
+
+<Tip>
+**Test tools independently** before using in Roo:
+
+```bash
+# Test Genie
+uvx automagik-tools tool genie --help
+
+# Test Evolution API
+uvx automagik-tools tool evolution-api --help
+```
+</Tip>
+
+<Tip>
+**Use descriptive server names** for better organization:
+
+```json
+{
+  "mcpServers": [
+    {"name": "genie-orchestrator", ...},
+    {"name": "whatsapp-production", ...},
+    {"name": "api-staging", ...}
+  ]
+}
+```
+</Tip>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Overview" icon="book" href="/tools/integration/overview">
+    Learn about MCP integration
+  </Card>
+
+  <Card title="Custom OpenAPI" icon="wand-magic-sparkles" href="/tools/integration/custom-openapi">
+    Generate tools from your API
+  </Card>
+
+  <Card title="Available Tools" icon="list" href="/tools/concepts/overview">
+    Complete list of real tools
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/tools/cli/overview">
+    Command line usage
+  </Card>
+</CardGroup>

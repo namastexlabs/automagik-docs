@@ -1,0 +1,690 @@
+---
+title: "Gemini Assistant"
+description: "Google Gemini AI integration for vision and multimodal tasks"
+icon: "google"
+---
+
+## Overview
+
+**Gemini Assistant** integrates Google's Gemini AI models into Automagik Tools, providing vision capabilities, multimodal understanding, and blazing-fast inference with generous free tier access.
+
+Think of Gemini Assistant as your specialized AI for vision, large context, and rapid prototyping tasks.
+
+---
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Vision & Multimodal" icon="eye">
+    Analyze images, videos, and documents
+  </Card>
+
+  <Card title="Blazing Fast" icon="bolt">
+    Fastest inference with Gemini 2.0 Flash
+  </Card>
+
+  <Card title="Large Context" icon="file-code">
+    2M token context window with 1.5 Pro
+  </Card>
+
+  <Card title="Free Tier" icon="circle-dollar">
+    Generous free API access
+  </Card>
+
+  <Card title="Code Generation" icon="code">
+    Strong coding capabilities
+  </Card>
+
+  <Card title="Multimodal Input" icon="layer-group">
+    Text, image, video, audio support
+  </Card>
+</CardGroup>
+
+---
+
+## Available Models
+
+### Gemini 2.0 Flash (Experimental)
+
+**Best for**: Fast tasks, rapid iteration, experimentation
+
+```json
+{
+  "model": "gemini-2.0-flash-exp",
+  "context_window": "1M tokens",
+  "speed": "Fastest",
+  "cost": "Free tier available",
+  "features": ["Text", "Vision", "Code"]
+}
+```
+
+### Gemini 1.5 Pro
+
+**Best for**: Complex reasoning, massive context
+
+```json
+{
+  "model": "gemini-1.5-pro",
+  "context_window": "2M tokens",
+  "speed": "Fast",
+  "cost": "Free tier available",
+  "features": ["Text", "Vision", "Audio", "Video"]
+}
+```
+
+### Gemini 1.5 Flash
+
+**Best for**: Balanced speed and quality
+
+```json
+{
+  "model": "gemini-1.5-flash",
+  "context_window": "1M tokens",
+  "speed": "Very fast",
+  "cost": "Free tier available",
+  "features": ["Text", "Vision", "Code"]
+}
+```
+
+---
+
+## Use Cases
+
+### 1. Image Analysis
+
+```bash
+# Analyze screenshot
+gemini analyze-image \
+  --image screenshot.png \
+  --prompt "What UI issues do you see?"
+
+# OCR document
+gemini extract-text \
+  --image document.jpg \
+  --format markdown
+```
+
+### 2. Code Review with Context
+
+```bash
+# Review codebase with large context
+gemini review-code \
+  --model gemini-1.5-pro \
+  --context "entire-codebase/" \
+  --focus "security issues"
+```
+
+### 3. Video Analysis
+
+```bash
+# Analyze video content
+gemini analyze-video \
+  --video demo.mp4 \
+  --prompt "Summarize this product demo"
+```
+
+### 4. Rapid Prototyping
+
+```bash
+# Fast code generation
+gemini generate \
+  --model gemini-2.0-flash-exp \
+  --prompt "Create a React dashboard component" \
+  --fast
+```
+
+---
+
+## Quick Start
+
+### Installation
+
+```bash
+# Install Automagik Tools
+uvx automagik-tools --help
+
+# Start Gemini Assistant
+uvx automagik-tools tool gemini-assistant -t stdio
+```
+
+### Get API Key
+
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create API key
+3. Configure Gemini Assistant
+
+### Configuration
+
+Create `~/.automagik/gemini.json`:
+
+```json
+{
+  "api_key": "your-google-api-key",
+  "default_model": "gemini-2.0-flash-exp",
+  "settings": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 8192
+  },
+  "safety": {
+    "harassment": "BLOCK_MEDIUM_AND_ABOVE",
+    "hate_speech": "BLOCK_MEDIUM_AND_ABOVE",
+    "sexually_explicit": "BLOCK_MEDIUM_AND_ABOVE",
+    "dangerous": "BLOCK_MEDIUM_AND_ABOVE"
+  }
+}
+```
+
+### Environment Variables
+
+```bash
+export GOOGLE_API_KEY="your-api-key"
+export GEMINI_MODEL="gemini-2.0-flash-exp"
+```
+
+---
+
+## Text Generation
+
+### Simple Generation
+
+```bash
+# Generate text
+gemini generate \
+  --prompt "Write a Python function to parse JSON" \
+  --model gemini-2.0-flash-exp
+
+# With system instruction
+gemini generate \
+  --prompt "Create a REST API endpoint" \
+  --system "You are an expert backend developer" \
+  --model gemini-1.5-pro
+```
+
+### Code Generation
+
+```bash
+# Generate code with context
+gemini code \
+  --prompt "Add authentication middleware" \
+  --context src/ \
+  --language typescript
+
+# Generate tests
+gemini tests \
+  --file src/auth.ts \
+  --framework jest
+```
+
+### Conversational
+
+```bash
+# Start chat session
+gemini chat \
+  --model gemini-2.0-flash-exp
+
+# You: How do I implement rate limiting?
+# Gemini: Here are several approaches...
+
+# You: Show me the token bucket algorithm
+# Gemini: *provides code example*
+```
+
+---
+
+## Vision Capabilities
+
+### Image Analysis
+
+```bash
+# Analyze image
+gemini vision analyze \
+  --image screenshot.png \
+  --prompt "What's in this image?"
+
+# Detailed analysis
+gemini vision analyze \
+  --image ui-mockup.png \
+  --prompt "Review this UI design for accessibility issues" \
+  --detailed
+
+# Compare images
+gemini vision compare \
+  --images "before.png,after.png" \
+  --prompt "What changed between these screenshots?"
+```
+
+### OCR and Text Extraction
+
+```bash
+# Extract text from image
+gemini vision ocr \
+  --image document.jpg \
+  --format markdown
+
+# Extract structured data
+gemini vision extract \
+  --image invoice.pdf \
+  --schema '{"vendor": "string", "amount": "number", "date": "date"}'
+```
+
+### UI Analysis
+
+```bash
+# Analyze UI/UX
+gemini vision ui-review \
+  --image app-screenshot.png \
+  --aspects "layout,accessibility,consistency"
+
+# Generate UI code
+gemini vision to-code \
+  --image mockup.png \
+  --framework react \
+  --styling tailwind
+```
+
+---
+
+## Multimodal Features
+
+### Video Analysis
+
+```bash
+# Analyze video
+gemini multimodal video \
+  --video demo.mp4 \
+  --prompt "Summarize the key points in this demo"
+
+# Extract frames
+gemini multimodal video \
+  --video tutorial.mp4 \
+  --extract-frames \
+  --interval 10s
+```
+
+### Audio Processing
+
+```bash
+# Transcribe audio
+gemini multimodal audio \
+  --audio recording.mp3 \
+  --transcribe
+
+# Analyze audio
+gemini multimodal audio \
+  --audio meeting.mp3 \
+  --prompt "Summarize the meeting and extract action items"
+```
+
+### Document Understanding
+
+```bash
+# Analyze PDF
+gemini multimodal document \
+  --pdf report.pdf \
+  --prompt "Extract key metrics and findings"
+
+# Compare documents
+gemini multimodal compare-docs \
+  --docs "v1.pdf,v2.pdf" \
+  --prompt "What changed between versions?"
+```
+
+---
+
+## Large Context Processing
+
+### Entire Codebase Analysis
+
+```bash
+# Analyze large codebase
+gemini large-context analyze \
+  --path ./src/ \
+  --model gemini-1.5-pro \
+  --prompt "Find all authentication-related code and suggest improvements"
+
+# Architecture review
+gemini large-context review \
+  --path . \
+  --focus "architecture,patterns,best-practices"
+```
+
+### Document Processing
+
+```bash
+# Process large document
+gemini large-context document \
+  --files "docs/*.md" \
+  --prompt "Create a comprehensive summary with table of contents"
+
+# Cross-reference analysis
+gemini large-context cross-reference \
+  --files "spec.md,implementation.ts,tests.ts" \
+  --prompt "Verify implementation matches specification"
+```
+
+---
+
+## Integration Patterns
+
+### Pattern 1: Vision-Based Testing
+
+```bash
+# Visual regression testing
+gemini vision compare \
+  --images "baseline.png,current.png" \
+  --prompt "Identify any visual differences" \
+  --threshold 0.95
+```
+
+### Pattern 2: Code Review Assistant
+
+```bash
+# Automated code review
+gemini code review \
+  --context ./src/ \
+  --model gemini-1.5-pro \
+  --checklist "security,performance,style,tests"
+```
+
+### Pattern 3: Documentation Generator
+
+```bash
+# Generate docs from code
+gemini docs generate \
+  --path ./src/ \
+  --output ./docs/ \
+  --format markdown \
+  --include-examples
+```
+
+---
+
+## Advanced Features
+
+### Function Calling
+
+```javascript
+// Define functions
+const functions = [
+  {
+    name: 'get_weather',
+    description: 'Get current weather for a location',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: { type: 'string' },
+        units: { type: 'string', enum: ['celsius', 'fahrenheit'] }
+      }
+    }
+  }
+];
+
+// Use with Gemini
+const response = await gemini.generate({
+  prompt: "What's the weather in San Francisco?",
+  functions: functions
+});
+```
+
+### Structured Output
+
+```bash
+# Get JSON response
+gemini generate \
+  --prompt "List 5 programming languages" \
+  --format json \
+  --schema '{"languages": [{"name": "string", "year": "number"}]}'
+```
+
+### Streaming Responses
+
+```javascript
+// Stream response
+const stream = await gemini.generateStream({
+  prompt: "Write a long article about AI",
+  model: "gemini-2.0-flash-exp"
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.text);
+}
+```
+
+---
+
+## Model Comparison
+
+### Speed vs Quality
+
+```
+Quality
+  ↑
+  │     Gemini 1.5 Pro ●
+  │
+  │            Gemini 1.5 Flash ●
+  │
+  │                              Gemini 2.0 Flash ●
+  └──────────────────────────────────────────────────→
+                                                  Speed
+```
+
+### Context Window vs Cost
+
+```
+Context
+  ↑
+  │     Gemini 1.5 Pro (2M) ●
+  │
+  │            Gemini 2.0 Flash (1M) ●
+  │            Gemini 1.5 Flash (1M) ●
+  └──────────────────────────────────────────────────→
+                                               Cost/Token
+                                              (all have free tier)
+```
+
+---
+
+## Cost Management
+
+### Free Tier Limits
+
+```
+Gemini 2.0 Flash:
+- 15 requests per minute
+- 1 million tokens per day
+- 1,500 requests per day
+
+Gemini 1.5 Pro:
+- 2 requests per minute
+- 50 requests per day
+
+Gemini 1.5 Flash:
+- 15 requests per minute
+- 1 million tokens per day
+- 1,500 requests per day
+```
+
+### Monitor Usage
+
+```bash
+# Check API usage
+gemini usage today
+
+# Track costs
+gemini costs --month december
+
+# Set limits
+gemini limits set \
+  --max-requests-per-hour 100 \
+  --max-tokens-per-day 500000
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Flash for Speed" icon="bolt">
+    Gemini 2.0 Flash is perfect for rapid iteration
+  </Card>
+
+  <Card title="Pro for Context" icon="file-code">
+    Use 1.5 Pro when you need massive context
+  </Card>
+
+  <Card title="Vision for UI" icon="eye">
+    Leverage vision for UI/UX analysis and testing
+  </Card>
+
+  <Card title="Monitor Free Tier" icon="chart-line">
+    Track usage to stay within free limits
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="API key not working">
+    **Solutions**:
+    - Verify API key is correct
+    - Check key is enabled in Google AI Studio
+    - Ensure billing is set up (for paid tier)
+    - Check API quotas
+  </Accordion>
+
+  <Accordion title="Rate limit errors">
+    **Solutions**:
+    - Stay within free tier limits
+    - Implement retry with backoff
+    - Upgrade to paid tier
+    - Distribute requests over time
+  </Accordion>
+
+  <Accordion title="Vision not working">
+    **Solutions**:
+    - Check image format (PNG, JPEG, WebP)
+    - Verify image size (max 20MB)
+    - Test with simpler image
+    - Check model supports vision
+  </Accordion>
+
+  <Accordion title="Context too large">
+    **Solutions**:
+    - Use Gemini 1.5 Pro for larger context
+    - Split into smaller chunks
+    - Summarize before processing
+    - Remove unnecessary content
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## API Reference
+
+```bash
+# Text generation
+gemini generate --prompt <text> [--model <model>]
+
+# Vision
+gemini vision analyze --image <file> --prompt <text>
+gemini vision ocr --image <file>
+gemini vision compare --images <files>
+
+# Multimodal
+gemini multimodal video --video <file> --prompt <text>
+gemini multimodal audio --audio <file> [--transcribe]
+gemini multimodal document --pdf <file> --prompt <text>
+
+# Large context
+gemini large-context analyze --path <dir> --prompt <text>
+
+# Code
+gemini code --prompt <text> [--context <path>]
+gemini tests --file <path>
+
+# Utilities
+gemini usage [--today|--month <name>]
+gemini costs [--month <name>]
+gemini models list
+```
+
+---
+
+## Examples
+
+### Example 1: UI Review Pipeline
+
+```bash
+# Analyze UI screenshot
+gemini vision analyze \
+  --image app-screenshot.png \
+  --prompt "
+    Review this UI for:
+    1. Accessibility issues
+    2. Design consistency
+    3. Layout problems
+    4. Suggested improvements
+  " \
+  --detailed > ui-review.md
+
+# Generate improvement code
+gemini code \
+  --prompt "Implement the accessibility fixes from ui-review.md" \
+  --context ui-review.md,src/components/
+```
+
+### Example 2: Codebase Documentation
+
+```bash
+# Analyze entire codebase
+gemini large-context analyze \
+  --path ./src/ \
+  --model gemini-1.5-pro \
+  --prompt "
+    Create comprehensive documentation:
+    1. Architecture overview
+    2. Module descriptions
+    3. API reference
+    4. Code examples
+  " > docs/ARCHITECTURE.md
+```
+
+### Example 3: Automated Testing
+
+```bash
+# Visual regression test
+for file in screenshots/*.png; do
+  baseline="baselines/$(basename $file)"
+  gemini vision compare \
+    --images "$baseline,$file" \
+    --prompt "Identify visual differences" \
+    --threshold 0.98 \
+    --output "reports/$(basename $file .png).json"
+done
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Genie Integration" icon="wand-magic-sparkles" href="/tools/built-in-tools/genie">
+    Combine with Genie for intelligent orchestration
+  </Card>
+
+  <Card title="Vision Workflows" icon="eye" href="/tools/workflows/vision">
+    Advanced vision processing patterns
+  </Card>
+
+  <Card title="Model Selection" icon="sliders" href="/tools/concepts/model-selection">
+    Choose the right model for your task
+  </Card>
+
+  <Card title="Examples" icon="code" href="/tools/integration/examples">
+    Real-world integration examples
+  </Card>
+</CardGroup>

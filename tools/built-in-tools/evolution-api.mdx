@@ -1,0 +1,320 @@
+---
+title: "Evolution API"
+description: "WhatsApp automation via Evolution API v2"
+icon: "whatsapp"
+---
+
+## What It Does
+
+Connects Claude to WhatsApp via Evolution API v2. Send/receive messages, manage groups, handle media.
+
+## Run It
+
+```bash
+# For Claude Desktop
+uvx automagik-tools tool evolution-api -t stdio
+
+# For team sharing
+uvx automagik-tools tool evolution-api -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool evolution-api -t http --port 8080
+```
+
+## Output
+
+When you run it, you see:
+
+```
+INFO Starting MCP server 'Evolution API Tool' with transport 'stdio'
+```
+
+Server runs until you stop it (Ctrl+C).
+
+## Configuration
+
+Required environment variables:
+
+```bash
+export EVOLUTION_API_KEY="your-api-key"
+export EVOLUTION_API_BASE_URL="https://your-instance.com"
+```
+
+Optional:
+
+```bash
+export EVOLUTION_INSTANCE_NAME="default"  # If you have multiple instances
+```
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "evolution-api", "-t", "stdio"],
+      "env": {
+        "EVOLUTION_API_KEY": "your-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    }
+  }
+}
+```
+
+Test: Restart Claude, ask "what evolution api tools are available?"
+
+## Tool Info
+
+```bash
+uvx automagik-tools info evolution-api
+```
+
+Output:
+```
+Tool: evolution-api
+Version: 1.0.0
+Description: Complete WhatsApp messaging suite for Evolution API v2
+Category: communication
+Author: Namastex Labs
+Tags: whatsapp, messaging, evolution-api, chat, automation
+```
+
+## What You Can Do
+
+Via Claude, you can:
+
+- Send text messages to WhatsApp numbers
+- Send images, videos, documents, audio
+- Create and manage WhatsApp groups
+- Get contact information
+- Manage instance status
+- Handle webhooks for incoming messages
+
+The tool provides MCP functions that Claude can call directly.
+
+## Example Usage
+
+In Claude:
+
+```
+You: "Send a WhatsApp message to +1234567890 saying 'Hello from Claude'"
+Claude: *uses evolution-api tool*
+Claude: "Message sent successfully"
+```
+
+```
+You: "Send an image to +1234567890 from https://example.com/image.jpg"
+Claude: *uses evolution-api tool*
+Claude: "Image sent"
+```
+
+## Setting Up Evolution API
+
+You need a running Evolution API v2 instance. Options:
+
+**Self-hosted**:
+```bash
+# Clone Evolution API
+git clone https://github.com/EvolutionAPI/evolution-api
+cd evolution-api
+
+# Install and run
+npm install
+npm start
+```
+
+**Cloud-hosted**:
+- Use official Evolution API cloud service
+- Or deploy to your own VPS/cloud provider
+
+**Get API Key**:
+1. Access Evolution API dashboard
+2. Create instance
+3. Copy API key and instance URL
+4. Set in environment variables
+
+## Connecting WhatsApp
+
+After Evolution API is running:
+
+1. Start the tool with your config
+2. In Claude: "Generate QR code for WhatsApp"
+3. Scan QR code with WhatsApp mobile app
+4. Connection established
+
+## Message Types
+
+**Text**:
+```
+"Send message 'Hello' to +1234567890"
+```
+
+**Media**:
+```
+"Send image from URL to +1234567890"
+"Send video from URL to +1234567890"
+"Send document to +1234567890"
+```
+
+**Groups**:
+```
+"Create WhatsApp group 'Team Chat'"
+"Add +1234567890 to group"
+"Send message to group"
+```
+
+## Troubleshooting
+
+**Problem**: Can't connect to Evolution API
+```bash
+# Test API directly
+curl -X GET \
+  -H "apikey: your-api-key" \
+  https://your-instance.com/instance/fetchInstances
+
+# Should return JSON with instances
+# If it fails, check:
+# 1. API URL is correct
+# 2. API key is valid
+# 3. Evolution API is running
+```
+
+**Problem**: Messages not sending
+```bash
+# Check instance is connected
+# In Claude: "Check WhatsApp instance status"
+
+# If not connected:
+# In Claude: "Generate QR code"
+# Scan with WhatsApp mobile app
+```
+
+**Problem**: Environment variables not loaded
+```bash
+# Verify they're set
+echo $EVOLUTION_API_KEY
+echo $EVOLUTION_API_BASE_URL
+
+# If empty, set them:
+export EVOLUTION_API_KEY="your-key"
+export EVOLUTION_API_BASE_URL="https://your-instance.com"
+
+# Then restart the tool
+```
+
+**Problem**: Webhook not receiving messages
+```bash
+# Evolution API needs webhook URL configured
+# In Evolution API dashboard:
+# 1. Go to instance settings
+# 2. Add webhook URL
+# 3. Enable webhook events
+
+# Or via API:
+curl -X POST \
+  -H "apikey: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"webhook": {"url": "https://your-server.com/webhook"}}' \
+  https://your-instance.com/webhook/set
+```
+
+## Rate Limits
+
+WhatsApp has rate limits:
+
+- Max 1000 messages per day (regular accounts)
+- Max 100,000 messages per day (business accounts)
+- 80 messages per minute
+
+Evolution API respects these limits. If you hit limits:
+- Wait 24 hours for daily limit reset
+- Slow down message rate
+- Upgrade to WhatsApp Business API
+
+## Security
+
+**Protect your API key**:
+```bash
+# Never commit to git
+# Add to .gitignore
+echo "EVOLUTION_API_KEY" >> .gitignore
+
+# Use environment variables
+# Or secure secret management
+```
+
+**Webhook security**:
+```bash
+# Validate webhook signatures
+# Check request origin
+# Use HTTPS only
+```
+
+## Real-World Example
+
+Customer support bot:
+
+```json
+{
+  "mcpServers": {
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "evolution-api", "-t", "stdio"],
+      "env": {
+        "EVOLUTION_API_KEY": "...",
+        "EVOLUTION_API_BASE_URL": "https://..."
+      }
+    }
+  }
+}
+```
+
+In Claude:
+```
+Customer (WhatsApp): "What's my order status?"
+You (to Claude): "Check order status and reply to customer"
+Claude: *uses evolution-api to send WhatsApp response*
+```
+
+## Combine with Genie
+
+For intelligent responses:
+
+```bash
+# Start both
+uvx automagik-tools tool genie -t sse --port 8000 &
+uvx automagik-tools tool evolution-api -t stdio &
+```
+
+Config both in Claude:
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "genie", "-t", "sse"],
+      "env": {"OPENAI_API_KEY": "sk-..."}
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "evolution-api", "-t", "stdio"],
+      "env": {
+        "EVOLUTION_API_KEY": "...",
+        "EVOLUTION_API_BASE_URL": "https://..."
+      }
+    }
+  }
+}
+```
+
+Now Genie can coordinate Evolution API with memory and intelligence.
+
+## Evolution API Docs
+
+Full API documentation: https://doc.evolution-api.com/
+
+The tool wraps these endpoints as MCP functions that Claude can call.

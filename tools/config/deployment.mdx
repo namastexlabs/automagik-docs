@@ -1,0 +1,1035 @@
+---
+title: "Deployment"
+description: "Deploy Automagik Tools to production"
+icon: "rocket"
+---
+
+## Overview
+
+Deploy Automagik Tools using PM2, Docker, systemd, or cloud platforms. This guide covers production-ready deployments with monitoring, logging, and security best practices.
+
+<Tip>
+For local development, simply run `uvx automagik-tools` - no deployment needed!
+</Tip>
+
+---
+
+## Deployment Options
+
+<CardGroup cols={3}>
+  <Card title="PM2" icon="layer-group">
+    **Best for**: Node.js environments
+
+    - Process management
+    - Auto-restart
+    - Log rotation
+    - Zero-downtime deploys
+  </Card>
+
+  <Card title="Docker" icon="docker">
+    **Best for**: Containerized deployments
+
+    - Isolation
+    - Reproducibility
+    - Easy scaling
+    - Cloud-ready
+  </Card>
+
+  <Card title="Systemd" icon="linux">
+    **Best for**: Linux servers
+
+    - Native integration
+    - System startup
+    - Journal logging
+    - Resource limits
+  </Card>
+</CardGroup>
+
+---
+
+## PM2 Deployment
+
+### Installation
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Or with pnpm
+pnpm add -g pm2
+```
+
+### Basic Configuration
+
+Create `ecosystem.config.js`:
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [
+    {
+      name: 'automagik-tools-sse',
+      script: 'automagik-tools',
+      args: 'hub --host 0.0.0.0 --port 8884 --transport sse',
+      interpreter: 'uvx',
+      cwd: '/opt/automagik-tools',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        OPENAI_API_KEY: 'sk-your-key',
+        LOG_LEVEL: 'INFO',
+        LOG_FOLDER: './logs'
+      },
+      error_file: './logs/sse-err.log',
+      out_file: './logs/sse-out.log',
+      log_file: './logs/sse-combined.log',
+      time: true,
+      merge_logs: true
+    }
+  ]
+}
+```
+
+### Multi-Transport Setup
+
+Run both SSE and HTTP simultaneously:
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [
+    {
+      name: 'automagik-tools-sse',
+      script: 'automagik-tools',
+      args: 'hub --host 0.0.0.0 --port 8884 --transport sse',
+      interpreter: 'uvx',
+      env: {
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        AUTOMAGIK_API_KEY: process.env.AUTOMAGIK_API_KEY,
+        LOG_LEVEL: 'INFO'
+      },
+      error_file: './logs/sse-err.log',
+      out_file: './logs/sse-out.log'
+    },
+    {
+      name: 'automagik-tools-http',
+      script: 'automagik-tools',
+      args: 'hub --host 0.0.0.0 --port 8885 --transport http',
+      interpreter: 'uvx',
+      env: {
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        AUTOMAGIK_API_KEY: process.env.AUTOMAGIK_API_KEY,
+        LOG_LEVEL: 'INFO'
+      },
+      error_file: './logs/http-err.log',
+      out_file: './logs/http-out.log'
+    }
+  ]
+}
+```
+
+### Management Commands
+
+```bash
+# Start all applications
+pm2 start ecosystem.config.js
+
+# Start specific app
+pm2 start ecosystem.config.js --only automagik-tools-sse
+
+# Stop all
+pm2 stop all
+
+# Restart all
+pm2 restart all
+
+# Delete all
+pm2 delete all
+
+# View status
+pm2 status
+
+# View logs
+pm2 logs
+pm2 logs automagik-tools-sse --lines 100
+
+# Monitor in real-time
+pm2 monit
+
+# Save configuration for startup
+pm2 save
+
+# Setup startup script
+pm2 startup
+```
+
+### Auto-Start on Boot
+
+```bash
+# Generate startup script
+pm2 startup
+
+# Save current process list
+pm2 save
+
+# Test reboot
+sudo reboot
+
+# Verify after reboot
+pm2 status
+```
+
+### Log Rotation
+
+```bash
+# Install PM2 log rotate module
+pm2 install pm2-logrotate
+
+# Configure rotation
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 30
+pm2 set pm2-logrotate:compress true
+pm2 set pm2-logrotate:dateFormat YYYY-MM-DD_HH-mm-ss
+```
+
+---
+
+## Docker Deployment
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/namastexlabs/automagik-tools
+cd automagik-tools/deploy/docker
+
+# Create .env file
+cat > .env << EOF
+OPENAI_API_KEY=sk-your-key
+AUTOMAGIK_API_KEY=your-key
+EVOLUTION_API_KEY=your-key
+EOF
+
+# Build and start
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+```
+
+### Dockerfile
+
+```dockerfile Dockerfile
+# Multi-stage build for optimal size
+FROM python:3.12-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Install uv for fast dependency installation
+RUN pip install --no-cache-dir uv
+
+# Copy and install dependencies
+COPY pyproject.toml ./
+RUN uv pip install --system --no-cache automagik-tools
+
+# Runtime stage
+FROM python:3.12-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 automagik && \
+    mkdir -p /app /app/logs && \
+    chown -R automagik:automagik /app
+
+WORKDIR /app
+
+# Copy from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+USER automagik
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HOST=0.0.0.0 \
+    PORT=8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+CMD ["automagik-tools", "hub", "--host", "0.0.0.0", "--port", "8000", "--transport", "sse"]
+```
+
+### Docker Compose
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  # SSE Transport
+  tools-sse:
+    build: .
+    container_name: automagik-tools-sse
+    ports:
+      - "8884:8884"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AUTOMAGIK_API_KEY=${AUTOMAGIK_API_KEY}
+      - AUTOMAGIK_BASE_URL=${AUTOMAGIK_BASE_URL:-http://localhost:8881}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PORT=8884
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - automagik
+    command: ["automagik-tools", "hub", "--host", "0.0.0.0", "--port", "8884", "--transport", "sse"]
+
+  # HTTP Transport
+  tools-http:
+    build: .
+    container_name: automagik-tools-http
+    ports:
+      - "8885:8885"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AUTOMAGIK_API_KEY=${AUTOMAGIK_API_KEY}
+      - AUTOMAGIK_BASE_URL=${AUTOMAGIK_BASE_URL:-http://localhost:8881}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PORT=8885
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - automagik
+    command: ["automagik-tools", "hub", "--host", "0.0.0.0", "--port", "8885", "--transport", "http"]
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: automagik-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - tools-sse
+      - tools-http
+    restart: unless-stopped
+    networks:
+      - automagik
+    profiles:
+      - production
+
+networks:
+  automagik:
+    driver: bridge
+
+volumes:
+  logs:
+  data:
+```
+
+### Management Commands
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f tools-sse
+docker-compose logs -f tools-http
+
+# Restart services
+docker-compose restart
+
+# Stop services
+docker-compose stop
+
+# Remove everything
+docker-compose down -v
+
+# Update and restart
+docker-compose pull
+docker-compose up -d --build
+
+# Check health
+docker-compose ps
+docker inspect --format='{{.State.Health.Status}}' automagik-tools-sse
+```
+
+---
+
+## Systemd Service
+
+### Service File
+
+Create `/etc/systemd/system/automagik-tools.service`:
+
+```ini
+[Unit]
+Description=Automagik Tools MCP Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automagik
+Group=automagik
+WorkingDirectory=/opt/automagik-tools
+
+# Environment
+Environment="OPENAI_API_KEY=sk-your-key"
+Environment="AUTOMAGIK_API_KEY=your-key"
+Environment="LOG_LEVEL=INFO"
+EnvironmentFile=-/opt/automagik-tools/.env
+
+# Command
+ExecStart=/usr/local/bin/uvx automagik-tools hub --host 0.0.0.0 --port 8884 --transport sse
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=automagik-tools
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/automagik-tools/logs /opt/automagik-tools/data
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=2G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Setup and Management
+
+```bash
+# Create user
+sudo useradd -r -s /bin/false automagik
+
+# Create directories
+sudo mkdir -p /opt/automagik-tools/{logs,data}
+sudo chown -R automagik:automagik /opt/automagik-tools
+
+# Create .env file
+sudo -u automagik cat > /opt/automagik-tools/.env << EOF
+OPENAI_API_KEY=sk-your-key
+AUTOMAGIK_API_KEY=your-key
+LOG_LEVEL=INFO
+EOF
+
+# Install service
+sudo cp automagik-tools.service /etc/systemd/system/
+sudo systemctl daemon-reload
+
+# Enable and start
+sudo systemctl enable automagik-tools
+sudo systemctl start automagik-tools
+
+# Check status
+sudo systemctl status automagik-tools
+
+# View logs
+sudo journalctl -u automagik-tools -f
+
+# Restart
+sudo systemctl restart automagik-tools
+
+# Stop
+sudo systemctl stop automagik-tools
+```
+
+### Multiple Services
+
+For running both SSE and HTTP:
+
+```bash
+# Create both service files
+sudo cp automagik-tools-sse.service /etc/systemd/system/
+sudo cp automagik-tools-http.service /etc/systemd/system/
+
+# Enable both
+sudo systemctl enable automagik-tools-sse
+sudo systemctl enable automagik-tools-http
+
+# Start both
+sudo systemctl start automagik-tools-sse
+sudo systemctl start automagik-tools-http
+
+# Check status
+sudo systemctl status automagik-tools-*
+```
+
+---
+
+## Cloud Deployment
+
+### Railway
+
+<Steps>
+  <Step title="Connect Repository">
+    - Go to [railway.app](https://railway.app)
+    - Click "New Project" → "Deploy from GitHub"
+    - Select your repository
+  </Step>
+
+  <Step title="Configure Service">
+    ```bash
+    # railway.json
+    {
+      "$schema": "https://railway.app/railway.schema.json",
+      "build": {
+        "builder": "NIXPACKS"
+      },
+      "deploy": {
+        "startCommand": "uvx automagik-tools hub --host 0.0.0.0 --port $PORT --transport sse",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Set Environment Variables">
+    Add in Railway dashboard:
+    - `OPENAI_API_KEY`
+    - `AUTOMAGIK_API_KEY`
+    - `LOG_LEVEL=INFO`
+  </Step>
+
+  <Step title="Deploy">
+    Railway auto-deploys on git push
+  </Step>
+</Steps>
+
+### Render
+
+<Steps>
+  <Step title="Create Web Service">
+    - Go to [render.com](https://render.com)
+    - New → Web Service
+    - Connect repository
+  </Step>
+
+  <Step title="Configure">
+    ```yaml
+    # render.yaml
+    services:
+      - type: web
+        name: automagik-tools
+        runtime: python
+        buildCommand: pip install uv && uv pip install automagik-tools
+        startCommand: uvx automagik-tools hub --host 0.0.0.0 --port $PORT --transport sse
+        envVars:
+          - key: OPENAI_API_KEY
+            sync: false
+          - key: AUTOMAGIK_API_KEY
+            sync: false
+          - key: LOG_LEVEL
+            value: INFO
+    ```
+  </Step>
+
+  <Step title="Deploy">
+    Render auto-deploys from main branch
+  </Step>
+</Steps>
+
+### Fly.io
+
+<Steps>
+  <Step title="Install flyctl">
+    ```bash
+    curl -L https://fly.io/install.sh | sh
+    fly auth login
+    ```
+  </Step>
+
+  <Step title="Initialize App">
+    ```bash
+    fly launch --name automagik-tools
+    ```
+  </Step>
+
+  <Step title="Configure">
+    ```toml fly.toml
+    app = "automagik-tools"
+    primary_region = "sjc"
+
+    [build]
+      dockerfile = "Dockerfile"
+
+    [http_service]
+      internal_port = 8000
+      force_https = true
+      auto_stop_machines = false
+      auto_start_machines = true
+      min_machines_running = 1
+
+    [[services]]
+      protocol = "tcp"
+      internal_port = 8000
+
+      [[services.ports]]
+        port = 80
+        handlers = ["http"]
+
+      [[services.ports]]
+        port = 443
+        handlers = ["tls", "http"]
+    ```
+  </Step>
+
+  <Step title="Set Secrets">
+    ```bash
+    fly secrets set OPENAI_API_KEY=sk-your-key
+    fly secrets set AUTOMAGIK_API_KEY=your-key
+    ```
+  </Step>
+
+  <Step title="Deploy">
+    ```bash
+    fly deploy
+    fly status
+    fly logs
+    ```
+  </Step>
+</Steps>
+
+### AWS (EC2 + CloudFormation)
+
+```yaml cloudformation.yml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Automagik Tools Deployment
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.small
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  AutomagikInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c55b159cbfafe1f0  # Ubuntu 22.04
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref AutomagikSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update
+          apt-get install -y python3.12 python3-pip curl
+          pip install uv
+          uvx automagik-tools hub --host 0.0.0.0 --port 8884 --transport sse
+
+  AutomagikSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Automagik Tools Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8884
+          ToPort: 8885
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  PublicIP:
+    Value: !GetAtt AutomagikInstance.PublicIp
+  SSEEndpoint:
+    Value: !Sub 'http://${AutomagikInstance.PublicIp}:8884'
+  HTTPEndpoint:
+    Value: !Sub 'http://${AutomagikInstance.PublicIp}:8885'
+```
+
+---
+
+## Reverse Proxy Configuration
+
+### Nginx
+
+```nginx /etc/nginx/sites-available/automagik-tools
+upstream automagik_sse {
+    server localhost:8884;
+    keepalive 64;
+}
+
+upstream automagik_http {
+    server localhost:8885;
+    keepalive 64;
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name tools.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS Server
+server {
+    listen 443 ssl http2;
+    server_name tools.yourdomain.com;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/tools.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tools.yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # SSE Endpoint
+    location /sse {
+        proxy_pass http://automagik_sse;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE specific
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # HTTP API Endpoint
+    location /api {
+        proxy_pass http://automagik_http;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Health Check
+    location /health {
+        access_log off;
+        proxy_pass http://automagik_sse;
+    }
+}
+```
+
+Enable and test:
+
+```bash
+# Link configuration
+sudo ln -s /etc/nginx/sites-available/automagik-tools /etc/nginx/sites-enabled/
+
+# Test configuration
+sudo nginx -t
+
+# Reload Nginx
+sudo systemctl reload nginx
+
+# Get SSL certificate
+sudo certbot --nginx -d tools.yourdomain.com
+```
+
+### Caddy
+
+```caddyfile Caddyfile
+tools.yourdomain.com {
+    # Automatic HTTPS
+
+    # SSE Endpoint
+    handle /sse* {
+        reverse_proxy localhost:8884 {
+            flush_interval -1
+        }
+    }
+
+    # HTTP API
+    handle /api* {
+        reverse_proxy localhost:8885
+    }
+
+    # Health check
+    handle /health {
+        reverse_proxy localhost:8884
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000;"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+    }
+}
+```
+
+```bash
+# Start Caddy
+sudo caddy start --config Caddyfile
+
+# Reload configuration
+sudo caddy reload --config Caddyfile
+```
+
+---
+
+## Monitoring and Logging
+
+### Health Checks
+
+```bash
+# Basic health check
+curl http://localhost:8884/health
+
+# With monitoring
+watch -n 5 'curl -s http://localhost:8884/health | jq'
+```
+
+### PM2 Monitoring
+
+```bash
+# Real-time monitoring
+pm2 monit
+
+# Detailed information
+pm2 show automagik-tools-sse
+
+# CPU and memory stats
+pm2 list
+```
+
+### Log Management
+
+<Tabs>
+  <Tab title="PM2">
+    ```bash
+    # View logs
+    pm2 logs automagik-tools-sse
+
+    # Last 100 lines
+    pm2 logs --lines 100
+
+    # JSON format
+    pm2 logs --json
+
+    # Clear logs
+    pm2 flush
+
+    # Log rotation (if installed)
+    pm2 set pm2-logrotate:max_size 10M
+    pm2 set pm2-logrotate:retain 30
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    ```bash
+    # View logs
+    docker-compose logs -f tools-sse
+
+    # Last 100 lines
+    docker-compose logs --tail=100 tools-sse
+
+    # Save logs to file
+    docker-compose logs > automagik-tools.log
+
+    # Configure log rotation in daemon.json
+    cat > /etc/docker/daemon.json << EOF
+    {
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "10m",
+        "max-file": "3"
+      }
+    }
+    EOF
+    ```
+  </Tab>
+
+  <Tab title="Systemd">
+    ```bash
+    # View logs
+    sudo journalctl -u automagik-tools -f
+
+    # Last 100 lines
+    sudo journalctl -u automagik-tools -n 100
+
+    # Since specific time
+    sudo journalctl -u automagik-tools --since "1 hour ago"
+
+    # Export to file
+    sudo journalctl -u automagik-tools > automagik-tools.log
+
+    # Configure rotation
+    sudo nano /etc/systemd/journald.conf
+    # SystemMaxUse=1G
+    # SystemMaxFiles=10
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Security Checklist
+
+<Steps>
+  <Step title="Use Environment Variables">
+    ```bash
+    # Never hardcode secrets
+    OPENAI_API_KEY=sk-your-key
+    AUTOMAGIK_API_KEY=your-key
+
+    # Use secret management in production
+    ```
+  </Step>
+
+  <Step title="Enable HTTPS">
+    ```bash
+    # Use Let's Encrypt
+    sudo certbot --nginx -d tools.yourdomain.com
+
+    # Or Caddy for automatic HTTPS
+    ```
+  </Step>
+
+  <Step title="Configure Firewall">
+    ```bash
+    # Allow only necessary ports
+    sudo ufw allow 22/tcp
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    sudo ufw enable
+
+    # Restrict to specific IPs if possible
+    sudo ufw allow from 192.168.1.0/24 to any port 8884
+    ```
+  </Step>
+
+  <Step title="Run as Non-Root">
+    ```bash
+    # Create dedicated user
+    sudo useradd -r -s /bin/false automagik
+
+    # Set ownership
+    sudo chown -R automagik:automagik /opt/automagik-tools
+    ```
+  </Step>
+
+  <Step title="Keep Updated">
+    ```bash
+    # Regular updates
+    uvx automagik-tools@latest --version
+    pip install --upgrade automagik-tools
+
+    # Security patches
+    sudo apt update && sudo apt upgrade
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Service won't start">
+    ```bash
+    # Check logs
+    pm2 logs automagik-tools-sse --err
+    sudo journalctl -u automagik-tools -n 50
+    docker-compose logs tools-sse
+
+    # Verify configuration
+    uvx automagik-tools --help
+
+    # Check port availability
+    sudo netstat -tulpn | grep 8884
+    ```
+  </Accordion>
+
+  <Accordion title="High memory usage">
+    ```bash
+    # Set memory limits (PM2)
+    max_memory_restart: '1G'
+
+    # Docker
+    docker update --memory="1g" automagik-tools-sse
+
+    # Systemd
+    MemoryMax=2G
+    ```
+  </Accordion>
+
+  <Accordion title="Connection timeouts">
+    ```nginx
+    # Increase Nginx timeouts
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+    proxy_connect_timeout 60s;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Monitoring Setup" icon="chart-line" href="/tools/troubleshooting/monitoring">
+    Setup monitoring and alerts
+  </Card>
+
+  <Card title="Scaling Guide" icon="arrows-up-to-line" href="/tools/workflows/scaling">
+    Scale your deployment
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/tools/cli/commands">
+    Learn all available commands
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/tools/config/environment-variables">
+    Complete configuration reference
+  </Card>
+</CardGroup>

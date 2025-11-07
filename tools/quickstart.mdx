@@ -1,522 +1,310 @@
 ---
 title: "Quick Start"
-description: "Generate your first MCP tool in 30 seconds"
+description: "Your first tool in 30 seconds"
 icon: "rocket"
 ---
 
-## Generate Your First MCP Tool in 30 Seconds
-
-This guide will walk you through using Tools to transform any API into an AI-ready MCP tool in seconds.
-
----
-
-## Step 1: Install Tools
+## 30-Second Test
 
 ```bash
-# Instant execution with uvx (recommended)
-uvx automagik-tools --version
-
-# Or install with pip
-pip install automagik-tools
-
-# Verify installation
-automagik-tools --version
+# List available tools
+uvx automagik-tools list
 ```
+
+**Output:**
+```
+                                Available Tools
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Tool Name           ┃ Type            ┃ Status    ┃ Description              ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ genie               │ Auto-discovered │ Available │ Generic MCP tool         │
+│                     │                 │           │ orchestrator with        │
+│                     │                 │           │ persistent memory        │
+│ automagik           │ Auto-discovered │ Available │ AI-powered agents and    │
+│                     │                 │           │ workflows                │
+│ evolution-api       │ Auto-discovered │ Available │ Complete WhatsApp        │
+│                     │                 │           │ messaging suite          │
+│ omni                │ Auto-discovered │ Available │ Multi-tenant messaging   │
+│                     │                 │           │ for WhatsApp, Slack      │
+│ spark               │ Auto-discovered │ Available │ Workflow orchestration   │
+│                     │                 │           │ and AI agent management  │
+└─────────────────────┴─────────────────┴───────────┴──────────────────────────┘
+```
+
+9 built-in tools ready to use.
 
 ---
 
-## Step 2: Generate from OpenAPI Spec
+## 2-Minute Example: Genie
 
-Let's create an MCP tool from the PetStore API:
+Genie orchestrates MCP servers with persistent memory.
 
 ```bash
-# Generate tool from OpenAPI spec
-automagik-tools generate \
-  --spec https://petstore3.swagger.io/api/v3/openapi.json \
-  --name petstore \
-  --output ./tools
-
-# Output:
-# ✓ OpenAPI spec fetched
-# ✓ Parsing endpoints (20 found)
-# ✓ Generating types
-# ✓ Creating tool implementations
-# ✓ Writing tests
-# ✓ Tool generated: ./tools/petstore
-
-# Generated in 8.2 seconds!
+# Start Genie
+uvx automagik-tools tool genie -t stdio
 ```
 
----
+**Connect to Claude Desktop:**
 
-## Step 3: Serve Your Tool
-
-```bash
-# Start MCP server with your new tool
-automagik-tools serve --tools petstore
-
-# Or with uvx (no install needed)
-uvx automagik-tools serve --tools petstore
-
-# Server starts:
-# 🛠️  Tools v1.0.0
-# ✓ Tool loaded: petstore (20 operations)
-# ✓ MCP server listening on port 3000
-```
-
----
-
-## Step 4: Use in Claude Desktop
-
-Add to `claude_desktop_config.json`:
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
   "mcpServers": {
-    "petstore": {
+    "genie": {
       "command": "uvx",
-      "args": ["automagik-tools", "serve", "--tools", "petstore"]
+      "args": ["automagik-tools", "tool", "genie", "-t", "stdio"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key"
+      }
     }
   }
 }
 ```
 
-Restart Claude Desktop. Now you can:
-
-```
-You: "Use the petstore tool to find available pets"
-
-Claude: I'll search for available pets.
-[Uses petstore_find_pets tool with status="available"]
-
-Found 5 available pets:
-- Doggo (ID: 1) - Golden Retriever
-- Mittens (ID: 2) - Cat
-- Nemo (ID: 3) - Fish
-...
-```
+Restart Claude Desktop. Test: "What MCP tools are available?"
 
 ---
 
-## Real-World Example: GitHub API Integration
+## 5-Minute Example: OpenAPI to MCP
 
-Generate a GitHub tool in 30 seconds:
-
-<Steps>
-  <Step title="Generate GitHub Tool">
-    ```bash
-    automagik-tools generate \
-      --spec https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json \
-      --name github \
-      --output ./tools
-
-    # Generates tool with 600+ operations!
-    ```
-  </Step>
-
-  <Step title="Configure Authentication">
-    ```bash
-    # Set GitHub token
-    export GITHUB_TOKEN=ghp_your_token_here
-
-    # Or in .env
-    echo "GITHUB_TOKEN=ghp_your_token" >> .env
-    ```
-  </Step>
-
-  <Step title="Serve GitHub Tool">
-    ```bash
-    automagik-tools serve --tools github
-
-    # Now AI agents can:
-    # - Create issues
-    # - List PRs
-    # - Create repositories
-    # - Manage webhooks
-    # - And 600+ more operations!
-    ```
-  </Step>
-</Steps>
-
----
-
-## Using Pre-Built Integrations
-
-Tools comes with 9 native integrations ready to use:
+Convert any API to MCP server.
 
 ```bash
-# List available integrations
-automagik-tools integrations list
-
-# Available integrations:
-# - github: GitHub API (650 operations)
-# - slack: Slack API (140 operations)
-# - stripe: Stripe API (380 operations)
-# - discord: Discord API (210 operations)
-# - linear: Linear API (120 operations)
-# - notion: Notion API (80 operations)
-# - sendgrid: SendGrid API (45 operations)
-# - twilio: Twilio API (90 operations)
-# - airtable: Airtable API (35 operations)
+# GitHub API example
+uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json -t stdio
 ```
 
-Enable an integration:
+**Output:**
+```
+INFO     Created FastMCP OpenAPI server with 19 routes
+INFO     Starting MCP server on stdio transport
+```
 
-```bash
-# Enable GitHub integration
-automagik-tools integrations enable github \
-  --token ghp_your_token
+Server runs. Connect to AI client. Query API in natural language.
 
-# Enable Slack integration
-automagik-tools integrations enable slack \
-  --token xoxb-your-slack-token
+---
 
-# Serve multiple integrations
-automagik-tools serve --tools github,slack,stripe
+## Real Command Output
+
+When you run `uvx automagik-tools --help`:
+
+```
+Usage: automagik-tools [OPTIONS] COMMAND [ARGS]...
+
+MCP Tools Framework
+
+Commands:
+│ list          List all available tools
+│ hub           Serve all tools on single server with path routing
+│ tool          Serve a specific tool
+│ openapi       Serve tool from OpenAPI specification URL
+│ info          Show detailed information about a tool
+│ create-tool   Create new MCP tool from OpenAPI spec
+│ mcp-config    Generate MCP configuration for Cursor/Claude
+│ version       Show version information
+```
+
+When you run `uvx automagik-tools info genie`:
+
+```
+Tool: genie
+Version: 2.0.0
+Description: Generic MCP tool orchestrator with persistent memory - connect any MCP servers
+Category: Uncategorized
+Author: automagik-tools
 ```
 
 ---
 
-## Custom API Example
+## Tested Commands
 
-Generate a tool for your own API:
+All these commands work:
+
+```bash
+# List tools
+uvx automagik-tools list
+
+# Get help
+uvx automagik-tools --help
+
+# Run Genie with stdio
+uvx automagik-tools tool genie -t stdio
+
+# Run Genie with SSE
+uvx automagik-tools tool genie -t sse --port 8000
+
+# Convert OpenAPI spec
+uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json
+
+# Get tool info
+uvx automagik-tools info genie
+
+# Generate MCP config
+uvx automagik-tools mcp-config genie
+
+# Show version
+uvx automagik-tools version
+```
+
+---
+
+## Connect to AI Clients
 
 <Tabs>
-  <Tab title="From URL">
-    ```bash
-    # Your API has OpenAPI docs at /openapi.json
-    automagik-tools generate \
-      --spec https://api.mycompany.com/openapi.json \
-      --name mycompany-api \
-      --output ./tools
+  <Tab title="Claude Desktop">
+    **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+    **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "uvx",
+          "args": ["automagik-tools", "tool", "genie", "-t", "stdio"],
+          "env": {"OPENAI_API_KEY": "sk-your-key"}
+        }
+      }
+    }
     ```
+
+    Restart Claude Desktop.
   </Tab>
 
-  <Tab title="From Local File">
-    ```bash
-    # You have a local OpenAPI spec
-    automagik-tools generate \
-      --spec ./api-spec.yaml \
-      --name internal-api \
-      --output ./tools \
-      --include-examples \
-      --include-tests
+  <Tab title="Cursor">
+    `~/.cursor/mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "automagik-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "tool", "genie", "-t", "stdio"],
+          "env": {"OPENAI_API_KEY": "sk-your-key"}
+        }
+      }
+    }
     ```
+
+    Restart Cursor.
   </Tab>
 
-  <Tab title="From Postman Collection">
-    ```bash
-    # Convert Postman to OpenAPI first
-    npm install -g postman-to-openapi
+  <Tab title="VSCode + Cline">
+    Install Cline extension. Add to settings:
 
-    p2o postman-collection.json -f openapi.yaml
-
-    # Then generate tool
-    automagik-tools generate \
-      --spec openapi.yaml \
-      --name my-api
+    ```json
+    {
+      "cline.mcpServers": [{
+        "name": "automagik-tools",
+        "command": "uvx",
+        "args": ["automagik-tools", "tool", "genie", "-t", "stdio"],
+        "env": {"OPENAI_API_KEY": "sk-your-key"}
+      }]
+    }
     ```
+
+    Restart VSCode.
   </Tab>
 </Tabs>
 
 ---
 
-## Serve Multiple Tools
-
-Create a tool registry for your organization:
+## Example: Stripe API to MCP
 
 ```bash
-# Generate multiple tools
-automagik-tools generate --spec https://api1.com/spec.json --name api1
-automagik-tools generate --spec https://api2.com/spec.json --name api2
-automagik-tools generate --spec https://api3.com/spec.json --name api3
+# Download Stripe OpenAPI spec
+curl -o stripe.json https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json
 
-# Serve all tools together
-automagik-tools serve --tools api1,api2,api3
-
-# Or serve everything in tools/
-automagik-tools serve --tools-dir ./tools
-
-# MCP server now exposes all tools!
+# Convert to MCP server
+uvx automagik-tools openapi stripe.json -t stdio
 ```
+
+**Configure in Claude Desktop:**
+
+```json
+{
+  "mcpServers": {
+    "stripe": {
+      "command": "uvx",
+      "args": ["automagik-tools", "openapi", "/path/to/stripe.json", "-t", "stdio"],
+      "env": {"STRIPE_API_KEY": "sk_test_your_key"}
+    }
+  }
+}
+```
+
+Ask Claude: "Create a $100 payment for customer cus_123"
+
+Claude uses the Stripe MCP server. Processes payment. Returns result.
 
 ---
 
-## Tool Discovery
+## Example: Genie with Multiple MCPs
 
-Let AI agents discover available tools:
+Configure Genie to orchestrate multiple MCP servers:
 
 ```bash
-# Enable tool discovery
-automagik-tools serve --discovery
+export GENIE_MCP_CONFIGS='{
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+    "transport": "stdio"
+  },
+  "github": {
+    "command": "uvx",
+    "args": ["mcp-server-git"],
+    "env": {"GITHUB_TOKEN": "your-token"},
+    "transport": "stdio"
+  }
+}'
 
-# Agents can query:
-# - List all available tools
-# - Search tools by capability
-# - Get tool documentation
-# - View usage examples
+uvx automagik-tools tool genie -t stdio
 ```
 
-Example from Claude:
+Ask Claude: "Use memory to track my preferences, analyze GitHub repos, save summaries to filesystem"
 
-```
-You: "What tools are available?"
-
-Claude: Let me check available tools.
-[Uses list_available_tools]
-
-Available tools:
-- github: GitHub API integration (650 operations)
-- slack: Slack messaging (140 operations)
-- stripe: Payment processing (380 operations)
-
-You: "Find tools that can send messages"
-
-Claude: [Uses search_tools with query="send messages"]
-
-Found 2 tools:
-- slack: Send messages to channels/users
-- twilio: Send SMS messages
-```
+Genie coordinates all three MCP servers. Maintains context. Executes workflow.
 
 ---
 
-## Common Patterns
+## Transport Modes
 
-<Tabs>
-  <Tab title="Internal API Catalog">
-    ```bash
-    # Create tools for all internal APIs
-    automagik-tools generate \
-      --spec https://api.users.internal/spec.json \
-      --name users-api
-
-    automagik-tools generate \
-      --spec https://api.products.internal/spec.json \
-      --name products-api
-
-    automagik-tools generate \
-      --spec https://api.orders.internal/spec.json \
-      --name orders-api
-
-    # Serve as internal tool registry
-    automagik-tools serve \
-      --tools users-api,products-api,orders-api \
-      --port 3000 \
-      --discovery
-    ```
-  </Tab>
-
-  <Tab title="Customer Support Bot">
-    ```bash
-    # Tools for support agents
-    automagik-tools serve \
-      --tools github,slack,linear,sendgrid \
-      --port 3000
-
-    # AI agent can now:
-    # - Create GitHub issues
-    # - Message customers on Slack
-    # - Track issues in Linear
-    # - Send emails via SendGrid
-    ```
-  </Tab>
-
-  <Tab title="E-commerce Integration">
-    ```bash
-    # E-commerce tool stack
-    automagik-tools serve \
-      --tools stripe,sendgrid,twilio,slack \
-      --port 3000
-
-    # AI handles:
-    # - Process payments (Stripe)
-    # - Send order confirmations (SendGrid)
-    # - SMS notifications (Twilio)
-    # - Internal alerts (Slack)
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Validation & Testing
-
-Ensure generated tools work correctly:
-
+**stdio** - Local use only:
 ```bash
-# Validate OpenAPI spec before generating
-automagik-tools validate-spec \
-  --spec https://api.example.com/openapi.json
+uvx automagik-tools tool genie -t stdio
+```
 
-# Generate with tests
-automagik-tools generate \
-  --spec https://api.example.com/openapi.json \
-  --name my-api \
-  --include-tests
+**SSE** - Network access, team sharing:
+```bash
+uvx automagik-tools tool genie -t sse --port 8000
+```
 
-# Run tests
-cd tools/my-api
-pytest
-
-# Test tool via MCP
-automagik-tools test --tool my-api --operation list_users
+**HTTP** - REST API access:
+```bash
+uvx automagik-tools tool genie -t http --port 8000
 ```
 
 ---
 
-## Pro Tips
+## What Works
 
-<AccordionGroup>
-  <Accordion title="Use uvx for Zero-Install Deployment">
-    ```bash
-    # No installation needed!
-    # Perfect for CI/CD or distributed teams
+Tested and working:
 
-    uvx automagik-tools serve --tools github,slack
-
-    # Or in CI/CD:
-    uvx automagik-tools generate \
-      --spec $API_SPEC_URL \
-      --name generated-tool \
-      --output ./dist
-    ```
-  </Accordion>
-
-  <Accordion title="Version Control Your Specs">
-    ```bash
-    # Store OpenAPI specs in repo
-    mkdir specs/
-    curl https://api.example.com/openapi.json > specs/api.json
-
-    # Generate from local spec
-    automagik-tools generate --spec specs/api.json --name api
-
-    # Regenerate when spec changes
-    git pull
-    automagik-tools generate --spec specs/api.json --name api --force
-    ```
-  </Accordion>
-
-  <Accordion title="Organize Tools by Purpose">
-    ```bash
-    # Separate tool collections
-    automagik-tools serve \
-      --tools github,linear \
-      --port 3001 \
-      --name dev-tools
-
-    automagik-tools serve \
-      --tools slack,sendgrid \
-      --port 3002 \
-      --name communication-tools
-
-    automagik-tools serve \
-      --tools stripe,airtable \
-      --port 3003 \
-      --name business-tools
-    ```
-  </Accordion>
-</AccordionGroup>
+- ✅ List 9 built-in tools
+- ✅ Run Genie orchestrator
+- ✅ Convert OpenAPI specs to MCP servers
+- ✅ Connect to Claude Desktop, Cursor, VSCode
+- ✅ stdio, SSE, and HTTP transports
+- ✅ Multiple MCP coordination via Genie
+- ✅ Persistent memory in Genie
+- ✅ WhatsApp automation via Evolution API
+- ✅ Generate MCP configs for any tool
 
 ---
 
-## Next Steps
+## Next
 
-<CardGroup cols={2}>
-  <Card title="Custom Tools" icon="wrench">
-    Learn to:
-    - Extend generated tools
-    - Add custom logic
-    - Override operations
-  </Card>
-
-  <Card title="Tool Registry" icon="book-bookmark">
-    Build:
-    - Centralized tool catalog
-    - Version management
-    - Usage tracking
-  </Card>
-
-  <Card title="Advanced MCP" icon="microchip">
-    Explore:
-    - Tool composition
-    - Context sharing
-    - Agent coordination
-  </Card>
-
-  <Card title="Production Deployment" icon="server">
-    Deploy:
-    - As a service
-    - Load balancing
-    - Monitoring
-  </Card>
-</CardGroup>
-
----
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="OpenAPI spec parsing fails">
-    Validate your spec first:
-
-    ```bash
-    # Use OpenAPI validator
-    automagik-tools validate-spec --spec your-spec.yaml
-
-    # Common issues:
-    # - Invalid YAML/JSON syntax
-    # - Missing required fields
-    # - Unsupported OpenAPI version
-
-    # Try converting to OpenAPI 3.0
-    automagik-tools convert-spec \
-      --spec swagger-2.0-spec.json \
-      --output openapi-3.0-spec.json
-    ```
-  </Accordion>
-
-  <Accordion title="Generated tool errors">
-    Check dependencies and test:
-
-    ```bash
-    # Generate with verbose output
-    automagik-tools generate \
-      --spec spec.json \
-      --name my-tool \
-      --verbose
-
-    # Test generated tool
-    automagik-tools test --tool my-tool
-
-    # Check tool structure
-    cd tools/my-tool
-    ls -la
-    ```
-  </Accordion>
-
-  <Accordion title="Authentication not working">
-    Configure auth properly:
-
-    ```bash
-    # For token auth
-    export API_TOKEN=your-token
-
-    # For OAuth
-    export OAUTH_CLIENT_ID=your-client-id
-    export OAUTH_CLIENT_SECRET=your-secret
-
-    # Test authentication
-    automagik-tools integrations test my-tool
-    ```
-  </Accordion>
-</AccordionGroup>
-
----
-
-**Congratulations!** 🎉 You've generated your first MCP tool with Tools. You can now connect any API to any AI agent in seconds!
-
-<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
-  Share your generated tools and API integrations
-</Card>
+- [CLI Commands](/tools/cli/commands) - All commands reference
+- [Built-in Tools](/tools/built-in-tools/overview) - Genie, Evolution API, etc.
+- [MCP Integration](/tools/integration/overview) - Connect to more AI clients

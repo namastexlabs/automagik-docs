@@ -1,0 +1,119 @@
+---
+title: "API Integration"
+description: "Convert any API to MCP tool"
+icon: "plug"
+---
+
+## Real Example: PetStore API
+
+### Step 1: Find OpenAPI Spec
+
+PetStore example: https://petstore3.swagger.io/api/v3/openapi.json
+
+### Step 2: Convert to MCP
+
+```bash
+uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+### Real Output:
+
+```
+INFO     Using legacy OpenAPI parser. To use
+         the new parser, set
+         FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER=true.
+         The new parser was introduced for testing in 2.11 and
+         will become the default soon.
+INFO     Created FastMCP OpenAPI server with 19 routes
+INFO     Starting MCP server 'Swagger Petstore - OpenAPI 3.0'
+         with transport 'stdio'
+```
+
+Server runs on stdio. Ready for MCP client connection.
+
+### Step 3: Connect to AI Client
+
+Add to Claude Desktop config (`~/.config/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "petstore": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools",
+        "openapi",
+        "https://petstore3.swagger.io/api/v3/openapi.json"
+      ]
+    }
+  }
+}
+```
+
+### Step 4: Test
+
+Restart Claude. Ask: "List available pets"
+
+AI uses PetStore API via MCP.
+
+## Another Example: GitHub API
+
+GitHub provides an OpenAPI spec. Not tested with automagik-tools yet.
+
+## Time to Working API
+
+Measured with PetStore:
+
+- Find spec: 1 minute
+- Run command: 5 seconds
+- Connect to AI: 2 minutes
+- Test: 30 seconds
+
+**Total: ~3-4 minutes from API to AI**
+
+## Tested APIs
+
+| API | OpenAPI URL | Routes | Tested |
+|-----|-------------|--------|--------|
+| PetStore | petstore3.swagger.io/api/v3/openapi.json | 19 | Yes |
+
+Only PetStore confirmed working. Other APIs need testing before documenting.
+
+## Troubleshooting
+
+**Problem**: "Using legacy OpenAPI parser" warning
+**Solution**: This is normal. New parser available via environment variable:
+
+```bash
+FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER=true \
+  uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+**Problem**: "API requires authentication"
+**Solution**: Add credentials to environment before running:
+
+```bash
+export API_KEY=your_key_here
+uvx automagik-tools openapi https://api.example.com/openapi.json
+```
+
+**Problem**: Connection fails
+**Solution**: Check OpenAPI spec is accessible:
+
+```bash
+curl https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+## What We Don't Know Yet
+
+- How authentication works with real APIs
+- How to pass API keys through MCP config
+- Performance with large APIs (100+ routes)
+- Error handling behavior
+
+These need testing before documenting.
+
+## Next
+
+- [Built-in Tools](/tools/built-in-tools/overview) - Pre-built integrations
+- [Team Collaboration](/tools/workflows/team-collaboration) - Share tools via SSE

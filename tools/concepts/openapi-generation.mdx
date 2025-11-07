@@ -1,0 +1,325 @@
+---
+title: "OpenAPI Generation"
+description: "How automagik-tools converts OpenAPI specs to MCP tools"
+icon: "wand-magic-sparkles"
+---
+
+## OpenAPI to MCP
+
+When you run `uvx automagik-tools openapi <url>`:
+
+1. Downloads OpenAPI specification
+2. Parses with FastMCP OpenAPI parser
+3. Generates FastMCP `@tool` functions for each endpoint
+4. Starts MCP server with generated tools
+
+## Technical Process
+
+### 1. Fetch & Parse
+
+```python
+# Fetch specification
+spec = httpx.get("https://api.example.com/openapi.json").json()
+
+# Detect version (2.0, 3.0, 3.1)
+version = spec.get("openapi") or spec.get("swagger")
+
+# Normalize to OpenAPI 3.1
+if version.startswith("2.0"):
+    spec = convert_swagger_to_openapi(spec)
+```
+
+### 2. Extract Endpoints
+
+```python
+for path, methods in spec["paths"].items():
+    for method, operation in methods.items():
+        endpoint = {
+            "path": path,
+            "method": method,
+            "operationId": operation.get("operationId"),
+            "parameters": operation.get("parameters", []),
+            "requestBody": operation.get("requestBody"),
+            "responses": operation.get("responses"),
+            "security": operation.get("security")
+        }
+```
+
+Example output:
+```
+Found 87 endpoints:
+- GET /users: List users
+- POST /users: Create user
+- GET /users/{id}: Get user by ID
+- PUT /users/{id}: Update user
+- DELETE /users/{id}: Delete user
+```
+
+### 3. Generate Types
+
+From OpenAPI schema:
+```json
+{
+  "User": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "email": {"type": "string", "format": "email"},
+      "name": {"type": "string"}
+    },
+    "required": ["id", "email", "name"]
+  }
+}
+```
+
+Generated Python type:
+```python
+from pydantic import BaseModel, UUID4, EmailStr
+
+class User(BaseModel):
+    id: UUID4
+    email: EmailStr
+    name: str
+```
+
+### 4. Create Handlers
+
+Generated handler for `GET /users/{id}`:
+
+```python
+@tool(name="api_get_user")
+async def get_user(user_id: str) -> User:
+    """Get user details by ID"""
+    response = await client.get(
+        f"/users/{user_id}",
+        headers=get_auth_headers()
+    )
+    response.raise_for_status()
+    return User(**response.json())
+```
+
+## GitHub API Example
+
+Input:
+```bash
+automagik-tools generate \
+  --spec https://api.github.com/openapi.json \
+  --name github
+```
+
+Analysis:
+```
+✓ Spec downloaded (3.2 MB)
+✓ OpenAPI 3.0 detected
+✓ Found 650 endpoints
+✓ Detected auth: Bearer token
+✓ Found 189 schemas
+```
+
+Processing:
+```
+Repositories: 87 operations
+Issues: 53 operations
+Pull Requests: 71 operations
+Users: 34 operations
+Organizations: 42 operations
+Actions: 98 operations
+... (17 more categories)
+```
+
+Generation:
+```
+✓ Created 189 Pydantic models
+✓ Generated 650 tool functions
+✓ Added authentication handling
+✓ Implemented error handling
+✓ Cached result
+
+Total time: 12.8 seconds
+```
+
+Output structure:
+```
+tools/github/
+├── __init__.py
+├── models.py          # 189 type definitions
+├── handlers.py        # 650 tool functions
+├── auth.py            # Authentication
+├── client.py          # HTTP client
+└── tests/
+    ├── test_repos.py
+    └── ... (23 test files)
+```
+
+## HTTP Client
+
+Generated handlers use httpx:
+
+```python
+import httpx
+
+client = httpx.AsyncClient(
+    base_url="https://api.example.com",
+    timeout=30.0,
+    headers={"User-Agent": "automagik-tools/1.0"}
+)
+```
+
+## Authentication
+
+Detected from OpenAPI security schemes:
+
+```yaml
+security:
+  - bearerAuth: []
+
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+```
+
+Generated auth handler:
+```python
+def get_auth_headers() -> dict:
+    token = os.getenv("EXAMPLE_API_TOKEN")
+    if not token:
+        raise ValueError("EXAMPLE_API_TOKEN not set")
+    return {"Authorization": f"Bearer {token}"}
+```
+
+Supported auth types:
+- Bearer tokens
+- API keys (header or query)
+- Basic auth
+- OAuth 2.0
+
+## Rate Limiting
+
+Detects rate limit headers:
+
+```python
+# From OpenAPI headers
+x-ratelimit-limit: 100
+x-ratelimit-remaining: 50
+x-ratelimit-reset: 1609459200
+
+# Generates rate limiter
+@rate_limit(calls=100, period=3600)
+async def api_call():
+    # Automatically throttled
+    pass
+```
+
+## Error Handling
+
+Generated error handling:
+
+```python
+try:
+    response = await client.post(url, json=data)
+    response.raise_for_status()
+    return response.json()
+except HTTPStatusError as e:
+    if e.response.status_code == 429:
+        # Rate limited - retry with backoff
+        retry_after = int(e.response.headers.get("Retry-After", 60))
+        await asyncio.sleep(retry_after)
+        return await retry_request()
+    elif e.response.status_code == 401:
+        raise AuthenticationError("Invalid API token")
+    elif e.response.status_code >= 500:
+        # Server error - retry with exponential backoff
+        return await retry_with_exponential_backoff()
+    else:
+        raise APIError(f"Request failed: {e}")
+```
+
+## Pagination Handling
+
+For paginated endpoints:
+
+```python
+@tool(name="list_all_users")
+async def list_all_users(filters: dict = None) -> list[User]:
+    """List all users (handles pagination automatically)"""
+    all_users = []
+    page = 1
+
+    while True:
+        response = await client.get(
+            "/users",
+            params={"page": page, "per_page": 100, **filters}
+        )
+        users = response.json()
+
+        if not users:
+            break
+
+        all_users.extend(users)
+        page += 1
+
+    return all_users
+```
+
+## Supported Specifications
+
+| Spec Version | Support | Notes |
+|--------------|---------|-------|
+| OpenAPI 3.1 | Full | Latest standard |
+| OpenAPI 3.0 | Full | Auto-converted to 3.1 |
+| Swagger 2.0 | Full | Auto-upgraded to 3.1 |
+| GraphQL | Partial | Via REST wrapper |
+| gRPC | Partial | Via gRPC-Gateway |
+
+## Generation Options
+
+Basic:
+```bash
+automagik-tools generate \
+  --spec https://api.example.com/openapi.json \
+  --name example
+```
+
+With options:
+```bash
+automagik-tools generate \
+  --spec https://api.example.com/openapi.json \
+  --name example \
+  --output ./tools \
+  --auth-type bearer \
+  --base-url https://api.example.com \
+  --rate-limit 100 \
+  --timeout 30
+```
+
+## Caching
+
+Generated tools are cached:
+
+- First generation: 8-15 seconds
+- Subsequent uses: <100ms
+- Cache location: `~/.automagik/cache/`
+- Cache invalidation: 24 hours or spec change
+
+## Validation
+
+Validate spec before generating:
+
+```bash
+automagik-tools validate-spec --spec api.json
+
+# Checks:
+# - Valid JSON/YAML syntax
+# - OpenAPI version
+# - Required fields present
+# - Schema validity
+# - Endpoint definitions
+```
+
+## Next Steps
+
+- [Transport Modes](/tools/concepts/transport-modes): How to serve generated tools
+- [Plugin System](/tools/concepts/plugin-system): Extend generated tools
+- [Built-in Tools](/tools/built-in-tools/overview): Pre-built integrations

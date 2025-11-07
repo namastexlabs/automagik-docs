@@ -1,0 +1,675 @@
+---
+title: "Authentication"
+description: "API keys and authentication setup for Automagik Tools"
+icon: "key"
+---
+
+## Overview
+
+Automagik Tools requires authentication for various integrations and services. This guide covers obtaining and configuring all necessary API keys and credentials.
+
+<Info>
+Different tools require different credentials. Configure only what you need for your use case.
+</Info>
+
+---
+
+## Required Credentials
+
+### OpenAI API Key (Required for Genie)
+
+<Steps>
+  <Step title="Sign up for OpenAI">
+    Visit [platform.openai.com](https://platform.openai.com) and create an account
+  </Step>
+
+  <Step title="Generate API Key">
+    Navigate to **API Keys** → **Create new secret key**
+
+    - Give it a descriptive name: "Automagik Tools - Production"
+    - Copy the key immediately (it won't be shown again)
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    export OPENAI_API_KEY=sk-your-key-here
+
+    # Or add to .env file
+    echo "OPENAI_API_KEY=sk-your-key-here" >> .env
+    ```
+  </Step>
+
+  <Step title="Verify">
+    ```bash
+    # Test configuration
+    uvx automagik-tools tool genie --transport stdio
+
+    # Should see:
+    # ✓ OpenAI API key configured
+    # ✓ Genie ready
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Keep your OpenAI API key secure!** Never commit it to version control or share it publicly.
+</Warning>
+
+#### Cost Management
+
+```bash
+# Use cheaper models for development
+GENIE_MODEL=gpt-4.1-mini
+AUTOMAGIK_TOOLS_OPENAI_MODEL=gpt-4.1-mini
+
+# Set usage limits in OpenAI dashboard
+# platform.openai.com/account/billing/limits
+```
+
+---
+
+## Automagik Suite Authentication
+
+### API Key Setup
+
+If you're using Automagik Suite (Spark, Hive, Forge, Omni):
+
+<Steps>
+  <Step title="Get Your API Key">
+    Your Automagik API key is provided when you set up Automagik Suite
+
+    ```bash
+    # Check your Automagik installation
+    cat ~/.automagik/config.json | grep api_key
+    ```
+  </Step>
+
+  <Step title="Configure Tools">
+    ```bash
+    export AUTOMAGIK_API_KEY=your-api-key-here
+    export AUTOMAGIK_BASE_URL=http://localhost:8881
+
+    # Or in .env
+    AUTOMAGIK_API_KEY=your-api-key-here
+    AUTOMAGIK_BASE_URL=http://localhost:8881
+    ```
+  </Step>
+
+  <Step title="Verify Connection">
+    ```bash
+    # Test with automagik tool
+    uvx automagik-tools tool automagik --transport stdio
+
+    # Or test the endpoint directly
+    curl -H "Authorization: Bearer your-api-key-here" \
+         http://localhost:8881/api/v1/health
+    ```
+  </Step>
+</Steps>
+
+### Multiple Environments
+
+```bash
+# Development
+AUTOMAGIK_API_KEY=dev-key-here
+AUTOMAGIK_BASE_URL=http://localhost:8881
+
+# Staging
+AUTOMAGIK_API_KEY=staging-key-here
+AUTOMAGIK_BASE_URL=https://staging.automagik.company.com
+
+# Production
+AUTOMAGIK_API_KEY=prod-key-here
+AUTOMAGIK_BASE_URL=https://api.automagik.company.com
+```
+
+---
+
+## WhatsApp Integration (Evolution API)
+
+### Getting Evolution API Credentials
+
+<Steps>
+  <Step title="Deploy Evolution API">
+    Follow the [Evolution API documentation](https://github.com/EvolutionAPI/evolution-api) to deploy your instance
+
+    ```bash
+    # Docker deployment
+    docker run -d \
+      --name evolution-api \
+      -p 8080:8080 \
+      atendai/evolution-api:latest
+    ```
+  </Step>
+
+  <Step title="Get API Key">
+    ```bash
+    # Check Evolution API logs for the generated key
+    docker logs evolution-api | grep "API Key"
+
+    # Or set your own key in environment
+    EVOLUTION_API_KEY=your-custom-key
+    ```
+  </Step>
+
+  <Step title="Configure Instance">
+    ```bash
+    export EVOLUTION_API_KEY=your-key-here
+    export EVOLUTION_API_BASE_URL=https://your-domain.com
+    export EVOLUTION_API_INSTANCE=my_whatsapp_instance
+    ```
+  </Step>
+
+  <Step title="Create WhatsApp Instance">
+    ```bash
+    # Use the evolution-api tool to create instance
+    uvx automagik-tools tool evolution-api --transport stdio
+
+    # Or via API
+    curl -X POST https://your-domain.com/instance/create \
+      -H "apikey: your-key-here" \
+      -d '{"instanceName": "my_whatsapp_instance"}'
+    ```
+  </Step>
+
+  <Step title="Connect WhatsApp">
+    ```bash
+    # Get QR code
+    curl https://your-domain.com/instance/connect/my_whatsapp_instance \
+      -H "apikey: your-key-here"
+
+    # Scan QR code with WhatsApp mobile app
+    ```
+  </Step>
+</Steps>
+
+### Security: Fixed Recipient
+
+For testing or security, restrict messages to a single recipient:
+
+```bash
+# Only send to this number
+EVOLUTION_API_FIXED_RECIPIENT=+1234567890@s.whatsapp.net
+
+# This removes the 'phone' parameter from all tools
+# All messages automatically go to the fixed recipient
+```
+
+---
+
+## Google Gemini Integration
+
+### API Key Setup
+
+<Steps>
+  <Step title="Get Gemini API Key">
+    Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+    - Click **Get API Key**
+    - Create in new or existing project
+    - Copy the generated key
+  </Step>
+
+  <Step title="Configure Environment">
+    ```bash
+    export GEMINI_API_KEY=your-gemini-key-here
+    export GEMINI_MODEL=gemini-2.0-flash-exp
+    ```
+  </Step>
+
+  <Step title="Test Configuration">
+    ```bash
+    uvx automagik-tools tool gemini-assistant --transport stdio
+
+    # Should show:
+    # ✓ Gemini API key configured
+    # ✓ Using model: gemini-2.0-flash-exp
+    ```
+  </Step>
+</Steps>
+
+### Model Selection
+
+```bash
+# Fast and cheap
+GEMINI_MODEL=gemini-2.0-flash-exp
+
+# More capable
+GEMINI_MODEL=gemini-pro
+
+# Most advanced
+GEMINI_MODEL=gemini-1.5-pro
+```
+
+---
+
+## GitHub Integration (for Genie MCP)
+
+### Personal Access Token
+
+If connecting Genie to GitHub via MCP:
+
+<Steps>
+  <Step title="Generate Token">
+    Go to [GitHub Settings](https://github.com/settings/tokens) → **Personal access tokens** → **Tokens (classic)**
+
+    - Click **Generate new token (classic)**
+    - Name: "Automagik Tools MCP"
+    - Select scopes: `repo`, `read:org`, `workflow`
+    - Generate and copy token
+  </Step>
+
+  <Step title="Configure Genie">
+    ```bash
+    export GENIE_MCP_CONFIGS='{
+      "github": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "env": {
+          "GITHUB_TOKEN": "ghp_your_token_here"
+        }
+      }
+    }'
+    ```
+  </Step>
+
+  <Step title="Test Connection">
+    ```bash
+    uvx automagik-tools tool genie --transport stdio
+
+    # Ask Genie:
+    # "List my GitHub repositories"
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Automagik Hive Integration
+
+### API Configuration
+
+<Steps>
+  <Step title="Check Hive Status">
+    ```bash
+    # Verify Hive is running
+    curl http://localhost:8886/health
+    ```
+  </Step>
+
+  <Step title="Get API Key (if required)">
+    ```bash
+    # Check if Hive requires authentication
+    curl http://localhost:8886/api/docs
+
+    # If 401, get API key from Hive admin
+    ```
+  </Step>
+
+  <Step title="Configure Tools">
+    ```bash
+    export HIVE_API_BASE_URL=http://localhost:8886
+
+    # Only if authentication is required
+    export HIVE_API_KEY=your-hive-key-here
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Complete .env Example
+
+```bash .env
+# =================================================================
+# 🔑 Core Authentication (REQUIRED)
+# =================================================================
+
+# OpenAI (Required for Genie)
+OPENAI_API_KEY=sk-proj-abc123def456ghi789
+
+# =================================================================
+# 🤖 Automagik Suite (Optional)
+# =================================================================
+
+AUTOMAGIK_API_KEY=amk_dev_xyz789abc456
+AUTOMAGIK_BASE_URL=http://localhost:8881
+
+# =================================================================
+# 📱 WhatsApp / Evolution API (Optional)
+# =================================================================
+
+EVOLUTION_API_KEY=evo_api_key_abc123
+EVOLUTION_API_BASE_URL=https://wa.company.com
+EVOLUTION_API_INSTANCE=company_whatsapp
+
+# Optional: Restrict to single recipient
+# EVOLUTION_API_FIXED_RECIPIENT=+1234567890@s.whatsapp.net
+
+# =================================================================
+# 🧞 Genie MCP Connections (Optional)
+# =================================================================
+
+GENIE_MCP_CONFIGS='{
+  "github": {
+    "command": "uvx",
+    "args": ["mcp-server-git"],
+    "env": {
+      "GITHUB_TOKEN": "ghp_your_github_token_here"
+    }
+  },
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+    "env": {}
+  }
+}'
+
+# =================================================================
+# 🤖 Google Gemini (Optional)
+# =================================================================
+
+GEMINI_API_KEY=AIzaSyAbc123Def456Ghi789
+GEMINI_MODEL=gemini-2.0-flash-exp
+
+# =================================================================
+# 🐝 Automagik Hive (Optional)
+# =================================================================
+
+HIVE_API_BASE_URL=http://localhost:8886
+# HIVE_API_KEY=hive_key_here  # Only if required
+```
+
+---
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="shield">
+    Never hardcode credentials in code
+
+    ```bash
+    # ✓ Good
+    OPENAI_API_KEY=sk-your-key
+
+    # ✗ Bad
+    api_key = "sk-hardcoded-key"
+    ```
+  </Card>
+
+  <Card title="Rotate Keys Regularly" icon="rotate">
+    Change API keys periodically
+
+    - Set calendar reminders
+    - Update after team changes
+    - Rotate after suspected exposure
+  </Card>
+
+  <Card title="Use Least Privilege" icon="user-shield">
+    Grant minimal required permissions
+
+    ```bash
+    # GitHub token: only repo access
+    # Not: full admin access
+
+    # WhatsApp: restrict to fixed recipient
+    EVOLUTION_API_FIXED_RECIPIENT=+123...
+    ```
+  </Card>
+
+  <Card title="Separate Environments" icon="layer-group">
+    Different keys for dev/staging/prod
+
+    ```bash
+    # .env.development
+    OPENAI_API_KEY=sk-dev-key
+
+    # .env.production
+    OPENAI_API_KEY=sk-prod-key
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Secret Management
+
+### Development
+
+```bash
+# .env file (gitignored)
+OPENAI_API_KEY=sk-your-key
+AUTOMAGIK_API_KEY=your-key
+
+# .gitignore
+.env
+.env.*
+!.env.example
+```
+
+### Production
+
+<Tabs>
+  <Tab title="Docker Secrets">
+    ```yaml docker-compose.yml
+    version: '3.8'
+    services:
+      automagik-tools:
+        image: automagik-tools:latest
+        secrets:
+          - openai_api_key
+          - automagik_api_key
+
+    secrets:
+      openai_api_key:
+        external: true
+      automagik_api_key:
+        external: true
+    ```
+
+    ```bash
+    # Create secrets
+    echo "sk-your-key" | docker secret create openai_api_key -
+    echo "your-key" | docker secret create automagik_api_key -
+    ```
+  </Tab>
+
+  <Tab title="Kubernetes Secrets">
+    ```yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: automagik-tools-secrets
+    type: Opaque
+    stringData:
+      openai-api-key: sk-your-key
+      automagik-api-key: your-key
+    ---
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: automagik-tools
+    spec:
+      containers:
+      - name: tools
+        image: automagik-tools:latest
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: automagik-tools-secrets
+              key: openai-api-key
+    ```
+  </Tab>
+
+  <Tab title="AWS Secrets Manager">
+    ```bash
+    # Store secret
+    aws secretsmanager create-secret \
+      --name automagik-tools/openai-key \
+      --secret-string "sk-your-key"
+
+    # Retrieve in application
+    OPENAI_API_KEY=$(aws secretsmanager get-secret-value \
+      --secret-id automagik-tools/openai-key \
+      --query SecretString --output text)
+    ```
+  </Tab>
+
+  <Tab title="HashiCorp Vault">
+    ```bash
+    # Store secret
+    vault kv put secret/automagik-tools \
+      openai_api_key=sk-your-key \
+      automagik_api_key=your-key
+
+    # Retrieve
+    vault kv get -field=openai_api_key secret/automagik-tools
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Invalid OpenAI API key">
+    ```
+    Error: The API key you provided is not valid
+    ```
+
+    **Solutions**:
+    - Verify key starts with `sk-`
+    - Check for extra spaces or newlines
+    - Ensure key hasn't been revoked
+    - Try generating a new key
+
+    ```bash
+    # Test key directly
+    curl https://api.openai.com/v1/models \
+      -H "Authorization: Bearer $OPENAI_API_KEY"
+    ```
+  </Accordion>
+
+  <Accordion title="Automagik Suite connection refused">
+    ```
+    Error: Could not connect to Automagik Suite
+    ```
+
+    **Solutions**:
+    ```bash
+    # Check if service is running
+    curl http://localhost:8881/health
+
+    # Verify API key format
+    echo $AUTOMAGIK_API_KEY
+
+    # Test with explicit auth header
+    curl -H "Authorization: Bearer $AUTOMAGIK_API_KEY" \
+         http://localhost:8881/api/v1/health
+    ```
+  </Accordion>
+
+  <Accordion title="WhatsApp instance not found">
+    ```
+    Error: WhatsApp instance 'my_instance' not found
+    ```
+
+    **Solutions**:
+    ```bash
+    # List available instances
+    curl https://your-domain.com/instance/fetchInstances \
+      -H "apikey: $EVOLUTION_API_KEY"
+
+    # Create instance if needed
+    curl -X POST https://your-domain.com/instance/create \
+      -H "apikey: $EVOLUTION_API_KEY" \
+      -d '{"instanceName": "my_instance"}'
+
+    # Verify environment variable
+    echo $EVOLUTION_API_INSTANCE
+    ```
+  </Accordion>
+
+  <Accordion title="GitHub MCP connection failed">
+    ```
+    Error: Failed to connect to GitHub MCP server
+    ```
+
+    **Solutions**:
+    ```bash
+    # Test mcp-server-git directly
+    GITHUB_TOKEN=ghp_your_token uvx mcp-server-git
+
+    # Verify token permissions
+    curl -H "Authorization: token $GITHUB_TOKEN" \
+         https://api.github.com/user
+
+    # Check GENIE_MCP_CONFIGS is valid JSON
+    echo $GENIE_MCP_CONFIGS | python -m json.tool
+    ```
+  </Accordion>
+
+  <Accordion title="Gemini API quota exceeded">
+    ```
+    Error: Quota exceeded for quota metric
+    ```
+
+    **Solutions**:
+    - Check quota limits in Google AI Studio
+    - Wait for quota reset (usually daily)
+    - Request quota increase
+    - Use cheaper model: `GEMINI_MODEL=gemini-2.0-flash-exp`
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Rate Limits and Quotas
+
+### OpenAI
+
+| Tier | RPM (Requests/min) | TPM (Tokens/min) |
+|------|-------------------|------------------|
+| Free | 3 | 40,000 |
+| Tier 1 | 500 | 10M |
+| Tier 2 | 5,000 | 30M |
+
+**Monitor usage**: [platform.openai.com/usage](https://platform.openai.com/usage)
+
+### Best Practices
+
+```bash
+# Use cheaper models for simple tasks
+GENIE_MODEL=gpt-4.1-mini  # Instead of gpt-4.1
+AUTOMAGIK_TOOLS_OPENAI_MODEL=gpt-4.1-mini
+
+# Reduce token usage
+AUTOMAGIK_TOOLS_MAX_TOKENS=1000  # Default: 2000
+
+# Monitor API costs
+# Check OpenAI dashboard regularly
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/tools/config/environment-variables">
+    Complete configuration reference
+  </Card>
+
+  <Card title="Transport Configuration" icon="network-wired" href="/tools/config/transport-configuration">
+    Setup stdio, SSE, and HTTP
+  </Card>
+
+  <Card title="Deployment" icon="rocket" href="/tools/config/deployment">
+    Deploy to production
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/tools/cli/commands">
+    Start using the tools
+  </Card>
+</CardGroup>

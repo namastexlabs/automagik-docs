@@ -1,0 +1,143 @@
+---
+title: "CLI Overview"
+description: "Command-line interface reference"
+icon: "terminal"
+---
+
+## Usage
+
+```bash
+automagik-tools [OPTIONS] COMMAND [ARGS]...
+```
+
+**Run without installation:**
+```bash
+uvx automagik-tools [COMMAND]
+```
+
+## Commands
+
+- `list` - List all available tools
+- `tool` - Serve a specific tool
+- `hub` - Serve all tools on a single server with path-based routing
+- `openapi` - Serve a tool directly from an OpenAPI specification URL
+- `info` - Show detailed information about a tool
+- `create-tool` - Create a new MCP tool from an OpenAPI specification
+- `mcp-config` - Generate MCP configuration for a tool to use in Cursor or Claude
+- `version` - Show version information
+
+## Common Patterns
+
+### Run tool locally (stdio)
+```bash
+uvx automagik-tools tool genie
+```
+
+### Run tool for team (SSE)
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 --host 0.0.0.0
+```
+
+### Run all tools via hub
+```bash
+uvx automagik-tools hub --transport sse --port 8884
+```
+
+### Convert OpenAPI to tool
+```bash
+uvx automagik-tools openapi https://api.example.com/openapi.json
+```
+
+### Generate MCP config
+```bash
+uvx automagik-tools mcp-config genie --format cursor
+```
+
+## Environment Variables
+
+### Transport and Networking
+- `HOST` - Default host (default: localhost)
+- `PORT` - Default port
+- `AUTOMAGIK_TOOLS_HOST` - Host override
+- `AUTOMAGIK_TOOLS_SSE_PORT` - SSE port override
+
+### Logging
+- `LOG_LEVEL` - Logging level (DEBUG, INFO, WARNING, ERROR)
+- `LOG_FOLDER` - Log output directory
+
+## Global Options
+
+```bash
+--help                  Show help message
+--install-completion    Install shell completion
+--show-completion       Show completion script
+```
+
+## Exit Codes
+
+| Code | Description |
+|------|-------------|
+| `0` | Success |
+| `1` | Error |
+
+## Examples
+
+### List all tools
+```bash
+uvx automagik-tools list
+```
+
+### Serve Genie with stdio
+```bash
+uvx automagik-tools tool genie --transport stdio
+```
+
+### Serve Genie with SSE
+```bash
+uvx automagik-tools tool genie -t sse --port 8000
+```
+
+### Start hub with all tools
+```bash
+uvx automagik-tools hub -t sse --port 8884
+```
+
+### Convert API to MCP tool
+```bash
+uvx automagik-tools openapi https://api.github.com/openapi.json --api-key ghp_token
+```
+
+### Get tool information
+```bash
+uvx automagik-tools info genie
+```
+
+### Generate MCP configuration
+```bash
+uvx automagik-tools mcp-config genie --format cursor
+```
+
+### Show version
+```bash
+uvx automagik-tools version
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Commands Reference" icon="book" href="/tools/cli/commands">
+    Detailed command documentation
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/tools/config/environment-variables">
+    Complete configuration reference
+  </Card>
+
+  <Card title="Built-in Tools" icon="wrench" href="/tools/built-in-tools/genie">
+    Explore available tools
+  </Card>
+
+  <Card title="Deployment" icon="rocket" href="/tools/config/deployment">
+    Production deployment guide
+  </Card>
+</CardGroup>

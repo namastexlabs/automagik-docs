@@ -1,0 +1,421 @@
+---
+title: "Cursor Setup"
+description: "Connect automagik-tools to Cursor IDE"
+icon: "terminal"
+---
+
+## Prerequisites
+
+- automagik-tools installed: `uvx automagik-tools list`
+- Cursor IDE from [cursor.sh](https://cursor.sh)
+- API keys (if needed for specific tools)
+
+---
+
+## Configuration File Location
+
+Cursor MCP config location: `~/.cursor/mcp.json`
+
+Create the file if it doesn't exist:
+
+```bash
+# macOS/Linux
+touch ~/.cursor/mcp.json
+
+# Windows
+type nul > %USERPROFILE%\.cursor\mcp.json
+```
+
+---
+
+## Example 1: Genie Tool (No Auth)
+
+**Tested Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Save `~/.cursor/mcp.json`
+2. Restart Cursor (or reload window: Cmd/Ctrl+R)
+3. Open Cursor AI chat
+4. Ask: "what MCP tools are available?"
+5. Expected: Should list "genie" tools
+
+**Verification:**
+
+```bash
+# Generate config automatically
+uvx automagik-tools mcp-config genie
+
+# Output shows exact JSON for Cursor
+```
+
+---
+
+## Example 2: Evolution API (With Auth)
+
+**Tested Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Replace `YOUR_API_KEY_HERE` with your actual key
+2. Save and restart Cursor
+3. Ask: "what evolution-api capabilities do you have?"
+4. Expected: Lists WhatsApp messaging tools
+
+**Verification:**
+
+```bash
+# Generate config for evolution-api
+uvx automagik-tools mcp-config evolution-api
+
+# Shows config with required env vars
+```
+
+---
+
+## Example 3: Omni Tool (No Auth)
+
+**Tested Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Save and restart Cursor
+2. Ask: "what omni tools are available?"
+3. Expected: Shows omnichannel messaging tools
+
+**Verification:**
+
+```bash
+uvx automagik-tools mcp-config omni
+```
+
+---
+
+## Example 4: Multiple Tools
+
+**Tested Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    },
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+Ask: "list all MCP servers you can access"
+
+Expected: Shows all three tools with their capabilities
+
+---
+
+## Custom OpenAPI Tool
+
+**Test It Works:**
+
+```bash
+# Test conversion
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+
+# Expected output:
+# INFO     Created FastMCP OpenAPI server with XXX routes
+# INFO     Starting MCP server
+```
+
+Press Ctrl+C to stop.
+
+**Tested Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "github-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.github.com/openapi.json"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "ghp_your_token_here"
+      }
+    }
+  }
+}
+```
+
+**Test Connection:**
+
+1. Get token from https://github.com/settings/tokens
+2. Add to config and restart Cursor
+3. Ask: "use github-api to list my repositories"
+4. Expected: Cursor uses GitHub API via MCP
+
+---
+
+## Troubleshooting
+
+### Problem: Tool not showing up
+
+**Check Cursor MCP status:**
+
+- View → Output
+- Select "MCP" from dropdown
+- Look for connection errors
+
+**Test tool directly:**
+
+```bash
+uvx automagik-tools tool genie -t stdio
+
+# Expected:
+# INFO     Starting MCP server 'Genie' with transport 'stdio'
+```
+
+**Solution:**
+
+```bash
+# Verify installation
+uvx automagik-tools list
+
+# Reinstall if needed
+uvx --reinstall automagik-tools@latest list
+
+# Check config file exists
+ls -la ~/.cursor/mcp.json
+
+# Validate JSON syntax
+cat ~/.cursor/mcp.json | python -m json.tool
+```
+
+### Problem: Connection refused
+
+**Verify command works:**
+
+```bash
+# Test each tool
+uvx automagik-tools tool TOOLNAME -t stdio
+
+# Should output "Starting MCP server..." without errors
+```
+
+If this fails, the tool won't work in Cursor.
+
+**Check logs:**
+
+```bash
+# Cursor output panel: View → Output → MCP
+# Look for error messages
+```
+
+### Problem: Authentication errors
+
+**Test API access:**
+
+```bash
+# Check env vars are set correctly
+echo $EVOLUTION_API_API_KEY
+
+# Test API endpoint
+curl -H "X-API-KEY: YOUR_KEY" http://localhost:8080/health
+```
+
+**Verify JSON syntax:**
+
+```bash
+# No trailing commas!
+# Use double quotes, not single quotes
+# Escape special characters in strings
+
+cat ~/.cursor/mcp.json | python -m json.tool
+```
+
+---
+
+## Generate Config Helper
+
+Use the built-in generator:
+
+```bash
+# For any tool
+uvx automagik-tools mcp-config TOOLNAME
+```
+
+**Example output:**
+
+```
+MCP Configuration for Cursor:
+{
+  "genie": {
+    "command": "uvx",
+    "args": [
+      "automagik-tools@latest",
+      "tool",
+      "genie"
+    ]
+  }
+}
+
+To use this configuration:
+1. Copy the JSON above
+2. Open ~/.cursor/mcp.json (or create it)
+3. Add this configuration to the 'mcpServers' section
+4. Restart Cursor
+
+✅ Configuration generated successfully!
+```
+
+Wrap in `"mcpServers": { ... }` if needed.
+
+---
+
+## Verification Checklist
+
+- [ ] `uvx automagik-tools list` shows available tools
+- [ ] Config file exists: `~/.cursor/mcp.json`
+- [ ] JSON syntax valid (use `python -m json.tool`)
+- [ ] Tool runs: `uvx automagik-tools tool TOOLNAME -t stdio`
+- [ ] Cursor restarted (Cmd/Ctrl+R or full restart)
+- [ ] Check MCP status: View → Output → MCP
+- [ ] Ask Cursor: "what MCP tools do you have?"
+- [ ] Tool appears in response
+- [ ] Can use tool in chat
+
+---
+
+## Real Config Example
+
+**Working config from production:**
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    },
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    }
+  }
+}
+```
+
+Location: `~/.cursor/mcp.json`
+
+Test: Open Cursor, ask "what MCP servers are connected?"
+
+---
+
+## Advanced: Custom Base URL
+
+For OpenAPI tools with different base URLs:
+
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://example.com/openapi.json",
+        "--base-url",
+        "https://api.example.com"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+**Test it works:**
+
+```bash
+uvx automagik-tools openapi https://example.com/openapi.json \
+  --base-url https://api.example.com \
+  -t stdio
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Custom OpenAPI" href="/tools/integration/custom-openapi">
+    Convert any API to MCP
+  </Card>
+
+  <Card title="Claude Setup" href="/tools/integration/claude-code-setup">
+    Configure for Claude Desktop
+  </Card>
+
+  <Card title="VSCode Setup" href="/tools/integration/vscode-cline-setup">
+    Configure for VSCode + Cline
+  </Card>
+
+  <Card title="Overview" href="/tools/integration/overview">
+    Back to integration overview
+  </Card>
+</CardGroup>
+
+<Tip>
+All configs tested with Cursor 0.40+ and automagik-tools latest version.
+</Tip>

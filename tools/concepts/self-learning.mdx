@@ -1,0 +1,362 @@
+---
+title: "Self-Learning"
+description: "How tools remember and adapt via FastMCP"
+icon: "brain"
+---
+
+## Learning Mechanism
+
+automagik-tools uses FastMCP for persistent memory and pattern detection.
+
+## Storage Backend
+
+Memory stored in:
+
+- SQLite database (local): `~/.config/automagik-tools/memory.db`
+- PostgreSQL (optional): For shared team memory
+
+## Database Schema
+
+```sql
+-- Interactions table
+CREATE TABLE interactions (
+    id UUID PRIMARY KEY,
+    user_id VARCHAR,
+    tool_name VARCHAR,
+    parameters JSON,
+    result JSON,
+    timestamp TIMESTAMP,
+    execution_time FLOAT,
+    context JSON
+);
+
+-- Preferences table
+CREATE TABLE preferences (
+    user_id VARCHAR,
+    category VARCHAR,
+    key VARCHAR,
+    value JSON,
+    confidence FLOAT,
+    updated_at TIMESTAMP,
+    PRIMARY KEY (user_id, category, key)
+);
+
+-- Patterns table
+CREATE TABLE patterns (
+    id UUID PRIMARY KEY,
+    user_id VARCHAR,
+    pattern_type VARCHAR,
+    pattern_data JSON,
+    frequency INT,
+    confidence FLOAT,
+    discovered_at TIMESTAMP
+);
+```
+
+## What Gets Stored
+
+Stored:
+- User preferences (formatting style, default values)
+- API response patterns
+- Common query patterns
+- Tool execution history
+- Error patterns
+
+Not stored:
+- API keys or credentials
+- Sensitive request data
+- Full response bodies (only metadata)
+- Personally identifiable information
+
+## Implementation
+
+### Context Storage
+
+```python
+from automagik_tools import ToolContext
+
+@tool()
+def my_tool(param: str, context: ToolContext):
+    # Store preference
+    context.store("preferred_format", "json")
+
+    # Retrieve preference
+    format = context.get("preferred_format", default="xml")
+
+    # Record interaction for learning
+    context.record_interaction({
+        "tool": "my_tool",
+        "param": param,
+        "format_used": format
+    })
+```
+
+### Preference Learning
+
+```python
+# After 5 uses with "json" format
+preferences = {
+    "preferred_format": {
+        "value": "json",
+        "confidence": 0.85,
+        "sample_size": 5
+    }
+}
+
+# Tool automatically uses learned preference
+@tool()
+def my_tool(param: str, context: ToolContext):
+    prefs = context.get_preferences("my_tool")
+    format = prefs.get("preferred_format", "xml")
+    return process(param, format=format)
+```
+
+## Pattern Detection
+
+FastMCP analyzes usage patterns:
+
+```python
+# Usage pattern over time
+interactions = [
+    {"time": "09:00", "tool": "fetch_users", "params": {"limit": 100}},
+    {"time": "09:05", "tool": "fetch_users", "params": {"limit": 100}},
+    {"time": "09:10", "tool": "fetch_users", "params": {"limit": 100}}
+]
+
+# Detected pattern
+pattern = {
+    "type": "recurring_parameter",
+    "tool": "fetch_users",
+    "parameter": "limit",
+    "value": 100,
+    "frequency": 0.95,  # 95% of calls use this value
+    "confidence": 0.92
+}
+
+# Applied automatically
+@tool()
+def fetch_users(limit: int = 100, context: ToolContext):
+    # Default learned from pattern
+    return get_users(limit=limit)
+```
+
+## OpenAI Integration
+
+Uses OpenAI for semantic analysis:
+
+```python
+from openai import OpenAI
+
+class LearningEngine:
+    def __init__(self):
+        self.openai = OpenAI()
+
+    async def analyze_interaction(self, interaction: dict) -> dict:
+        prompt = f"""
+        Analyze this tool interaction:
+
+        Tool: {interaction['tool_name']}
+        Parameters: {interaction['parameters']}
+        Result: {interaction['result']}
+
+        Extract:
+        1. User preferences
+        2. Workflow patterns
+        3. Style preferences
+        """
+
+        response = await self.openai.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return parse_insights(response.choices[0].message.content)
+```
+
+## Confidence Levels
+
+How confidence affects behavior:
+
+| Confidence | Behavior | Example |
+|------------|----------|---------|
+| 0.0 - 0.3 | No application | Uses defaults |
+| 0.3 - 0.6 | Suggest only | "You usually use X. Apply?" |
+| 0.6 - 0.8 | Apply with confirmation | Uses learned value, asks to confirm |
+| 0.8 - 1.0 | Apply automatically | High confidence, automatic |
+
+```python
+preference = context.get_preference("code_style")
+
+if preference.confidence < 0.3:
+    # Not enough data - use default
+    style = "pep8"
+elif preference.confidence < 0.6:
+    # Some data - suggest
+    context.log(f"Suggest using {preference.value}?")
+    style = ask_user()
+elif preference.confidence < 0.8:
+    # Good confidence - apply with confirmation
+    style = preference.value
+    context.log(f"Using {style} (learned preference)")
+else:
+    # High confidence - apply automatically
+    style = preference.value
+```
+
+## Privacy Controls
+
+### Disable Learning
+
+```bash
+# Disable all learning
+automagik-tools serve --no-learning
+
+# Disable specific features
+automagik-tools serve \
+  --no-preference-learning \
+  --no-pattern-detection
+```
+
+### Clear Data
+
+```bash
+# Clear all learned data
+automagik-tools memory clear
+
+# Export data
+automagik-tools memory export > backup.json
+
+# Import data
+automagik-tools memory import backup.json
+
+# View learned data
+automagik-tools memory show
+```
+
+### Configuration
+
+```yaml
+# ~/.automagik/config.yaml
+learning:
+  enabled: true
+
+  storage:
+    type: sqlite  # or postgresql
+    path: ~/.config/automagik-tools/memory.db
+    retention_days: 90
+
+  intelligence:
+    provider: openai  # or anthropic
+    model: gpt-4
+    api_key: ${OPENAI_API_KEY}
+
+  confidence:
+    suggest: 0.3
+    confirm: 0.6
+    auto_apply: 0.8
+
+  privacy:
+    anonymize: false
+    cloud_sync: false
+```
+
+## Example: Code Formatting
+
+Week 1 - Initial use:
+```
+User: "Format this code"
+Tool: Uses default PEP8 (no preferences)
+Result: 88 char lines, double quotes
+```
+
+Week 2 - Correction:
+```
+User: "Use 120 char lines and single quotes"
+Tool: Notes correction
+FastMCP: Stores preference
+Confidence: 0.4 (after 1 correction)
+```
+
+Week 3 - Learning applied:
+```
+User: "Format this code"
+Tool: Uses 120 char lines, single quotes automatically
+Confidence: 0.85 (after 5 consistent uses)
+```
+
+Week 4 - High confidence:
+```
+User: "Format this code"
+Tool: Applies style automatically
+Confidence: 0.98 (after 10 consistent uses)
+No confirmation needed
+```
+
+## Example: API Workflow
+
+Day 1-3: User creates GitHub issues manually
+```python
+interactions = [
+    {"tool": "github_create_issue", "params": {"title": "..."}},
+    {"tool": "github_add_labels", "params": {"labels": ["bug"]}},
+    {"tool": "github_assign", "params": {"assignee": "user"}}
+]
+```
+
+Day 4: Pattern detected
+```python
+pattern = {
+    "type": "workflow",
+    "tools": ["create_issue", "add_labels", "assign"],
+    "frequency": 0.9,
+    "confidence": 0.75
+}
+```
+
+Day 5: Suggestion
+```
+User: "Create GitHub issue"
+Tool: Creates issue
+Tool: "You usually add labels next. Do that?"
+User: "Yes"
+Confidence: 0.88
+```
+
+Day 7: Automation
+```
+User: "Create GitHub issue: Fix bug"
+Tool: Automatically:
+  1. Creates issue
+  2. Adds labels ["bug"]
+  3. Assigns to user
+  4. Notifies team
+Confidence: 0.95
+```
+
+## View Learned Data
+
+```bash
+automagik-tools memory show
+
+# Output:
+Learned Preferences:
+- code_formatting.style: black (confidence: 0.98)
+- code_formatting.line_length: 120 (confidence: 0.95)
+- github.default_labels: ["bug", "priority:high"] (confidence: 0.92)
+
+Detected Patterns:
+- Daily sync at 09:00 (frequency: 23/30 days)
+- Issue creation workflow (frequency: 45/50 uses)
+- Deployment approval required (frequency: 1.0)
+```
+
+Delete specific preference:
+```bash
+automagik-tools memory forget "code_formatting.style"
+```
+
+## Next Steps
+
+- [Plugin System](/tools/concepts/plugin-system): Build learning-enabled plugins
+- [MCP Architecture](/tools/concepts/mcp-architecture): How memory integrates with MCP
+- [Built-in Tools](/tools/built-in-tools/overview): See learning in built-in tools

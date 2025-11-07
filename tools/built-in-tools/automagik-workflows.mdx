@@ -1,0 +1,687 @@
+---
+title: "Automagik Workflows"
+description: "Execute Claude Code workflows programmatically with visual progress tracking"
+icon: "diagram-project"
+---
+
+## Overview
+
+**Automagik Workflows** enables programmatic execution of Claude Code workflows with real-time progress tracking. Run workflows via API, monitor execution status, and integrate Claude's powerful automation into your applications.
+
+Think of Automagik Workflows as the bridge between your applications and Claude Code's automation capabilities.
+
+---
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Programmatic Execution" icon="code">
+    Execute workflows via API or command line
+  </Card>
+
+  <Card title="Visual Progress" icon="chart-line">
+    Real-time progress tracking with visual feedback
+  </Card>
+
+  <Card title="Workflow Management" icon="folder">
+    List, execute, and monitor Claude workflows
+  </Card>
+
+  <Card title="Result Streaming" icon="stream">
+    Stream execution results in real-time
+  </Card>
+
+  <Card title="Status Tracking" icon="circle-check">
+    Track workflow status and completion
+  </Card>
+
+  <Card title="Error Handling" icon="shield-exclamation">
+    Graceful error handling and reporting
+  </Card>
+</CardGroup>
+
+---
+
+## Use Cases
+
+### 1. Automated Code Generation
+
+```bash
+# Generate code via workflow
+automagik-workflows execute "generate-api" \
+  --params '{"feature": "user-auth"}' \
+  --track-progress
+```
+
+### 2. CI/CD Integration
+
+```bash
+# Run workflows in CI pipeline
+automagik-workflows execute "pre-commit-checks" \
+  --wait \
+  --fail-on-error
+```
+
+### 3. Scheduled Automation
+
+```bash
+# Scheduled code maintenance
+spark schedule create weekly-refactor \
+  --cron "0 9 * * MON" \
+  --task "automagik-workflows execute code-cleanup"
+```
+
+### 4. Interactive Development
+
+```bash
+# Watch workflow execution live
+automagik-workflows execute "build-feature" \
+  --interactive \
+  --show-steps
+```
+
+---
+
+## Quick Start
+
+### Installation
+
+```bash
+# Install Automagik Tools
+uvx automagik-tools --help
+
+# Start Automagik Workflows server
+uvx automagik-tools tool automagik-workflows -t stdio
+```
+
+### Configuration
+
+Create `~/.automagik/workflows.json`:
+
+```json
+{
+  "claude": {
+    "executable": "claude",
+    "config_path": "~/.claude/",
+    "default_model": "claude-3-5-sonnet-20241022"
+  },
+  "workflows": {
+    "path": "~/.claude/workflows/",
+    "auto_discover": true
+  },
+  "execution": {
+    "timeout": 3600,
+    "max_concurrent": 3,
+    "stream_output": true
+  },
+  "progress": {
+    "enabled": true,
+    "update_interval": 1000,
+    "format": "tui"
+  }
+}
+```
+
+### Environment Variables
+
+```bash
+export CLAUDE_PATH="claude"
+export WORKFLOWS_PATH="~/.claude/workflows/"
+export WORKFLOW_TIMEOUT="3600"
+```
+
+---
+
+## List Workflows
+
+### Discover Available Workflows
+
+```bash
+# List all workflows
+automagik-workflows list
+
+# Output:
+# Available Workflows:
+# ├─ generate-api (Generate REST API endpoints)
+# ├─ refactor-code (Refactor codebase for better structure)
+# ├─ add-tests (Add comprehensive test coverage)
+# ├─ update-docs (Update project documentation)
+# └─ security-audit (Run security audit and fix issues)
+
+# Show workflow details
+automagik-workflows show generate-api
+
+# Search workflows
+automagik-workflows search "test"
+```
+
+### Workflow Information
+
+```bash
+# Get workflow metadata
+automagik-workflows info generate-api
+
+# Output:
+{
+  "name": "generate-api",
+  "description": "Generate REST API endpoints",
+  "parameters": {
+    "feature": "string",
+    "method": "GET|POST|PUT|DELETE",
+    "auth": "boolean"
+  },
+  "estimated_duration": "5-10 minutes",
+  "requires": ["typescript", "express"]
+}
+```
+
+---
+
+## Execute Workflows
+
+### Basic Execution
+
+```bash
+# Execute workflow
+automagik-workflows execute generate-api
+
+# Execute with parameters
+automagik-workflows execute generate-api \
+  --params '{"feature": "user-auth", "method": "POST"}'
+
+# Execute and wait for completion
+automagik-workflows execute generate-api \
+  --params '{"feature": "payments"}' \
+  --wait
+```
+
+### Interactive Execution
+
+```bash
+# Interactive mode with progress
+automagik-workflows execute build-feature \
+  --interactive \
+  --show-steps \
+  --show-output
+
+# Example output:
+# ┌─────────────────────────────────────┐
+# │ Executing: build-feature            │
+# ├─────────────────────────────────────┤
+# │ ✓ Analyzing requirements      [2s]  │
+# │ ⟳ Generating code            [5s]  │
+# │ ○ Writing tests                     │
+# │ ○ Updating documentation            │
+# └─────────────────────────────────────┘
+```
+
+### Background Execution
+
+```bash
+# Execute in background
+automagik-workflows execute long-refactor \
+  --background \
+  --notify-on-complete
+
+# Get execution ID
+# Execution ID: exec-abc123
+
+# Check status later
+automagik-workflows status exec-abc123
+```
+
+---
+
+## Progress Tracking
+
+### Real-Time Progress
+
+```bash
+# Execute with progress tracking
+automagik-workflows execute add-tests \
+  --track-progress \
+  --format tui
+
+# TUI Progress Display:
+# ╔══════════════════════════════════════╗
+# ║ Workflow: add-tests                  ║
+# ╠══════════════════════════════════════╣
+# ║ Status: Running                      ║
+# ║ Elapsed: 3m 45s                      ║
+# ║ Progress: 65%                        ║
+# ╠══════════════════════════════════════╣
+# ║ Current Step:                        ║
+# ║ → Writing integration tests          ║
+# ║                                      ║
+# ║ Completed Steps:                     ║
+# ║ ✓ Analyzing test coverage            ║
+# ║ ✓ Generating unit tests              ║
+# ║                                      ║
+# ║ Remaining Steps:                     ║
+# ║ ○ Writing E2E tests                  ║
+# ║ ○ Updating test documentation        ║
+# ╚══════════════════════════════════════╝
+```
+
+### Progress Callbacks
+
+```javascript
+// JavaScript API
+const workflow = await workflows.execute('generate-api', {
+  params: { feature: 'auth' },
+  onProgress: (progress) => {
+    console.log(`${progress.step}: ${progress.percent}%`);
+  },
+  onStep: (step) => {
+    console.log(`Starting: ${step.name}`);
+  },
+  onComplete: (result) => {
+    console.log('Workflow complete!');
+  }
+});
+```
+
+---
+
+## Monitor Executions
+
+### Check Status
+
+```bash
+# Get execution status
+automagik-workflows status exec-abc123
+
+# Output:
+{
+  "id": "exec-abc123",
+  "workflow": "generate-api",
+  "status": "running",
+  "progress": 45,
+  "current_step": "Writing API endpoints",
+  "started_at": "2024-12-01T10:30:00Z",
+  "elapsed": "2m 15s"
+}
+
+# Watch status in real-time
+automagik-workflows status exec-abc123 --watch
+```
+
+### View Execution History
+
+```bash
+# List recent executions
+automagik-workflows executions list --limit 10
+
+# Filter by workflow
+automagik-workflows executions list \
+  --workflow generate-api
+
+# Filter by status
+automagik-workflows executions list \
+  --status completed
+```
+
+### Execution Logs
+
+```bash
+# View execution logs
+automagik-workflows logs exec-abc123
+
+# Stream logs in real-time
+automagik-workflows logs exec-abc123 --follow
+
+# Export logs
+automagik-workflows logs exec-abc123 \
+  --export execution.log
+```
+
+---
+
+## Workflow Results
+
+### Get Results
+
+```bash
+# Get workflow results
+automagik-workflows results exec-abc123
+
+# Output:
+{
+  "execution_id": "exec-abc123",
+  "workflow": "generate-api",
+  "status": "completed",
+  "duration": "5m 32s",
+  "files_created": [
+    "src/api/auth.ts",
+    "src/api/auth.test.ts"
+  ],
+  "files_modified": [
+    "src/app.ts",
+    "src/routes.ts"
+  ],
+  "summary": "Generated authentication API with tests"
+}
+
+# Get detailed results
+automagik-workflows results exec-abc123 --detailed
+```
+
+### Export Results
+
+```bash
+# Export as JSON
+automagik-workflows results exec-abc123 \
+  --format json \
+  --output results.json
+
+# Export as markdown report
+automagik-workflows results exec-abc123 \
+  --format markdown \
+  --output report.md
+```
+
+---
+
+## Control Execution
+
+### Pause and Resume
+
+```bash
+# Pause execution
+automagik-workflows pause exec-abc123
+
+# Resume execution
+automagik-workflows resume exec-abc123
+```
+
+### Cancel Execution
+
+```bash
+# Cancel running execution
+automagik-workflows cancel exec-abc123
+
+# Force cancel
+automagik-workflows cancel exec-abc123 --force
+```
+
+### Retry Failed
+
+```bash
+# Retry failed execution
+automagik-workflows retry exec-abc123
+
+# Retry from specific step
+automagik-workflows retry exec-abc123 \
+  --from-step "Writing tests"
+```
+
+---
+
+## Integration Patterns
+
+### Pattern 1: CI/CD Integration
+
+```yaml
+# .github/workflows/claude-checks.yml
+name: Claude Code Checks
+on: [push, pull_request]
+
+jobs:
+  claude-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Claude Workflow
+        run: |
+          uvx automagik-tools tool automagik-workflows -t stdio
+          automagik-workflows execute pre-commit-checks \
+            --wait \
+            --fail-on-error
+```
+
+### Pattern 2: Scheduled Automation
+
+```bash
+# Schedule weekly code cleanup
+spark schedule create weekly-cleanup \
+  --cron "0 9 * * MON" \
+  --workflow "
+    automagik-workflows execute code-cleanup,
+    automagik-workflows execute update-docs,
+    omni send 'Weekly cleanup complete' --to slack:dev
+  "
+```
+
+### Pattern 3: Webhook Trigger
+
+```javascript
+// Express.js webhook
+app.post('/webhook/trigger-workflow', async (req, res) => {
+  const { workflow, params } = req.body;
+
+  const execution = await workflows.execute(workflow, {
+    params,
+    background: true,
+    notify: {
+      onComplete: async (result) => {
+        await omni.send({
+          message: `Workflow ${workflow} completed`,
+          channel: 'slack:dev'
+        });
+      }
+    }
+  });
+
+  res.json({ execution_id: execution.id });
+});
+```
+
+---
+
+## Advanced Features
+
+### Custom Workflows
+
+```bash
+# Create custom workflow
+automagik-workflows create my-workflow \
+  --template base \
+  --description "My custom workflow"
+
+# Edit workflow
+automagik-workflows edit my-workflow
+```
+
+### Workflow Templates
+
+```bash
+# List templates
+automagik-workflows templates
+
+# Create from template
+automagik-workflows create feature-dev \
+  --from-template full-stack
+
+# Export as template
+automagik-workflows export my-workflow \
+  --as-template
+```
+
+### Parallel Execution
+
+```bash
+# Execute multiple workflows in parallel
+automagik-workflows execute \
+  --workflows "add-tests,update-docs,refactor-code" \
+  --parallel \
+  --max-concurrent 3
+```
+
+---
+
+## API Reference
+
+### Execute Workflows
+
+```bash
+automagik-workflows execute <workflow> [options]
+  --params <json>           # Workflow parameters
+  --wait                    # Wait for completion
+  --background              # Run in background
+  --interactive             # Interactive mode
+  --track-progress          # Show progress
+  --format <format>         # Progress format (tui|json|simple)
+  --timeout <seconds>       # Execution timeout
+  --notify-on-complete      # Send notification on completion
+```
+
+### Manage Executions
+
+```bash
+automagik-workflows status <execution-id>
+automagik-workflows pause <execution-id>
+automagik-workflows resume <execution-id>
+automagik-workflows cancel <execution-id>
+automagik-workflows retry <execution-id>
+automagik-workflows logs <execution-id> [--follow]
+automagik-workflows results <execution-id> [--format <format>]
+```
+
+### Workflow Operations
+
+```bash
+automagik-workflows list
+automagik-workflows show <workflow>
+automagik-workflows info <workflow>
+automagik-workflows search <query>
+automagik-workflows create <name>
+automagik-workflows edit <name>
+automagik-workflows delete <name>
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Parameters" icon="sliders">
+    Make workflows reusable with parameters
+  </Card>
+
+  <Card title="Track Progress" icon="chart-line">
+    Enable progress tracking for visibility
+  </Card>
+
+  <Card title="Handle Errors" icon="shield-check">
+    Configure error notifications and retries
+  </Card>
+
+  <Card title="Background Long Tasks" icon="clock">
+    Run long workflows in background
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Workflow not found">
+    **Solutions**:
+    - Check workflow path configuration
+    - Verify workflow exists: `automagik-workflows list`
+    - Check file permissions
+    - Review workflows directory
+  </Accordion>
+
+  <Accordion title="Execution hanging">
+    **Solutions**:
+    - Check execution status
+    - Review logs: `automagik-workflows logs <id>`
+    - Verify timeout settings
+    - Check Claude process status
+  </Accordion>
+
+  <Accordion title="Progress not updating">
+    **Solutions**:
+    - Verify progress tracking enabled
+    - Check update interval settings
+    - Test with different format
+    - Review connection to workflow
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Examples
+
+### Example 1: Feature Development
+
+```bash
+# Execute full feature development workflow
+automagik-workflows execute build-feature \
+  --params '{
+    "name": "user-authentication",
+    "type": "jwt",
+    "tests": true,
+    "docs": true
+  }' \
+  --interactive \
+  --show-steps
+
+# Monitors:
+# 1. Requirements analysis
+# 2. Architecture design
+# 3. Code generation
+# 4. Test creation
+# 5. Documentation update
+```
+
+### Example 2: Code Quality Pipeline
+
+```bash
+# Run quality checks
+automagik-workflows execute quality-pipeline \
+  --wait \
+  --track-progress
+
+# Includes:
+# - Linting
+# - Type checking
+# - Test coverage
+# - Security scan
+# - Documentation check
+```
+
+### Example 3: Automated Refactoring
+
+```bash
+# Schedule weekly refactoring
+spark schedule create weekly-refactor \
+  --cron "0 2 * * SUN" \
+  --task "automagik-workflows execute refactor-codebase" \
+  --on-complete "omni send 'Refactoring complete' --to slack:dev"
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Spark Integration" icon="clock" href="/tools/built-in-tools/spark">
+    Schedule workflow execution
+  </Card>
+
+  <Card title="Genie Orchestration" icon="wand-magic-sparkles" href="/tools/built-in-tools/genie">
+    Intelligent workflow coordination
+  </Card>
+
+  <Card title="Workflow Patterns" icon="diagram-project" href="/tools/workflows/patterns">
+    Advanced workflow examples
+  </Card>
+
+  <Card title="CI/CD Integration" icon="diagram-project" href="/tools/integration/cicd">
+    Integrate with CI/CD pipelines
+  </Card>
+</CardGroup>

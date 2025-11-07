@@ -1,0 +1,199 @@
+---
+title: "Built-in Tools Overview"
+description: "9 built-in MCP tools that actually work"
+icon: "toolbox"
+---
+
+## What You Get
+
+Automagik Tools includes 9 MCP servers. Run them, connect them to Claude, done.
+
+---
+
+## List Tools
+
+```bash
+uvx automagik-tools list
+```
+
+Output:
+```
+                                Available Tools
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Tool Name           ┃ Type            ┃ Status    ┃ Description              ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ omni                │ Auto-discovered │ Available │ Multi-tenant omnichannel │
+│                     │                 │           │ messaging API tool       │
+│ evolution-api       │ Auto-discovered │ Available │ Complete WhatsApp        │
+│                     │                 │           │ messaging suite          │
+│ genie               │ Auto-discovered │ Available │ Generic MCP tool         │
+│                     │                 │           │ orchestrator with memory │
+│ automagik           │ Auto-discovered │ Available │ AI-powered agents and    │
+│                     │                 │           │ workflows                │
+│ spark               │ Auto-discovered │ Available │ Workflow orchestration   │
+│                     │                 │           │ and AI agent management  │
+│ gemini-assistant    │ Auto-discovered │ Available │ Gemini consultation tool │
+│ automagik-hive      │ Auto-discovered │ Available │ Testing Automagik Hive   │
+│                     │                 │           │ API capabilities         │
+│ automagik-workflows │ Auto-discovered │ Available │ Claude Code workflow     │
+│                     │                 │           │ execution                │
+│ wait                │ Auto-discovered │ Available │ Simple wait              │
+│                     │                 │           │ functionality            │
+└─────────────────────┴─────────────────┴───────────┴──────────────────────────┘
+```
+
+---
+
+## The Tools
+
+| Tool | What it does | Required env vars |
+|------|-------------|-------------------|
+| **genie** | Orchestrates other MCP servers with persistent memory | OPENAI_API_KEY |
+| **automagik** | Integrates with Automagik Suite (Spark, Hive, Forge, Omni) | AUTOMAGIK_API_KEY, AUTOMAGIK_BASE_URL |
+| **evolution-api** | WhatsApp automation via Evolution API v2 | EVOLUTION_API_KEY, EVOLUTION_API_BASE_URL |
+| **omni** | Multi-channel messaging (WhatsApp, Slack, Discord) | OMNI_API_KEY |
+| **spark** | Temporal automation and workflow scheduling | SPARK_API_KEY |
+| **gemini-assistant** | Google Gemini AI integration | GOOGLE_API_KEY |
+| **automagik-workflows** | Execute Claude Code workflows programmatically | None (uses local files) |
+| **automagik-hive** | Test Automagik Hive API | AUTOMAGIK_HIVE_API_KEY |
+| **wait** | Simple wait functionality for workflows | None |
+
+---
+
+## Start a Tool
+
+All tools use the same command format:
+
+```bash
+# For Claude Desktop (stdio)
+uvx automagik-tools tool TOOLNAME -t stdio
+
+# For team sharing (SSE)
+uvx automagik-tools tool TOOLNAME -t sse --port 8000
+
+# For HTTP API
+uvx automagik-tools tool TOOLNAME -t http --port 8080
+```
+
+When you run it, you see:
+```
+INFO Starting MCP server 'TOOLNAME' with transport 'stdio'
+```
+
+The server runs until you stop it (Ctrl+C).
+
+---
+
+## Claude Desktop Integration
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "genie", "-t", "stdio"]
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools", "tool", "evolution-api", "-t", "stdio"],
+      "env": {
+        "EVOLUTION_API_KEY": "your-key",
+        "EVOLUTION_API_BASE_URL": "https://your-instance.com"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. Ask: "what tools are available?"
+
+---
+
+## Get Tool Info
+
+```bash
+# See what a tool needs
+uvx automagik-tools info genie
+
+# Output shows:
+# - Version
+# - Description
+# - Required environment variables
+# - Configuration options
+```
+
+---
+
+## Common Combinations
+
+### AI-powered WhatsApp bot
+```bash
+# Terminal 1: Start Genie
+uvx automagik-tools tool genie -t sse --port 8000
+
+# Terminal 2: Start Evolution API
+uvx automagik-tools tool evolution-api -t stdio
+```
+
+Genie coordinates Evolution API for intelligent responses.
+
+### Multi-channel notifications
+```bash
+# Start Omni for all platforms
+uvx automagik-tools tool omni -t stdio
+```
+
+Send to WhatsApp, Slack, Discord with one command.
+
+### Scheduled automation
+```bash
+# Start Spark for cron jobs
+uvx automagik-tools tool spark -t stdio
+```
+
+Schedule recurring tasks and workflows.
+
+---
+
+## Documentation
+
+Each tool has detailed docs:
+
+- [Genie](/tools/built-in-tools/genie) - MCP orchestrator
+- [Evolution API](/tools/built-in-tools/evolution-api) - WhatsApp automation
+- [Omni](/tools/built-in-tools/omni) - Multi-channel messaging
+- [Automagik](/tools/built-in-tools/automagik) - Suite integration
+- [Spark](/tools/built-in-tools/spark) - Temporal automation
+
+---
+
+## Troubleshooting
+
+**Tool won't start**:
+```bash
+# Check if already running
+ps aux | grep automagik-tools
+
+# Check port availability
+lsof -i :8000
+
+# Try different port
+uvx automagik-tools tool genie -t sse --port 8001
+```
+
+**Claude can't see tool**:
+1. Restart Claude Desktop
+2. Check config file syntax (valid JSON)
+3. Verify tool is running: `ps aux | grep TOOLNAME`
+4. Check Claude logs
+
+**Missing environment variables**:
+```bash
+# Check what's required
+uvx automagik-tools info TOOLNAME
+
+# Set in shell or config file
+export TOOL_API_KEY="your-key"
+```

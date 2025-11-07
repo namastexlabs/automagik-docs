@@ -1,0 +1,327 @@
+---
+title: "MCP Integration Overview"
+description: "Connect automagik-tools to any MCP-compatible AI client"
+icon: "plug"
+---
+
+## What is MCP Integration?
+
+**Model Context Protocol (MCP)** lets AI agents use external tools through a standardized interface. Automagik-tools provides instant MCP servers for any API - no code required.
+
+<Info>
+Install once with `uvx automagik-tools list` and connect to Claude Desktop, Cursor, VSCode, and more.
+</Info>
+
+---
+
+## Quick Start
+
+### 1. Verify Installation
+
+```bash
+uvx automagik-tools list
+```
+
+You should see available tools like `genie`, `omni`, `evolution-api`, etc.
+
+### 2. Generate MCP Config
+
+```bash
+uvx automagik-tools mcp-config genie
+```
+
+Output shows copy-paste ready JSON for your client.
+
+### 3. Choose Your Client
+
+<CardGroup cols={3}>
+  <Card title="Claude Code" icon="brain" href="/tools/integration/claude-code-setup">
+    Desktop & CLI
+  </Card>
+
+  <Card title="Cursor" icon="terminal" href="/tools/integration/cursor-setup">
+    IDE Integration
+  </Card>
+
+  <Card title="VSCode + Cline" icon="code" href="/tools/integration/vscode-cline-setup">
+    VSCode Extension
+  </Card>
+</CardGroup>
+
+---
+
+## Available Tools
+
+Run `uvx automagik-tools list` to see all tools:
+
+| Tool | Description | Environment Variables |
+|------|-------------|----------------------|
+| **genie** | Generic MCP orchestrator with persistent memory | Optional: `OPENAI_API_KEY` |
+| **omni** | Multi-tenant omnichannel messaging (WhatsApp, Slack, Discord) | Varies by instance |
+| **evolution-api** | Complete WhatsApp messaging suite | `EVOLUTION_API_BASE_URL`, `EVOLUTION_API_API_KEY` |
+| **automagik** | AI-powered agents and workflows | `AUTOMAGIK_API_KEY`, `AUTOMAGIK_BASE_URL` |
+| **gemini-assistant** | Gemini consultation with session management | `GEMINI_API_KEY` |
+
+---
+
+## Configuration Patterns
+
+### Basic Tool Setup
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    }
+  }
+}
+```
+
+### Tool with Environment Variables
+
+```json
+{
+  "mcpServers": {
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+### Multiple Tools
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "genie"]
+    },
+    "omni": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "omni"]
+    },
+    "evolution-api": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "tool", "evolution-api"],
+      "env": {
+        "EVOLUTION_API_BASE_URL": "http://localhost:8080",
+        "EVOLUTION_API_API_KEY": "YOUR_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Custom OpenAPI Tools
+
+Convert any OpenAPI spec to an MCP tool:
+
+```bash
+# Test the conversion
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+
+# Use in config
+{
+  "mcpServers": {
+    "github": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.github.com/openapi.json"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "ghp_your_token"
+      }
+    }
+  }
+}
+```
+
+See [Custom OpenAPI guide](/tools/integration/custom-openapi) for details.
+
+---
+
+## Testing Your Setup
+
+### 1. Check Tool is Available
+
+```bash
+uvx automagik-tools list
+```
+
+### 2. Test Tool Runs
+
+```bash
+# Should output: "Starting MCP server 'Genie' with transport 'stdio'"
+uvx automagik-tools tool genie -t stdio
+```
+
+Press Ctrl+C to stop.
+
+### 3. Generate Config
+
+```bash
+uvx automagik-tools mcp-config genie
+```
+
+Copy the JSON to your client config file.
+
+### 4. Restart Your Client
+
+- Claude Desktop: Quit completely (Cmd/Ctrl+Q) and reopen
+- Cursor: Reload window (Cmd/Ctrl+R)
+- VSCode: Reload window (Cmd/Ctrl+Shift+P → "Developer: Reload Window")
+
+### 5. Test Connection
+
+Ask your AI client:
+```
+"What MCP tools do you have access to?"
+```
+
+Expected: Should list "genie" or your configured tool name.
+
+---
+
+## Troubleshooting
+
+### Tool Not Showing Up
+
+**Check logs:**
+
+```bash
+# Claude Desktop (macOS)
+tail -f ~/Library/Logs/Claude/mcp*.log
+
+# Cursor
+# View → Output → Select "MCP"
+
+# VSCode + Cline
+# View → Output → Select "Cline"
+```
+
+**Verify command:**
+
+```bash
+# Should work
+uvx automagik-tools tool genie -t stdio
+
+# If fails, check installation
+uvx --version
+```
+
+### Connection Refused
+
+**Test the tool directly:**
+
+```bash
+uvx automagik-tools tool TOOLNAME -t stdio
+```
+
+Should output "Starting MCP server..." without errors.
+
+### Authentication Errors
+
+**Verify environment variables:**
+
+```bash
+# Check if set
+echo $EVOLUTION_API_API_KEY
+
+# Test API access
+curl -H "X-API-KEY: $EVOLUTION_API_API_KEY" http://localhost:8080
+```
+
+---
+
+## Client-Specific Setup
+
+<CardGroup cols={2}>
+  <Card title="Claude Desktop/Code" href="/tools/integration/claude-code-setup">
+    Config: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
+
+    Test: "what tools are available?"
+  </Card>
+
+  <Card title="Cursor" href="/tools/integration/cursor-setup">
+    Config: `~/.cursor/mcp.json`
+
+    Test: Cursor MCP status panel
+  </Card>
+
+  <Card title="VSCode + Cline" href="/tools/integration/vscode-cline-setup">
+    Config: VSCode Settings → Search "Cline MCP"
+
+    Test: Cline panel shows tools
+  </Card>
+
+  <Card title="Custom OpenAPI" href="/tools/integration/custom-openapi">
+    Convert any API to MCP
+
+    Works with all clients
+  </Card>
+</CardGroup>
+
+---
+
+## Common Issues
+
+### uvx: command not found
+
+Install uv:
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### Tool version mismatch
+
+Force latest version:
+
+```bash
+uvx --reinstall automagik-tools@latest list
+```
+
+### JSON syntax errors
+
+Validate your config:
+
+```bash
+# macOS/Linux
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json | python -m json.tool
+
+# Or use online validator
+# https://jsonlint.com
+```
+
+No trailing commas allowed in JSON!
+
+---
+
+## Next Steps
+
+1. Choose your client setup guide above
+2. Copy the tested config examples
+3. Restart your client
+4. Test with "what tools are available?"
+5. Start using MCP tools in natural language
+
+<Tip>
+All configs on this page are tested and work as-is. Just replace API keys with your actual values.
+</Tip>

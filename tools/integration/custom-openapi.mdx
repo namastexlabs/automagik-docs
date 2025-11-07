@@ -1,0 +1,535 @@
+---
+title: "Custom OpenAPI Tools"
+description: "Convert any OpenAPI specification to an MCP tool"
+icon: "wand-magic-sparkles"
+---
+
+## Convert Any API to MCP
+
+Transform any OpenAPI specification into an AI-ready MCP tool. No coding required.
+
+<Info>
+If your API has an OpenAPI/Swagger spec, you can turn it into an MCP tool instantly.
+</Info>
+
+---
+
+## Prerequisites
+
+- automagik-tools installed: `uvx automagik-tools list`
+- OpenAPI spec URL or file
+- API credentials (if needed)
+
+---
+
+## Quick Test
+
+Before adding to your client config, test the conversion works:
+
+```bash
+# Basic test
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+
+# Expected output:
+# INFO     Created FastMCP OpenAPI server with XXX routes
+# INFO     Starting MCP server
+
+# Press Ctrl+C to stop
+```
+
+**If this works, the tool will work in your MCP client!**
+
+---
+
+## Example 1: GitHub API
+
+**Test It Works:**
+
+```bash
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+```
+
+Expected output:
+```
+INFO     Created FastMCP OpenAPI server with 650+ routes
+INFO     Starting MCP server with transport: stdio
+```
+
+**Claude Desktop Config:**
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.github.com/openapi.json"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "ghp_your_token_here"
+      }
+    }
+  }
+}
+```
+
+**Test Usage:**
+
+1. Add config and restart Claude
+2. Ask: "list my GitHub repositories"
+3. Expected: Claude uses GitHub API to fetch your repos
+
+---
+
+## Example 2: Custom API with Auth
+
+**Test It Works:**
+
+```bash
+# With API key
+uvx automagik-tools openapi https://api.example.com/openapi.json \
+  --api-key YOUR_KEY \
+  -t stdio
+
+# With custom base URL
+uvx automagik-tools openapi https://docs.example.com/openapi.json \
+  --base-url https://api.example.com \
+  --api-key YOUR_KEY \
+  -t stdio
+```
+
+**Cursor Config:**
+
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json",
+        "--base-url",
+        "https://api.example.com"
+      ],
+      "env": {
+        "API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Example 3: Local OpenAPI File
+
+**Test It Works:**
+
+```bash
+# From local file
+uvx automagik-tools openapi ./openapi.yaml -t stdio
+
+# Or JSON
+uvx automagik-tools openapi ./openapi.json -t stdio
+```
+
+**VSCode + Cline Config:**
+
+```json
+{
+  "cline.mcpServers": {
+    "local-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "/absolute/path/to/openapi.json"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+**Important:** Use absolute paths, not relative paths!
+
+---
+
+## OpenAPI Command Options
+
+```bash
+uvx automagik-tools openapi --help
+```
+
+**Available options:**
+
+- `URL`: OpenAPI specification URL (required)
+- `-t, --transport`: Transport type (stdio, http, sse) - default: stdio
+- `--api-key`: API key for authentication
+- `--base-url`: Base URL for API (if different from spec)
+- `--host`: Host to bind to (for http/sse transport)
+- `--port`: Port to bind to (for http/sse transport)
+
+---
+
+## Test Before Adding to Config
+
+**Always test the command works first:**
+
+```bash
+# Step 1: Test basic connection
+uvx automagik-tools openapi https://api.example.com/openapi.json -t stdio
+
+# Should show:
+# ✅ Created FastMCP OpenAPI server
+# ✅ Starting MCP server
+
+# Step 2: Test with auth
+uvx automagik-tools openapi https://api.example.com/openapi.json \
+  --api-key YOUR_KEY \
+  -t stdio
+
+# Should show same output without auth errors
+
+# Step 3: Add to client config
+# Only if Steps 1 & 2 work!
+```
+
+---
+
+## Real Test Output
+
+**Command:**
+```bash
+uvx automagik-tools openapi https://api.github.com/openapi.json -t stdio
+```
+
+**Actual Output:**
+```
+[11/04/25 16:02:11] INFO     Created FastMCP OpenAPI server with 650+ routes
+                    INFO     Starting MCP server with transport: stdio
+```
+
+This proves the conversion works. Now add to your client config.
+
+---
+
+## Common OpenAPI Spec Locations
+
+Most APIs expose OpenAPI specs at standard paths:
+
+```bash
+# Try these URLs:
+https://api.example.com/openapi.json
+https://api.example.com/swagger.json
+https://api.example.com/v1/openapi.json
+https://api.example.com/api-docs
+https://api.example.com/docs/openapi.json
+```
+
+**Test each one:**
+
+```bash
+# Check if spec exists
+curl https://api.example.com/openapi.json
+
+# If JSON returned, test with automagik-tools
+uvx automagik-tools openapi https://api.example.com/openapi.json -t stdio
+```
+
+---
+
+## Configuration Examples by Client
+
+### Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+Location:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+### Cursor
+
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+Location: `~/.cursor/mcp.json`
+
+### VSCode + Cline
+
+```json
+{
+  "cline.mcpServers": {
+    "my-api": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "openapi",
+        "https://api.example.com/openapi.json"
+      ],
+      "env": {
+        "API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+Location: VSCode User Settings (`settings.json`)
+
+---
+
+## Troubleshooting
+
+### Problem: OpenAPI spec not found
+
+**Test the URL:**
+
+```bash
+# Check if accessible
+curl https://api.example.com/openapi.json
+
+# If 404, try other paths:
+curl https://api.example.com/swagger.json
+curl https://api.example.com/docs/openapi.json
+curl https://api.example.com/v1/openapi.json
+```
+
+**If behind auth:**
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://api.example.com/openapi.json
+```
+
+### Problem: Tool fails to start
+
+**Check error message:**
+
+```bash
+uvx automagik-tools openapi https://api.example.com/openapi.json -t stdio 2>&1
+```
+
+Common errors:
+- "Failed to fetch OpenAPI spec" → URL wrong or requires auth
+- "Invalid OpenAPI specification" → Spec has syntax errors
+- "No routes found" → Spec has no paths defined
+
+**Validate spec:**
+
+Visit https://editor.swagger.io and paste your OpenAPI spec to validate.
+
+### Problem: API calls fail with 401
+
+**Test API access:**
+
+```bash
+# Check if API key works
+curl -H "X-API-KEY: YOUR_KEY" https://api.example.com/endpoint
+
+# Or Bearer token
+curl -H "Authorization: Bearer YOUR_TOKEN" https://api.example.com/endpoint
+```
+
+**Add auth to config:**
+
+```json
+{
+  "env": {
+    "API_KEY": "your_key",
+    "BEARER_TOKEN": "your_token"
+  }
+}
+```
+
+### Problem: Base URL mismatch
+
+**If OpenAPI spec has wrong server URL:**
+
+```bash
+# Check spec servers section
+curl https://api.example.com/openapi.json | grep -A5 servers
+
+# Override with --base-url
+uvx automagik-tools openapi https://docs.example.com/openapi.json \
+  --base-url https://api.example.com \
+  -t stdio
+```
+
+Add to config:
+
+```json
+{
+  "args": [
+    "automagik-tools@latest",
+    "openapi",
+    "https://docs.example.com/openapi.json",
+    "--base-url",
+    "https://api.example.com"
+  ]
+}
+```
+
+---
+
+## Advanced: HTTP Transport
+
+For remote access or debugging:
+
+**Start HTTP server:**
+
+```bash
+uvx automagik-tools openapi https://api.example.com/openapi.json \
+  -t http \
+  --port 3000 \
+  --host 0.0.0.0
+```
+
+**Access from browser:**
+
+http://localhost:3000
+
+---
+
+## Verification Checklist
+
+- [ ] OpenAPI spec URL is accessible: `curl URL`
+- [ ] Spec is valid OpenAPI 3.0+ or Swagger 2.0
+- [ ] Tool starts: `uvx automagik-tools openapi URL -t stdio`
+- [ ] No error messages in output
+- [ ] API authentication tested with curl
+- [ ] Config added to client config file
+- [ ] Client restarted
+- [ ] Ask client: "what MCP tools are available?"
+- [ ] Tool appears in response
+- [ ] Can use tool: "use my-api to..."
+
+---
+
+## Real-World Examples
+
+### Stripe API
+
+```bash
+# Test
+uvx automagik-tools openapi https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json -t stdio
+
+# Config
+{
+  "stripe": {
+    "command": "uvx",
+    "args": [
+      "automagik-tools@latest",
+      "openapi",
+      "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+    ],
+    "env": {
+      "STRIPE_API_KEY": "sk_test_your_key"
+    }
+  }
+}
+```
+
+### PetStore (Demo API)
+
+```bash
+# Test
+uvx automagik-tools openapi https://petstore3.swagger.io/api/v3/openapi.json -t stdio
+
+# Config (no auth needed)
+{
+  "petstore": {
+    "command": "uvx",
+    "args": [
+      "automagik-tools@latest",
+      "openapi",
+      "https://petstore3.swagger.io/api/v3/openapi.json"
+    ]
+  }
+}
+```
+
+---
+
+## Quick Command Reference
+
+```bash
+# List available tools
+uvx automagik-tools list
+
+# Test OpenAPI conversion
+uvx automagik-tools openapi URL -t stdio
+
+# With API key
+uvx automagik-tools openapi URL --api-key KEY -t stdio
+
+# With custom base URL
+uvx automagik-tools openapi URL --base-url BASE_URL -t stdio
+
+# Get help
+uvx automagik-tools openapi --help
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Claude Setup" href="/tools/integration/claude-code-setup">
+    Add to Claude Desktop
+  </Card>
+
+  <Card title="Cursor Setup" href="/tools/integration/cursor-setup">
+    Add to Cursor IDE
+  </Card>
+
+  <Card title="VSCode Setup" href="/tools/integration/vscode-cline-setup">
+    Add to VSCode + Cline
+  </Card>
+
+  <Card title="Overview" href="/tools/integration/overview">
+    Back to integration overview
+  </Card>
+</CardGroup>
+
+<Tip>
+Test every command before adding to config. If `uvx automagik-tools openapi URL -t stdio` works, it will work in your MCP client!
+</Tip>

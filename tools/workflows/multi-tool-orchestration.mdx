@@ -1,0 +1,140 @@
+---
+title: "Multi-Tool Orchestration"
+description: "Coordinate multiple tools with Genie"
+icon: "sitemap"
+---
+
+## What is Genie?
+
+From `uvx automagik-tools info genie`:
+
+```
+Tool: genie
+Version: 2.0.0
+Description: Generic MCP tool orchestrator with persistent memory -
+             connect any MCP servers
+```
+
+Genie connects to other MCP servers and coordinates them.
+
+## Configuration
+
+Genie uses environment variable for MCP server configuration:
+
+```bash
+export GENIE_MCP_CONFIGS='JSON_ARRAY_HERE'
+```
+
+Format not tested yet. Documentation shows JSON but actual working format needs testing.
+
+## Starting Genie
+
+### Local (stdio)
+
+```bash
+uvx automagik-tools tool genie -t stdio
+```
+
+Default transport. For local use with MCP clients.
+
+### Team (SSE)
+
+```bash
+uvx automagik-tools tool genie -t sse --port 8000 --host 0.0.0.0
+```
+
+Confirmed working (server starts). See [Team Collaboration](/tools/workflows/team-collaboration) for SSE setup.
+
+## What We Tested
+
+- Genie tool exists: Yes
+- Can start on stdio: Yes (default)
+- Can start on SSE: Yes (tested startup)
+- Version: 2.0.0
+- Has persistent memory: Yes (per description)
+
+## What We Didn't Test
+
+- GENIE_MCP_CONFIGS format
+- Connecting to other MCP servers
+- Actual tool orchestration
+- Memory functionality
+- Coordination between multiple tools
+- Error handling
+- Performance
+
+These need testing before documenting workflows.
+
+## Example Configuration (Untested)
+
+Documentation suggests this format:
+
+```bash
+export GENIE_MCP_CONFIGS='[
+  {
+    "name": "filesystem",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+  }
+]'
+```
+
+Not verified. May not work.
+
+## Available Commands
+
+From `uvx automagik-tools --help`:
+
+```
+Commands:
+  list          List all available tools
+  hub           Serve all tools on a single server
+  tool          Serve a specific tool
+  openapi       Serve a tool from OpenAPI specification
+  info          Show detailed information about a tool
+  create-tool   Create a new MCP tool from OpenAPI
+  mcp-config    Generate MCP configuration for a tool
+```
+
+Genie available via `tool` command.
+
+## Transport Options
+
+All tools support three transports:
+
+```
+--transport  -t      TEXT     Transport type: stdio (default), http, sse
+```
+
+Tested with Genie:
+- stdio: Default, works
+- sse: Tested startup, works
+- http: Not tested
+
+## What This Page Doesn't Cover
+
+Until we test these, we can't document:
+
+- How to configure multiple MCP servers
+- How Genie coordinates them
+- What "persistent memory" means in practice
+- Error messages and handling
+- Performance characteristics
+- Real orchestration workflows
+- Integration patterns
+
+Test these first, then document with real examples.
+
+## Next Steps for Testing
+
+1. Test GENIE_MCP_CONFIGS with real MCP server
+2. Verify connection to MCP server works
+3. Test coordination between tools
+4. Document actual working examples
+5. Measure performance
+
+## Next
+
+- [API Integration](/tools/workflows/api-integration) - Convert APIs to MCP
+- [Team Collaboration](/tools/workflows/team-collaboration) - Share via SSE
+- [Built-in Tools](/tools/built-in-tools/overview) - Other available tools

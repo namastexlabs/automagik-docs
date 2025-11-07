@@ -1,0 +1,803 @@
+---
+title: "MCP Connection Errors"
+description: "Troubleshooting MCP client and server connection issues"
+icon: "plug"
+---
+
+## Overview
+
+MCP (Model Context Protocol) enables AI clients to use your API tools. This guide helps troubleshoot connection issues between MCP clients (Claude, Cursor, etc.) and Automagik Tools MCP server.
+
+---
+
+## Connection Issues
+
+### MCP Server Not Found
+
+**Problem**: AI client can't find or connect to MCP server
+
+**Symptoms**:
+- Tools don't appear in AI client
+- "MCP server not responding" errors
+- Connection timeout messages
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Verify MCP Configuration">
+    **Claude Code** (`~/.claude/mcp.json`):
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/absolute/path/to/spec.json"]
+        }
+      }
+    }
+    ```
+
+    **Cursor** (Settings → MCP):
+    ```json
+    {
+      "mcp.servers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/absolute/path/to/spec.json"]
+        }
+      }
+    }
+    ```
+
+    **Important**: Use absolute paths, not relative paths
+  </Accordion>
+
+  <Accordion title="Test MCP Server Directly">
+    ```bash
+    # Test if server starts correctly
+    uvx automagik-tools mcp --spec /path/to/spec.json
+
+    # Should output: "MCP server running in stdio mode"
+    # Press Ctrl+C to exit
+
+    # If errors appear, fix them before configuring client
+    ```
+  </Accordion>
+
+  <Accordion title="Check Command Availability">
+    ```bash
+    # Verify uvx is in PATH
+    which uvx
+    uvx --version
+
+    # Test full command
+    uvx automagik-tools --version
+
+    # If not found, add to PATH
+    export PATH="$HOME/.cargo/bin:$PATH"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### stdio vs SSE Mode Confusion
+
+**Problem**: Wrong transport mode configured
+
+**Understanding Transports**:
+
+<Tabs>
+  <Tab title="stdio (Default)">
+    **Best for**: Local AI clients (Claude Code, Cursor)
+
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "spec.json"]
+          // No --sse flag = stdio mode (default)
+        }
+      }
+    }
+    ```
+
+    **Characteristics**:
+    - Uses standard input/output
+    - No network ports required
+    - Most compatible with desktop AI clients
+  </Tab>
+
+  <Tab title="SSE (Server-Sent Events)">
+    **Best for**: Remote clients, web-based AI tools
+
+    ```bash
+    # Start SSE server
+    uvx automagik-tools mcp --spec spec.json --sse --port 8000
+
+    # Client connects to: http://localhost:8000
+    ```
+
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tools": {
+          "url": "http://localhost:8000",
+          "transport": "sse"
+        }
+      }
+    }
+    ```
+
+    **Characteristics**:
+    - Uses HTTP/SSE protocol
+    - Requires port binding
+    - Good for multiple clients
+  </Tab>
+</Tabs>
+
+**Solution**: Use stdio for local clients unless you specifically need SSE
+
+---
+
+### Port Already in Use (SSE Mode)
+
+**Problem**: `Error: Address already in use: 0.0.0.0:8000`
+
+**Solution**:
+
+```bash
+# Find process using the port
+lsof -i :8000  # macOS/Linux
+netstat -ano | findstr :8000  # Windows
+
+# Kill the process
+kill -9 <PID>  # macOS/Linux
+taskkill /PID <PID> /F  # Windows
+
+# Or use different port
+uvx automagik-tools mcp --spec spec.json --sse --port 8001
+
+# Update client config to match new port
+```
+
+---
+
+### Tools Not Appearing in Client
+
+**Problem**: MCP server connected but tools don't show in AI client
+
+**Solutions**:
+
+<Steps>
+  <Step title="Verify OpenAPI Spec">
+    ```bash
+    # Validate spec file
+    uvx automagik-tools validate --spec spec.json
+
+    # Should output: "✓ OpenAPI spec is valid"
+    # Fix any validation errors
+    ```
+  </Step>
+
+  <Step title="Check Server Logs">
+    **Claude Code**:
+    ```bash
+    # Check logs for errors
+    tail -f ~/.claude/logs/mcp-my-api-tools.log
+
+    # Look for tool registration messages
+    ```
+
+    **Cursor**:
+    ```
+    Help → Show Logs → MCP Logs
+    ```
+  </Step>
+
+  <Step title="Restart AI Client">
+    **Claude Code**:
+    ```
+    Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux)
+    Type: "Reload MCP Servers"
+    ```
+
+    **Cursor**:
+    ```
+    Cmd+R (macOS) or Ctrl+R (Windows/Linux)
+    Or: View → Reload Window
+    ```
+  </Step>
+
+  <Step title="Verify Tool Names">
+    ```bash
+    # List tools from spec
+    uvx automagik-tools list-tools --spec spec.json
+
+    # Ask AI client: "What MCP tools are available?"
+    # Tool names should match
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Configuration Issues
+
+### Environment Variables Not Loaded
+
+**Problem**: API keys or configuration not available to MCP server
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Set in MCP Configuration">
+    ```json
+    {
+      "mcpServers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "spec.json"],
+          "env": {
+            "API_KEY": "your-api-key-here",
+            "BASE_URL": "https://api.example.com",
+            "TIMEOUT": "30"
+          }
+        }
+      }
+    }
+    ```
+
+    **Note**: Environment variables set here override system variables
+  </Accordion>
+
+  <Accordion title="Use .env File">
+    ```bash
+    # Create .env in same directory as spec
+    cat > .env << EOF
+    API_KEY=your-api-key
+    BASE_URL=https://api.example.com
+    EOF
+
+    # Reference in MCP config
+    {
+      "command": "uvx",
+      "args": ["automagik-tools", "mcp", "--spec", "spec.json", "--env-file", ".env"]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Set System-Wide">
+    ```bash
+    # Add to shell profile
+    echo 'export API_KEY=your-key' >> ~/.bashrc
+    echo 'export BASE_URL=https://api.example.com' >> ~/.bashrc
+    source ~/.bashrc
+
+    # For AI clients to see variables:
+    # 1. Set variables
+    # 2. Restart AI client from terminal
+    # 3. Variables are now available to MCP servers
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Absolute vs Relative Paths
+
+**Problem**: MCP server can't find spec file
+
+**Error**: `FileNotFoundError: spec.json not found`
+
+**Solution**:
+
+```bash
+# ❌ Wrong: Relative path (may not work)
+{
+  "args": ["automagik-tools", "mcp", "--spec", "spec.json"]
+}
+
+# ✅ Correct: Absolute path
+{
+  "args": ["automagik-tools", "mcp", "--spec", "/Users/you/project/spec.json"]
+}
+
+# Get absolute path
+pwd  # Shows current directory
+realpath spec.json  # Shows absolute path
+
+# macOS/Linux
+"args": ["automagik-tools", "mcp", "--spec", "/home/user/project/spec.json"]
+
+# Windows (use forward slashes in JSON)
+"args": ["automagik-tools", "mcp", "--spec", "C:/Users/user/project/spec.json"]
+```
+
+---
+
+### Working Directory Issues
+
+**Problem**: MCP server runs in wrong directory
+
+**Solution**:
+
+```json
+{
+  "mcpServers": {
+    "my-api-tools": {
+      "command": "uvx",
+      "args": ["automagik-tools", "mcp", "--spec", "/path/to/spec.json"],
+      "cwd": "/path/to/project"  // Set working directory
+    }
+  }
+}
+```
+
+---
+
+## Authentication Issues
+
+### API Authentication Failures
+
+**Problem**: Tools execute but return 401/403 errors
+
+**Common Causes**:
+
+<Tabs>
+  <Tab title="Missing API Key">
+    ```bash
+    # Verify API key is set
+    echo $API_KEY
+
+    # Set in MCP config
+    {
+      "env": {
+        "API_KEY": "your-actual-api-key-here"
+      }
+    }
+
+    # Or use security component
+    {
+      "securitySchemes": {
+        "apiKey": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "X-API-Key"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Bearer Token">
+    ```json
+    // In OpenAPI spec
+    {
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      },
+      "security": [{
+        "bearerAuth": []
+      }]
+    }
+
+    // In MCP config
+    {
+      "env": {
+        "BEARER_TOKEN": "eyJhbGciOiJIUzI1NiIs..."
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0">
+    ```bash
+    # OAuth not directly supported in MCP
+    # Workaround: Get access token manually
+
+    # 1. Obtain token through OAuth flow
+    # 2. Set as environment variable
+    export ACCESS_TOKEN=ya29.a0AfH6SMBx...
+
+    # 3. Use in MCP config
+    {
+      "env": {
+        "ACCESS_TOKEN": "${ACCESS_TOKEN}"
+      }
+    }
+
+    # 4. Refresh token when expired
+    ```
+  </Tab>
+
+  <Tab title="Basic Auth">
+    ```json
+    // In OpenAPI spec
+    {
+      "securitySchemes": {
+        "basicAuth": {
+          "type": "http",
+          "scheme": "basic"
+        }
+      }
+    }
+
+    // In MCP config
+    {
+      "env": {
+        "USERNAME": "your-username",
+        "PASSWORD": "your-password"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Environment Variable Substitution Not Working
+
+**Problem**: Variables like `${API_KEY}` not being replaced
+
+**Solution**:
+
+```bash
+# Some MCP clients don't support variable substitution
+# Use actual values instead
+
+# ❌ May not work
+{
+  "env": {
+    "API_KEY": "${MY_API_KEY}"
+  }
+}
+
+# ✅ Use actual value
+{
+  "env": {
+    "API_KEY": "actual-key-value-here"
+  }
+}
+
+# Or load from shell before starting client
+export API_KEY=your-key
+# Start AI client from same terminal
+```
+
+---
+
+## Client-Specific Issues
+
+### Claude Code Issues
+
+**Problem**: MCP servers not loading in Claude Code
+
+<AccordionGroup>
+  <Accordion title="Check Configuration File">
+    ```bash
+    # Location
+    ~/.claude/mcp.json  # macOS/Linux
+    %APPDATA%\Claude\mcp.json  # Windows
+
+    # Validate JSON syntax
+    cat ~/.claude/mcp.json | python -m json.tool
+
+    # Common mistakes:
+    # - Missing commas
+    # - Trailing commas
+    # - Unescaped quotes
+    # - Invalid JSON structure
+    ```
+  </Accordion>
+
+  <Accordion title="Check Logs">
+    ```bash
+    # View logs
+    tail -f ~/.claude/logs/mcp-*.log
+
+    # Look for errors like:
+    # - "Command not found"
+    # - "Spec file not found"
+    # - "Invalid JSON"
+    # - "Tool registration failed"
+    ```
+  </Accordion>
+
+  <Accordion title="Reload MCP Servers">
+    ```
+    1. Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux)
+    2. Type: "Reload MCP Servers"
+    3. Wait for reload to complete
+    4. Check logs for errors
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Cursor Issues
+
+**Problem**: MCP integration not working in Cursor
+
+<AccordionGroup>
+  <Accordion title="Enable MCP in Settings">
+    ```
+    1. Open Cursor Settings (Cmd+, or Ctrl+,)
+    2. Search for "MCP"
+    3. Enable "MCP Server Support"
+    4. Add server configuration
+    ```
+  </Accordion>
+
+  <Accordion title="Check Settings JSON">
+    ```json
+    // Cursor settings.json location:
+    // macOS: ~/Library/Application Support/Cursor/User/settings.json
+    // Windows: %APPDATA%\Cursor\User\settings.json
+    // Linux: ~/.config/Cursor/User/settings.json
+
+    {
+      "mcp.servers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/path/to/spec.json"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Restart Cursor">
+    ```
+    1. Close all Cursor windows
+    2. Quit Cursor completely (Cmd+Q or Alt+F4)
+    3. Restart Cursor
+    4. Open Command Palette
+    5. Check for MCP tools
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### VSCode + Cline Issues
+
+**Problem**: MCP tools not working with Cline extension
+
+**Solution**:
+
+<Steps>
+  <Step title="Install MCP Extension">
+    ```
+    1. Open VSCode
+    2. Extensions → Search "MCP"
+    3. Install official MCP extension
+    4. Reload VSCode
+    ```
+  </Step>
+
+  <Step title="Configure MCP Servers">
+    ```json
+    // VSCode settings.json
+    {
+      "mcp.servers": {
+        "my-api-tools": {
+          "command": "uvx",
+          "args": ["automagik-tools", "mcp", "--spec", "/path/to/spec.json"]
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Enable in Cline">
+    ```
+    1. Open Cline extension
+    2. Settings → MCP Integration
+    3. Enable MCP support
+    4. Select MCP server
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Debugging Connection Issues
+
+### Enable Debug Logging
+
+**Server-side**:
+
+```bash
+# Run with debug output
+uvx automagik-tools mcp --spec spec.json --debug
+
+# Shows:
+# - Tool registration
+# - Request/response details
+# - Error stack traces
+```
+
+**Client-side**:
+
+```bash
+# Claude Code
+cat ~/.claude/logs/mcp-*.log
+
+# Cursor
+# Help → Show Logs → MCP Logs
+
+# VSCode
+# Output → MCP Logs
+```
+
+---
+
+### Test with Simple Spec
+
+**Problem**: Complex spec causing issues
+
+**Solution**:
+
+```json
+// Create minimal test spec
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Test API",
+    "version": "1.0.0"
+  },
+  "servers": [{
+    "url": "https://api.example.com"
+  }],
+  "paths": {
+    "/test": {
+      "get": {
+        "summary": "Test endpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```bash
+# Test with minimal spec
+uvx automagik-tools mcp --spec test-spec.json
+
+# If this works, problem is in your full spec
+# Add complexity gradually to find issue
+```
+
+---
+
+### Verify Network Connectivity (SSE Mode)
+
+**Problem**: Client can't reach SSE server
+
+```bash
+# Test server is running
+curl http://localhost:8000
+
+# Should return MCP server info
+
+# Test from client machine
+curl http://server-ip:8000
+
+# Check firewall
+sudo ufw status  # Linux
+# Allow port if needed
+sudo ufw allow 8000/tcp
+
+# Test with telnet
+telnet localhost 8000
+```
+
+---
+
+## Performance Issues
+
+### Slow Tool Execution
+
+**Problem**: MCP tools respond slowly
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Check API Response Time">
+    ```bash
+    # Test API directly
+    time curl https://api.example.com/endpoint
+
+    # If API is slow, not much MCP can do
+    # Consider caching or pagination
+    ```
+  </Accordion>
+
+  <Accordion title="Enable Response Caching">
+    ```bash
+    # Cache API responses
+    uvx automagik-tools mcp --spec spec.json --cache-ttl 300
+
+    # TTL in seconds (300 = 5 minutes)
+    # Subsequent identical requests use cache
+    ```
+  </Accordion>
+
+  <Accordion title="Reduce Payload Size">
+    ```json
+    // In OpenAPI spec, limit response fields
+    {
+      "parameters": [{
+        "name": "fields",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "default": "id,name,status"
+        }
+      }]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Memory Issues
+
+**Problem**: MCP server using too much memory
+
+**Solution**:
+
+```bash
+# Monitor memory usage
+ps aux | grep automagik-tools
+
+# Limit response size in OpenAPI spec
+{
+  "responses": {
+    "200": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "array",
+            "maxItems": 100  // Limit array size
+          }
+        }
+      }
+    }
+  }
+}
+
+# Restart MCP server periodically
+# Add to cron job or task scheduler
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="circle-exclamation" href="/tools/troubleshooting/common-issues">
+    General troubleshooting guide
+  </Card>
+  <Card title="OpenAPI Conversion" icon="file-code" href="/tools/troubleshooting/openapi-conversion-errors">
+    OpenAPI specification issues
+  </Card>
+  <Card title="MCP Usage Guide" icon="book" href="/tools/usage/mcp-mode">
+    Learn about MCP integration
+  </Card>
+  <Card title="FAQ" icon="question" href="/tools/troubleshooting/faq">
+    Frequently asked questions
+  </Card>
+</CardGroup>

@@ -1,0 +1,853 @@
+---
+title: "OpenAPI Conversion Errors"
+description: "Troubleshooting OpenAPI specification parsing and conversion issues"
+icon: "file-code"
+---
+
+## Overview
+
+Automagik Tools converts OpenAPI specifications into MCP tools. This guide helps troubleshoot common issues encountered during conversion and validation.
+
+---
+
+## Spec Loading Errors
+
+### Cannot Find OpenAPI Spec
+
+**Problem**: `FileNotFoundError: spec.json not found`
+
+**Solutions**:
+
+```bash
+# Verify file exists
+ls -la spec.json
+
+# Use absolute path
+uvx automagik-tools mcp --spec /absolute/path/to/spec.json
+
+# Get absolute path
+pwd  # Shows current directory
+realpath spec.json  # Shows absolute path (Linux/macOS)
+
+# Windows
+cd /d %~dp0  # Change to script directory
+dir spec.json  # Verify file exists
+```
+
+---
+
+### Invalid JSON/YAML Format
+
+**Problem**: `JSONDecodeError` or `YAMLError` when loading spec
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Validate JSON">
+    ```bash
+    # Test JSON syntax
+    cat spec.json | python -m json.tool
+
+    # Or use jq
+    jq . spec.json
+
+    # Common JSON errors:
+    # - Missing commas
+    # - Trailing commas (not allowed in JSON)
+    # - Unescaped quotes
+    # - Missing closing brackets/braces
+
+    # Fix and retry
+    uvx automagik-tools validate --spec spec.json
+    ```
+  </Accordion>
+
+  <Accordion title="Validate YAML">
+    ```bash
+    # Test YAML syntax
+    python -c "import yaml; yaml.safe_load(open('spec.yaml'))"
+
+    # Or use yamllint
+    pip install yamllint
+    yamllint spec.yaml
+
+    # Common YAML errors:
+    # - Incorrect indentation (use spaces, not tabs)
+    # - Missing colons
+    # - Inconsistent spacing
+    # - Special characters not quoted
+
+    # Fix and retry
+    uvx automagik-tools validate --spec spec.yaml
+    ```
+  </Accordion>
+
+  <Accordion title="Convert YAML to JSON">
+    ```bash
+    # If YAML is problematic, convert to JSON
+    python -c "import yaml, json; print(json.dumps(yaml.safe_load(open('spec.yaml')), indent=2))" > spec.json
+
+    # Or use yq
+    yq eval -o=json spec.yaml > spec.json
+
+    # Use JSON spec instead
+    uvx automagik-tools mcp --spec spec.json
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Authentication Required for Spec
+
+**Problem**: Cannot fetch remote OpenAPI spec (401/403)
+
+**Solutions**:
+
+```bash
+# Download spec with authentication
+curl -H "Authorization: Bearer $TOKEN" \
+  https://api.example.com/openapi.json > spec.json
+
+# Or with API key
+curl -H "X-API-Key: $API_KEY" \
+  https://api.example.com/openapi.json > spec.json
+
+# Then use local file
+uvx automagik-tools mcp --spec spec.json
+
+# For Swagger UI specs
+curl https://api.example.com/swagger/v1/swagger.json > spec.json
+```
+
+---
+
+## Validation Errors
+
+### Missing Required Fields
+
+**Problem**: `ValidationError: Missing required field: info.title`
+
+**Required OpenAPI Fields**:
+
+```json
+{
+  "openapi": "3.0.0",  // Required: Must be 3.0.0+
+  "info": {
+    "title": "My API",      // Required
+    "version": "1.0.0"      // Required
+  },
+  "servers": [{             // Required: At least one server
+    "url": "https://api.example.com"
+  }],
+  "paths": {}              // Required: Can be empty but must exist
+}
+```
+
+**Solution**:
+
+```bash
+# Validate and see what's missing
+uvx automagik-tools validate --spec spec.json
+
+# Add missing fields
+# Minimum valid spec above
+```
+
+---
+
+### Invalid OpenAPI Version
+
+**Problem**: `Error: OpenAPI version 2.0 not supported`
+
+**Solution**:
+
+```bash
+# Check OpenAPI version
+cat spec.json | grep openapi
+
+# If Swagger 2.0, convert to OpenAPI 3.0
+# Using swagger2openapi
+npm install -g swagger2openapi
+swagger2openapi spec.json -o spec-v3.json
+
+# Or using online converter
+# https://converter.swagger.io/
+
+# Use converted spec
+uvx automagik-tools mcp --spec spec-v3.json
+```
+
+---
+
+### Invalid Schema References
+
+**Problem**: `Error: Cannot resolve reference: #/components/schemas/User`
+
+**Causes and Solutions**:
+
+<Tabs>
+  <Tab title="Missing Schema Definition">
+    ```json
+    // ❌ Problem: Referenced schema not defined
+    {
+      "properties": {
+        "user": {
+          "$ref": "#/components/schemas/User"  // User not defined
+        }
+      }
+    }
+
+    // ✅ Solution: Define the schema
+    {
+      "components": {
+        "schemas": {
+          "User": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Incorrect Reference Path">
+    ```json
+    // ❌ Wrong path format
+    "$ref": "components/schemas/User"  // Missing #/
+    "$ref": "/components/schemas/User"  // Wrong slash at start
+
+    // ✅ Correct format
+    "$ref": "#/components/schemas/User"
+    ```
+  </Tab>
+
+  <Tab title="External References">
+    ```json
+    // External references not supported by default
+    "$ref": "https://api.example.com/schemas/user.json"
+    "$ref": "./schemas/user.json"
+
+    // Solution: Inline all schemas into single file
+    // Or use bundling tool
+    npm install -g swagger-cli
+    swagger-cli bundle spec.json -o bundled-spec.json -t json
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Invalid Data Types
+
+**Problem**: `Error: Invalid type: datetime (expected: string, number, boolean, etc.)`
+
+**OpenAPI Supported Types**:
+
+```json
+{
+  "type": "string",   // ✅ Valid
+  "type": "number",   // ✅ Valid
+  "type": "integer",  // ✅ Valid
+  "type": "boolean",  // ✅ Valid
+  "type": "array",    // ✅ Valid
+  "type": "object",   // ✅ Valid
+  "type": "null",     // ✅ Valid (OpenAPI 3.1)
+
+  // ❌ Invalid custom types
+  "type": "datetime",  // Use string with format
+  "type": "uuid",      // Use string with format
+  "type": "email"      // Use string with format
+}
+```
+
+**Correct Format Usage**:
+
+```json
+{
+  "type": "string",
+  "format": "date-time"  // For datetime
+}
+
+{
+  "type": "string",
+  "format": "uuid"  // For UUID
+}
+
+{
+  "type": "string",
+  "format": "email"  // For email
+}
+
+{
+  "type": "string",
+  "format": "date"  // For date only
+}
+```
+
+---
+
+## Conversion Issues
+
+### Large Spec Timeout
+
+**Problem**: Conversion times out with very large OpenAPI specs
+
+**Solutions**:
+
+<AccordionGroup>
+  <Accordion title="Split Into Multiple Specs">
+    ```bash
+    # Create separate specs for different API sections
+    # spec-users.json - User endpoints
+    # spec-orders.json - Order endpoints
+    # spec-products.json - Product endpoints
+
+    # Run separate MCP servers for each
+    uvx automagik-tools mcp --spec spec-users.json
+    uvx automagik-tools mcp --spec spec-orders.json
+    ```
+  </Accordion>
+
+  <Accordion title="Remove Unused Endpoints">
+    ```bash
+    # Keep only needed endpoints
+    # Remove documentation-only paths
+    # Remove deprecated endpoints
+
+    # Use spec filtering tool
+    python << EOF
+    import json
+    spec = json.load(open('spec.json'))
+
+    # Keep only specific paths
+    keep_paths = ['/users', '/orders']
+    spec['paths'] = {k: v for k, v in spec['paths'].items()
+                     if k in keep_paths}
+
+    json.dump(spec, open('spec-filtered.json', 'w'), indent=2)
+    EOF
+    ```
+  </Accordion>
+
+  <Accordion title="Simplify Schemas">
+    ```bash
+    # Remove complex nested schemas
+    # Simplify response examples
+    # Remove unnecessary description fields
+
+    # Minimal schema example:
+    {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"}
+      }
+      // Remove: examples, descriptions, etc.
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Complex Nested Objects
+
+**Problem**: Deeply nested schemas cause conversion issues
+
+**Solution**:
+
+```json
+// ❌ Problem: Too deeply nested
+{
+  "type": "object",
+  "properties": {
+    "user": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "object",
+          "properties": {
+            "settings": {
+              "type": "object",
+              // ... more nesting
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// ✅ Solution: Flatten structure
+{
+  "type": "object",
+  "properties": {
+    "user_id": {"type": "string"},
+    "user_name": {"type": "string"},
+    "profile_bio": {"type": "string"},
+    "settings_theme": {"type": "string"}
+  }
+}
+
+// Or use schema references
+{
+  "components": {
+    "schemas": {
+      "User": {
+        "properties": {
+          "profile": {"$ref": "#/components/schemas/Profile"}
+        }
+      },
+      "Profile": {
+        "properties": {
+          "settings": {"$ref": "#/components/schemas/Settings"}
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+### Missing Endpoints
+
+**Problem**: Some API endpoints not appearing as tools
+
+**Causes and Solutions**:
+
+<AccordionGroup>
+  <Accordion title="HTTP Method Not Specified">
+    ```json
+    // ❌ Wrong: Missing method
+    {
+      "paths": {
+        "/users": {
+          "summary": "Users"  // No method defined
+        }
+      }
+    }
+
+    // ✅ Correct: Specify method
+    {
+      "paths": {
+        "/users": {
+          "get": {
+            "summary": "Get users",
+            "responses": {
+              "200": {
+                "description": "Success"
+              }
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="No operationId">
+    ```json
+    // Add operationId for better tool naming
+    {
+      "paths": {
+        "/users": {
+          "get": {
+            "operationId": "getUsers",  // Tool name
+            "summary": "Get all users"
+          }
+        }
+      }
+    }
+
+    // Without operationId, tool name is auto-generated
+    // Better to specify explicitly
+    ```
+  </Accordion>
+
+  <Accordion title="Missing Response Schema">
+    ```json
+    // Add response schema
+    {
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "string"},
+                  "name": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Custom Authentication Schemes
+
+**Problem**: Complex auth not supported
+
+**Supported Auth Types**:
+
+<Tabs>
+  <Tab title="API Key">
+    ```json
+    {
+      "components": {
+        "securitySchemes": {
+          "apiKey": {
+            "type": "apiKey",
+            "in": "header",        // or "query"
+            "name": "X-API-Key"    // Header/query name
+          }
+        }
+      },
+      "security": [{
+        "apiKey": []
+      }]
+    }
+    ```
+  </Tab>
+
+  <Tab title="Bearer Token">
+    ```json
+    {
+      "components": {
+        "securitySchemes": {
+          "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"  // Optional
+          }
+        }
+      },
+      "security": [{
+        "bearerAuth": []
+      }]
+    }
+    ```
+  </Tab>
+
+  <Tab title="Basic Auth">
+    ```json
+    {
+      "components": {
+        "securitySchemes": {
+          "basicAuth": {
+            "type": "http",
+            "scheme": "basic"
+          }
+        }
+      },
+      "security": [{
+        "basicAuth": []
+      }]
+    }
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0 (Limited)">
+    ```json
+    // OAuth 2.0 flows not fully supported
+    // Workaround: Use bearer token after manual OAuth
+    {
+      "components": {
+        "securitySchemes": {
+          "oauth2": {
+            "type": "oauth2",
+            "flows": {
+              "clientCredentials": {
+                "tokenUrl": "https://api.example.com/oauth/token",
+                "scopes": {}
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Get token manually, then use as bearer
+    // Set ACCESS_TOKEN in environment
+    ```
+  </Tab>
+</Tabs>
+
+**Unsupported Auth**:
+- Custom signature schemes
+- Multiple auth methods combined
+- Dynamic token refresh
+
+---
+
+## Schema Validation Issues
+
+### Circular References
+
+**Problem**: `Error: Circular reference detected in schema`
+
+**Solution**:
+
+```json
+// ❌ Problem: Circular reference
+{
+  "components": {
+    "schemas": {
+      "User": {
+        "properties": {
+          "friends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"  // Self-reference
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// ✅ Solution: Break the cycle
+{
+  "components": {
+    "schemas": {
+      "User": {
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "UserWithFriends": {
+        "allOf": [
+          {"$ref": "#/components/schemas/User"},
+          {
+            "properties": {
+              "friends": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/User"}
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+// Or simplify to just IDs
+{
+  "properties": {
+    "friend_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}
+```
+
+---
+
+### anyOf/oneOf/allOf Issues
+
+**Problem**: Complex schema composition not working
+
+**Solutions**:
+
+```json
+// Keep schema composition simple
+
+// ✅ Simple allOf (extend base)
+{
+  "allOf": [
+    {"$ref": "#/components/schemas/Base"},
+    {
+      "properties": {
+        "extra_field": {"type": "string"}
+      }
+    }
+  ]
+}
+
+// ⚠️ Complex oneOf (may cause issues)
+{
+  "oneOf": [
+    {"$ref": "#/components/schemas/TypeA"},
+    {"$ref": "#/components/schemas/TypeB"},
+    {"$ref": "#/components/schemas/TypeC"}
+  ]
+}
+
+// Better: Use discriminator
+{
+  "oneOf": [
+    {"$ref": "#/components/schemas/TypeA"},
+    {"$ref": "#/components/schemas/TypeB"}
+  ],
+  "discriminator": {
+    "propertyName": "type"
+  }
+}
+
+// Or simplify to single schema with optional fields
+```
+
+---
+
+### Additional Properties
+
+**Problem**: Unexpected additional properties in response
+
+**Solution**:
+
+```json
+// Control additional properties
+
+// Allow any additional properties
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"}
+  },
+  "additionalProperties": true
+}
+
+// Disallow additional properties
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"}
+  },
+  "additionalProperties": false
+}
+
+// Specify schema for additional properties
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"}
+  },
+  "additionalProperties": {
+    "type": "string"
+  }
+}
+```
+
+---
+
+## Testing and Debugging
+
+### Validate Spec Before Conversion
+
+```bash
+# Use official OpenAPI validator
+npm install -g @apidevtools/swagger-cli
+swagger-cli validate spec.json
+
+# Or use online validator
+# https://editor.swagger.io/
+# https://apitools.dev/swagger-parser/online/
+
+# Use Automagik Tools validator
+uvx automagik-tools validate --spec spec.json
+
+# Fix all errors before converting to MCP
+```
+
+---
+
+### Test with Minimal Spec
+
+```json
+// Start with absolute minimum
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Test API",
+    "version": "1.0.0"
+  },
+  "servers": [{
+    "url": "https://api.example.com"
+  }],
+  "paths": {
+    "/test": {
+      "get": {
+        "operationId": "test",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```bash
+# Test minimal spec
+uvx automagik-tools mcp --spec minimal-spec.json
+
+# If works, gradually add complexity
+# Add endpoints one by one
+# Add authentication
+# Add complex schemas
+# Identify what breaks
+```
+
+---
+
+### Compare with Working Examples
+
+```bash
+# Get example OpenAPI specs
+# Petstore (classic example)
+curl https://petstore3.swagger.io/api/v3/openapi.json > petstore.json
+
+# Test with example
+uvx automagik-tools mcp --spec petstore.json
+
+# Compare your spec structure with working example
+# Match patterns that work
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Common Issues" icon="circle-exclamation" href="/tools/troubleshooting/common-issues">
+    General troubleshooting guide
+  </Card>
+  <Card title="MCP Connection Errors" icon="plug" href="/tools/troubleshooting/mcp-connection-errors">
+    MCP integration problems
+  </Card>
+  <Card title="OpenAPI Guide" icon="book" href="/tools/usage/converting-apis">
+    Learn about OpenAPI conversion
+  </Card>
+  <Card title="Examples" icon="code" href="/tools/examples/rest-api">
+    Working OpenAPI examples
+  </Card>
+</CardGroup>

@@ -1,0 +1,744 @@
+---
+title: "Transport Configuration"
+description: "Configure stdio, SSE, and HTTP transport modes"
+icon: "network-wired"
+---
+
+## Overview
+
+Automagik Tools supports three transport modes for MCP (Model Context Protocol) communication:
+
+- **stdio** - Standard input/output for local AI clients (Claude Code, Cursor)
+- **SSE** - Server-Sent Events for team sharing and remote access
+- **HTTP** - Traditional HTTP API for REST integrations
+
+<Info>
+The transport mode determines how AI clients communicate with Automagik Tools. Choose based on your use case.
+</Info>
+
+---
+
+## Transport Comparison
+
+| Feature | stdio | SSE | HTTP |
+|---------|-------|-----|------|
+| **Use Case** | Local AI clients | Team sharing | REST API access |
+| **Setup** | Easiest | Moderate | Advanced |
+| **Network** | Local only | Network accessible | Network accessible |
+| **Authentication** | None (local) | Optional | Recommended |
+| **Streaming** | Yes | Yes | No |
+| **AI Client Support** | Claude Code, Cursor, Cline | MCP-compatible | Custom integrations |
+| **Best For** | Individual development | Team collaboration | API integrations |
+
+---
+
+## stdio Transport
+
+### Overview
+
+stdio (standard input/output) is the default transport mode for local AI clients. It's the simplest and most commonly used mode.
+
+### When to Use
+
+- Running Automagik Tools locally on your machine
+- Integrating with Claude Code, Cursor, Cline, or similar tools
+- Single-user development environment
+- No network access required
+
+### Configuration
+
+#### Basic Setup
+
+```bash
+# Run with stdio (default)
+uvx automagik-tools tool genie
+
+# Explicit stdio specification
+uvx automagik-tools tool genie --transport stdio
+```
+
+#### Claude Code Configuration
+
+Add to your Claude Code MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "automagik-genie": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "genie",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "GENIE_MCP_CONFIGS": "{\"filesystem\":{\"command\":\"npx\",\"args\":[\"-y\",\"@modelcontextprotocol/server-filesystem\",\"/workspace\"]}}"
+      }
+    }
+  }
+}
+```
+
+#### Cursor Configuration
+
+Add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "automagik-tools": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "automagik",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "AUTOMAGIK_API_KEY": "your-key",
+        "AUTOMAGIK_BASE_URL": "http://localhost:8881"
+      }
+    }
+  }
+}
+```
+
+#### Cline (VSCode) Configuration
+
+```json
+{
+  "cline.mcpServers": [
+    {
+      "name": "automagik-tools",
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "tool",
+        "genie",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key"
+      }
+    }
+  ]
+}
+```
+
+### Environment Variables
+
+```bash
+# Optional: Set transport explicitly
+MCP_TRANSPORT=stdio
+
+# All other variables work normally
+OPENAI_API_KEY=sk-your-key
+GENIE_MODEL=gpt-4.1
+```
+
+### Advantages
+
+- No network configuration required
+- Zero latency (local communication)
+- Automatic startup/shutdown with AI client
+- Most secure (no network exposure)
+
+### Limitations
+
+- Single user only
+- Cannot share across machines
+- Must run on same machine as AI client
+
+---
+
+## SSE Transport (Server-Sent Events)
+
+### Overview
+
+SSE enables real-time, streaming communication over HTTP. Perfect for team environments where multiple users need to access the same tools.
+
+### When to Use
+
+- Team collaboration with shared tools
+- Remote access from multiple locations
+- Real-time streaming responses
+- Network-accessible tool server
+
+### Configuration
+
+#### Basic Setup
+
+```bash
+# Start SSE server
+uvx automagik-tools tool genie --transport sse --port 8000
+
+# Custom host and port
+uvx automagik-tools tool genie --transport sse --host 0.0.0.0 --port 8000
+
+# Multiple tools via hub
+uvx automagik-tools hub --transport sse --port 8884
+```
+
+#### Environment Variables
+
+```bash
+# Server configuration
+AUTOMAGIK_TOOLS_HOST=0.0.0.0
+AUTOMAGIK_TOOLS_SSE_PORT=8884
+
+# Transport mode
+MCP_TRANSPORT=sse
+```
+
+#### Client Configuration
+
+Connect from Claude Code or other MCP clients:
+
+```json
+{
+  "mcpServers": {
+    "automagik-genie": {
+      "url": "http://your-server:8000/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
+### Genie with Multiple MCP Servers (SSE)
+
+Connect Genie to other MCP servers over SSE:
+
+```bash
+export GENIE_MCP_CONFIGS='{
+  "remote-agent": {
+    "url": "http://remote-server:8001/sse",
+    "transport": "sse"
+  },
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+    "env": {}
+  }
+}'
+
+uvx automagik-tools tool genie --transport sse --port 8000
+```
+
+### Team Setup Example
+
+```bash
+# Server (always running)
+uvx automagik-tools hub --transport sse --host 0.0.0.0 --port 8884
+
+# Team member 1 - Claude Code
+{
+  "mcpServers": {
+    "team-tools": {
+      "url": "http://tools.company.com:8884/sse",
+      "transport": "sse"
+    }
+  }
+}
+
+# Team member 2 - Cursor
+{
+  "mcpServers": {
+    "team-tools": {
+      "url": "http://tools.company.com:8884/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
+### Process Management with PM2
+
+Keep SSE server running with PM2:
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'automagik-tools-sse',
+    script: 'automagik-tools',
+    args: 'hub --host 0.0.0.0 --port 8884 --transport sse',
+    interpreter: 'uvx',
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      OPENAI_API_KEY: 'sk-your-key',
+      LOG_LEVEL: 'INFO'
+    }
+  }]
+}
+```
+
+```bash
+# Start with PM2
+pm2 start ecosystem.config.js
+
+# Monitor
+pm2 logs automagik-tools-sse
+
+# Status
+pm2 status
+```
+
+### Nginx Reverse Proxy
+
+Production setup with Nginx:
+
+```nginx
+server {
+    listen 80;
+    server_name tools.company.com;
+
+    location /sse {
+        proxy_pass http://localhost:8884;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+    }
+}
+```
+
+### Advantages
+
+- Team collaboration enabled
+- Real-time streaming responses
+- Multiple clients can connect
+- Network accessible
+
+### Limitations
+
+- Requires network access
+- Need to manage server process
+- Potential firewall/network issues
+
+---
+
+## HTTP Transport
+
+### Overview
+
+Traditional HTTP API for REST-style integrations. Best for custom applications that need direct API access.
+
+### When to Use
+
+- Custom web applications
+- REST API integrations
+- Non-MCP clients
+- Webhook integrations
+
+### Configuration
+
+#### Basic Setup
+
+```bash
+# Start HTTP server
+uvx automagik-tools tool genie --transport http --port 8080
+
+# Custom host
+uvx automagik-tools tool genie --transport http --host 0.0.0.0 --port 8080
+
+# Hub with HTTP
+uvx automagik-tools hub --transport http --port 8885
+```
+
+#### Environment Variables
+
+```bash
+AUTOMAGIK_TOOLS_HOST=0.0.0.0
+AUTOMAGIK_TOOLS_HTTP_PORT=8885
+MCP_TRANSPORT=http
+```
+
+### API Endpoints
+
+```bash
+# List available tools
+curl http://localhost:8080/tools
+
+# Execute tool
+curl -X POST http://localhost:8080/tool/genie \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "ask",
+    "params": {
+      "question": "What is the status of my projects?"
+    }
+  }'
+
+# Health check
+curl http://localhost:8080/health
+```
+
+### Process Management
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'automagik-tools-http',
+    script: 'automagik-tools',
+    args: 'hub --host 0.0.0.0 --port 8885 --transport http',
+    interpreter: 'uvx',
+    autorestart: true,
+    env: {
+      OPENAI_API_KEY: 'sk-your-key',
+      LOG_LEVEL: 'INFO'
+    }
+  }]
+}
+```
+
+### Nginx Configuration
+
+```nginx
+server {
+    listen 80;
+    server_name api.tools.company.com;
+
+    location / {
+        proxy_pass http://localhost:8885;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+### Advantages
+
+- Standard REST API
+- Easy integration with web apps
+- Familiar HTTP patterns
+- Wide tool support
+
+### Limitations
+
+- No streaming responses
+- Request/response only
+- Not compatible with MCP clients
+- More latency than stdio
+
+---
+
+## Multi-Transport Hub
+
+### Overview
+
+Run all tools on a single server with multiple transport modes simultaneously.
+
+### Configuration
+
+```bash
+# Hub with SSE
+uvx automagik-tools hub --transport sse --port 8884
+
+# Hub with HTTP
+uvx automagik-tools hub --transport http --port 8885
+```
+
+### Dual Transport Setup
+
+Run both SSE and HTTP with PM2:
+
+```javascript ecosystem.config.js
+module.exports = {
+  apps: [
+    {
+      name: 'automagik-tools-sse',
+      script: 'automagik-tools',
+      args: 'hub --host 0.0.0.0 --port 8884 --transport sse',
+      interpreter: 'uvx'
+    },
+    {
+      name: 'automagik-tools-http',
+      script: 'automagik-tools',
+      args: 'hub --host 0.0.0.0 --port 8885 --transport http',
+      interpreter: 'uvx'
+    }
+  ]
+}
+```
+
+```bash
+# Start both transports
+pm2 start ecosystem.config.js
+
+# Check status
+pm2 status
+
+# Logs
+pm2 logs automagik-tools-sse
+pm2 logs automagik-tools-http
+```
+
+---
+
+## Advanced Configurations
+
+### Genie with Mixed Transports
+
+Connect Genie to MCP servers using different transports:
+
+```bash
+export GENIE_MCP_CONFIGS='{
+  "sse-server": {
+    "url": "http://remote:8001/sse",
+    "transport": "sse"
+  },
+  "local-filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+  },
+  "github": {
+    "command": "uvx",
+    "args": ["mcp-server-git"],
+    "env": {"GITHUB_TOKEN": "ghp_token"}
+  }
+}'
+
+uvx automagik-tools tool genie --transport sse --port 8000
+```
+
+### Load Balancing with Nginx
+
+```nginx
+upstream automagik_tools {
+    least_conn;
+    server localhost:8884;
+    server localhost:8885;
+    server localhost:8886;
+}
+
+server {
+    listen 80;
+    server_name tools.company.com;
+
+    location / {
+        proxy_pass http://automagik_tools;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+### Docker Compose Multi-Transport
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  tools-sse:
+    image: ghcr.io/namastexlabs/automagik-tools:latest
+    command: hub --host 0.0.0.0 --port 8884 --transport sse
+    ports:
+      - "8884:8884"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+
+  tools-http:
+    image: ghcr.io/namastexlabs/automagik-tools:latest
+    command: hub --host 0.0.0.0 --port 8885 --transport http
+    ports:
+      - "8885:8885"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="stdio: AI client not detecting tools">
+    **Problem**: Claude Code or Cursor shows no tools available
+
+    **Solution**:
+    ```bash
+    # Verify command works manually
+    uvx automagik-tools tool genie --transport stdio
+
+    # Check MCP configuration syntax
+    # Ensure JSON is valid and properly escaped
+
+    # Restart AI client after configuration changes
+    ```
+  </Accordion>
+
+  <Accordion title="SSE: Connection refused">
+    **Problem**: Cannot connect to SSE server
+
+    **Solution**:
+    ```bash
+    # Check server is running
+    curl http://localhost:8884/sse
+
+    # Verify port is not blocked
+    netstat -tuln | grep 8884
+
+    # Check firewall rules
+    sudo ufw status
+
+    # Try with 0.0.0.0 binding
+    uvx automagik-tools tool genie --transport sse --host 0.0.0.0
+    ```
+  </Accordion>
+
+  <Accordion title="HTTP: 502 Bad Gateway with Nginx">
+    **Problem**: Nginx returns 502 when accessing tools
+
+    **Solution**:
+    ```bash
+    # Check Automagik Tools is running
+    curl http://localhost:8885/health
+
+    # Verify Nginx configuration
+    sudo nginx -t
+
+    # Check Nginx logs
+    sudo tail -f /var/log/nginx/error.log
+
+    # Ensure proxy_pass matches actual port
+    ```
+  </Accordion>
+
+  <Accordion title="Genie: MCP server connection fails">
+    **Problem**: Genie cannot connect to configured MCP servers
+
+    **Solution**:
+    ```bash
+    # Test MCP server independently
+    npx -y @modelcontextprotocol/server-filesystem /tmp
+
+    # Verify GENIE_MCP_CONFIGS is valid JSON
+    echo $GENIE_MCP_CONFIGS | python -m json.tool
+
+    # Test SSE connection manually
+    curl http://remote-server:8001/sse
+
+    # Check logs for specific error
+    uvx automagik-tools tool genie --transport stdio
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    **Problem**: Address already in use error
+
+    **Solution**:
+    ```bash
+    # Find process using port
+    lsof -i :8884  # macOS/Linux
+    netstat -ano | findstr :8884  # Windows
+
+    # Kill process or use different port
+    kill -9 <PID>
+    # OR
+    uvx automagik-tools tool genie --port 8890
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security Considerations
+
+<Warning>
+When exposing tools over the network (SSE or HTTP), consider these security measures:
+</Warning>
+
+### Network Security
+
+```bash
+# Bind to localhost only (development)
+--host 127.0.0.1
+
+# Bind to all interfaces (production with firewall)
+--host 0.0.0.0
+```
+
+### Firewall Rules
+
+```bash
+# Allow only specific IP ranges
+sudo ufw allow from 192.168.1.0/24 to any port 8884
+sudo ufw allow from 10.0.0.0/8 to any port 8885
+
+# Block public access
+sudo ufw deny 8884
+sudo ufw deny 8885
+```
+
+### TLS/SSL with Nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name tools.company.com;
+
+    ssl_certificate /etc/letsencrypt/live/tools.company.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tools.company.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:8884;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+```
+
+### API Authentication
+
+Add authentication middleware for HTTP transport:
+
+```python
+# Custom authentication wrapper
+from fastapi import FastAPI, Header, HTTPException
+
+app = FastAPI()
+
+async def verify_token(authorization: str = Header(None)):
+    if not authorization or authorization != f"Bearer {API_TOKEN}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/tools/config/authentication">
+    Setup API keys and security
+  </Card>
+
+  <Card title="Deployment" icon="rocket" href="/tools/config/deployment">
+    Production deployment guides
+  </Card>
+
+  <Card title="Environment Variables" icon="gear" href="/tools/config/environment-variables">
+    Complete configuration reference
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/tools/cli/commands">
+    Full command reference
+  </Card>
+</CardGroup>
