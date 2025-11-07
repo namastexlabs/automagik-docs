@@ -1,0 +1,814 @@
+---
+title: "MCP Integration Errors"
+description: "Troubleshooting MCP server connections and IDE integrations"
+---
+
+## MCP Server Connection Issues
+
+<AccordionGroup>
+  <Accordion title="MCP server fails to start" icon="server">
+    **Symptoms:**
+    - Error: "Could not start MCP server"
+    - Process exits immediately after start
+    - No process found when checking status
+
+    **Cause:**
+    Port conflicts, missing dependencies, or configuration errors.
+
+    **Solution:**
+    ```bash
+    # Check if port is already in use
+    lsof -i :3000  # Mac/Linux
+    netstat -ano | findstr :3000  # Windows
+
+    # Kill process using the port
+    kill -9 <PID>  # Mac/Linux
+    taskkill /PID <PID> /F  # Windows
+
+    # Start with different port
+    genie init --port 3001
+
+    # Verify Node.js installation
+    node --version  # Should be >= 18.0.0
+
+    # Check MCP server logs
+    cat ~/.genie/logs/mcp-server.log
+
+    # Start with debug output
+    DEBUG=genie:mcp genie start
+    ```
+
+    **Prevention:**
+    - Check for port conflicts before starting
+    - Use `genie status` to verify server state
+    - Configure a non-standard port if 3000 is commonly used
+  </Accordion>
+
+  <Accordion title="Cannot connect to MCP server (ECONNREFUSED)" icon="plug-circle-xmark">
+    **Symptoms:**
+    - Error: "connect ECONNREFUSED 127.0.0.1:3000"
+    - IDE cannot reach MCP server
+    - curl requests to server fail
+
+    **Cause:**
+    Server not running, wrong port, or firewall blocking connection.
+
+    **Solution:**
+    ```bash
+    # Check if server is running
+    genie status
+
+    # Test connection manually
+    curl http://localhost:3000/health
+
+    # Check firewall settings
+    # Mac: System Preferences > Security & Privacy > Firewall
+    # Windows: Windows Defender Firewall > Allow an app
+    # Linux: sudo ufw status
+
+    # Restart server
+    genie stop
+    genie start
+
+    # Check server is listening on correct interface
+    netstat -an | grep 3000
+
+    # Ensure server binds to 0.0.0.0 not just 127.0.0.1
+    genie config set MCP_HOST "0.0.0.0"
+    ```
+
+    **Prevention:**
+    - Allow Node.js through firewall during installation
+    - Use `genie status` before running commands
+    - Configure firewall rules for development
+  </Accordion>
+
+  <Accordion title="MCP server starts but immediately crashes" icon="bomb">
+    **Symptoms:**
+    - Server process starts but dies within seconds
+    - Error logs show uncaught exceptions
+    - Repeated crash-restart cycles
+
+    **Cause:**
+    Unhandled errors, missing environment variables, or corrupted config.
+
+    **Solution:**
+    ```bash
+    # Check detailed error logs
+    cat ~/.genie/logs/error.log
+
+    # Verify environment variables
+    genie config show
+
+    # Reset configuration
+    mv ~/.genie/config.json ~/.genie/config.json.backup
+    genie init --force
+
+    # Check for required environment variables
+    echo $ANTHROPIC_API_KEY
+    echo $OPENAI_API_KEY
+
+    # Start with minimal config
+    DEBUG=* genie start 2>&1 | tee debug.log
+
+    # Check Node.js memory limits
+    node --max-old-space-size=4096 $(which genie) start
+    ```
+
+    **Prevention:**
+    - Ensure all required environment variables are set
+    - Keep configuration files backed up
+    - Monitor error logs regularly
+  </Accordion>
+
+  <Accordion title="MCP transport mode errors (stdio vs HTTP)" icon="arrows-left-right">
+    **Symptoms:**
+    - IDE shows "Invalid transport mode"
+    - Switching between stdio and HTTP fails
+    - Tool discovery works in one mode but not the other
+
+    **Cause:**
+    IDE and server configured for different transport modes.
+
+    **Solution:**
+    ```bash
+    # Check current transport mode
+    genie config get MCP_TRANSPORT
+
+    # For stdio mode (Claude Code, Cursor, Cline default)
+    genie config set MCP_TRANSPORT stdio
+
+    # For HTTP mode (alternative setup)
+    genie config set MCP_TRANSPORT http
+    genie config set MCP_PORT 3000
+
+    # Regenerate IDE configuration
+    genie init --force
+
+    # Restart IDE after changing mode
+    ```
+
+    **For stdio mode configuration:**
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "node",
+          "args": ["/path/to/genie-mcp-server/build/index.js"]
+        }
+      }
+    }
+    ```
+
+    **For HTTP mode configuration:**
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "url": "http://localhost:3000"
+        }
+      }
+    }
+    ```
+
+    **Prevention:**
+    - Stick with stdio mode unless HTTP is specifically needed
+    - Document transport mode in project README
+    - Use `genie init` to auto-configure for your IDE
+  </Accordion>
+</AccordionGroup>
+
+## Tool Discovery Issues
+
+<AccordionGroup>
+  <Accordion title="MCP tools not showing up in IDE" icon="toolbox">
+    **Symptoms:**
+    - IDE doesn't list Genie tools
+    - Autocomplete doesn't show MCP functions
+    - No errors in logs
+
+    **Cause:**
+    Configuration not loaded by IDE, path issues, or IDE cache.
+
+    **Solution:**
+    ```bash
+    # Verify server is exposing tools
+    curl http://localhost:3000/tools
+
+    # Check IDE MCP configuration file location
+    # Claude Code: ~/.claude/config.json
+    # Cursor: Check Settings > Extensions > MCP
+    # Cline: .cline/mcp.json
+    # Gemini: Check extension settings
+
+    # Regenerate configuration
+    genie init --force
+
+    # Verify configuration file contents
+    cat ~/.claude/config.json  # or appropriate path
+
+    # Restart IDE completely (not just reload window)
+
+    # Clear IDE cache
+    # Claude Code: Cmd+Shift+P > "Clear Cache"
+    # Cursor: Clear workspace cache
+    # Cline: Reload extension
+    ```
+
+    **Prevention:**
+    - Always restart IDE after running `genie init`
+    - Verify configuration file exists and is valid JSON
+    - Check IDE documentation for MCP requirements
+  </Accordion>
+
+  <Accordion title="Some tools missing from tool list" icon="list-check">
+    **Symptoms:**
+    - Only partial set of Genie tools available
+    - Core tools present but agent-specific tools missing
+    - Tool list incomplete compared to documentation
+
+    **Cause:**
+    Agent not initialized, selective tool exposure, or version mismatch.
+
+    **Solution:**
+    ```bash
+    # Check which tools are registered
+    genie tools list
+
+    # Verify all agents are properly initialized
+    genie agent list
+
+    # Update to latest version
+    npm update -g @joshuapowell/genie-cli
+
+    # Reinitialize with full tool set
+    genie init --full-toolset
+
+    # Check for tool filtering in config
+    genie config get MCP_TOOL_FILTER
+
+    # Restart MCP server
+    genie restart
+    ```
+
+    **Prevention:**
+    - Keep Genie updated to latest version
+    - Initialize all agent types you plan to use
+    - Don't filter tools unless intentionally limiting
+  </Accordion>
+
+  <Accordion title="Tool execution fails with 'Tool not found'" icon="magnifying-glass-minus">
+    **Symptoms:**
+    - IDE lists the tool but execution fails
+    - Error: "Tool 'genie_agent_run' not found"
+    - Works in dashboard but not in IDE
+
+    **Cause:**
+    IDE cache, tool name mismatch, or registration issue.
+
+    **Solution:**
+    ```bash
+    # Check tool registration
+    genie tools inspect <tool-name>
+
+    # Verify tool name spelling
+    genie tools list | grep <tool-name>
+
+    # Re-register tools
+    genie tools refresh
+
+    # Check MCP server logs during tool call
+    tail -f ~/.genie/logs/mcp-server.log
+
+    # Clear IDE MCP cache
+    # Then restart IDE
+
+    # Test tool directly via API
+    curl -X POST http://localhost:3000/tools/<tool-name> \
+      -H "Content-Type: application/json" \
+      -d '{"param": "value"}'
+    ```
+
+    **Prevention:**
+    - Use tool names exactly as shown in documentation
+    - Refresh tools after Genie updates
+    - Keep IDE and Genie versions in sync
+  </Accordion>
+</AccordionGroup>
+
+## IDE-Specific Integration Issues
+
+<AccordionGroup>
+  <Accordion title="Claude Code integration issues" icon="code">
+    **Symptoms:**
+    - Genie doesn't appear in Claude Code
+    - MCP configuration not loading
+    - Tools work via CLI but not in Claude Code
+
+    **Cause:**
+    Configuration file location or format issues specific to Claude Code.
+
+    **Solution:**
+    ```bash
+    # Verify config file location
+    ls -la ~/.claude/config.json
+
+    # Check config format
+    cat ~/.claude/config.json
+
+    # Regenerate Claude Code config
+    genie init --ide claude-code
+
+    # Example correct configuration:
+    cat > ~/.claude/config.json << 'EOF'
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "node",
+          "args": ["$HOME/.genie/mcp-server/build/index.js"],
+          "env": {
+            "GENIE_HOME": "$HOME/.genie"
+          }
+        }
+      }
+    }
+    EOF
+
+    # Restart Claude Code
+    # Cmd+Q (Mac) or Alt+F4 (Windows), then reopen
+    ```
+
+    **Prevention:**
+    - Use `genie init --ide claude-code` for proper setup
+    - Don't manually edit config unless necessary
+    - Keep Claude Code updated to latest version
+  </Accordion>
+
+  <Accordion title="Cursor integration issues" icon="arrow-pointer">
+    **Symptoms:**
+    - Cursor doesn't recognize Genie MCP server
+    - Settings show MCP but tools unavailable
+    - Extension not loading properly
+
+    **Cause:**
+    Cursor-specific configuration requirements or extension issues.
+
+    **Solution:**
+    ```bash
+    # Initialize for Cursor specifically
+    genie init --ide cursor
+
+    # Check Cursor MCP settings
+    # Open Cursor Settings > Extensions > MCP Servers
+
+    # Verify server URL format
+    # Should be: http://localhost:3000 (not 127.0.0.1)
+
+    # Check Cursor extension logs
+    # Help > Toggle Developer Tools > Console
+
+    # Example Cursor configuration:
+    # In Cursor Settings > MCP Servers:
+    {
+      "name": "genie",
+      "url": "http://localhost:3000",
+      "type": "http"
+    }
+
+    # Restart Cursor completely
+    ```
+
+    **For Cursor stdio mode:**
+    ```json
+    {
+      "mcp.servers": {
+        "genie": {
+          "command": "node",
+          "args": ["/Users/username/.genie/mcp-server/build/index.js"]
+        }
+      }
+    }
+    ```
+
+    **Prevention:**
+    - Use Genie's auto-configuration for Cursor
+    - Verify MCP extension is enabled in Cursor
+    - Check Cursor's MCP documentation for updates
+  </Accordion>
+
+  <Accordion title="Cline integration issues" icon="puzzle-piece">
+    **Symptoms:**
+    - Cline doesn't load Genie tools
+    - MCP configuration seems correct but doesn't work
+    - Extension shows "MCP server unavailable"
+
+    **Cause:**
+    Cline-specific MCP setup or extension configuration issues.
+
+    **Solution:**
+    ```bash
+    # Initialize for Cline
+    genie init --ide cline
+
+    # Check Cline MCP configuration
+    cat .cline/mcp.json
+
+    # Example Cline configuration:
+    cat > .cline/mcp.json << 'EOF'
+    {
+      "servers": {
+        "genie": {
+          "command": "node",
+          "args": ["/path/to/.genie/mcp-server/build/index.js"],
+          "env": {
+            "GENIE_HOME": "/path/to/.genie"
+          }
+        }
+      }
+    }
+    EOF
+
+    # Verify Cline extension is active
+    # VSCode: Extensions > Cline should show "Active"
+
+    # Reload Cline extension
+    # Command Palette > "Reload Window"
+
+    # Check Cline output logs
+    # View > Output > Select "Cline" from dropdown
+    ```
+
+    **Prevention:**
+    - Create .cline directory in project root
+    - Use absolute paths in configuration
+    - Keep Cline extension updated
+  </Accordion>
+
+  <Accordion title="Gemini integration issues" icon="gem">
+    **Symptoms:**
+    - Gemini doesn't recognize MCP server
+    - Tools not available in Gemini interface
+    - Connection timeouts
+
+    **Cause:**
+    Gemini uses different MCP setup than other IDEs.
+
+    **Solution:**
+    ```bash
+    # Initialize for Gemini
+    genie init --ide gemini
+
+    # Gemini typically uses HTTP mode
+    genie config set MCP_TRANSPORT http
+    genie config set MCP_PORT 3000
+
+    # Check Gemini extension settings
+    # Gemini > Settings > MCP Configuration
+
+    # Example Gemini configuration:
+    {
+      "mcp": {
+        "servers": {
+          "genie": {
+            "url": "http://localhost:3000",
+            "apiKey": "optional-if-needed"
+          }
+        }
+      }
+    }
+
+    # Restart Gemini extension
+    # Or reload IDE window
+
+    # Verify connection
+    curl http://localhost:3000/tools
+    ```
+
+    **Prevention:**
+    - Use HTTP transport for Gemini
+    - Ensure server starts before opening Gemini
+    - Check Gemini documentation for MCP support status
+  </Accordion>
+</AccordionGroup>
+
+## Configuration Errors
+
+<AccordionGroup>
+  <Accordion title="Invalid MCP configuration format" icon="file-circle-xmark">
+    **Symptoms:**
+    - IDE reports "Invalid MCP configuration"
+    - JSON parse errors
+    - Configuration not loading
+
+    **Cause:**
+    Malformed JSON, incorrect schema, or syntax errors.
+
+    **Solution:**
+    ```bash
+    # Validate JSON syntax
+    cat ~/.claude/config.json | jq .
+
+    # Check for common issues
+    # - Missing commas
+    # - Trailing commas in last item
+    # - Unescaped backslashes in paths
+    # - Missing quotes around strings
+
+    # Backup current config
+    cp ~/.claude/config.json ~/.claude/config.json.backup
+
+    # Regenerate clean config
+    genie init --force
+
+    # Validate regenerated config
+    cat ~/.claude/config.json | jq .
+
+    # Example valid configuration:
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "node",
+          "args": ["/home/user/.genie/mcp-server/build/index.js"]
+        }
+      }
+    }
+    ```
+
+    **Common JSON errors to fix:**
+    ```json
+    // ❌ Wrong: Trailing comma
+    {
+      "servers": {
+        "genie": {...},
+      }
+    }
+
+    // ✅ Correct: No trailing comma
+    {
+      "servers": {
+        "genie": {...}
+      }
+    }
+
+    // ❌ Wrong: Single backslash in Windows path
+    "args": ["C:\Users\name\..."]
+
+    // ✅ Correct: Escaped backslashes or forward slashes
+    "args": ["C:\\Users\\name\\..."]
+    // or
+    "args": ["C:/Users/name/..."]
+    ```
+
+    **Prevention:**
+    - Use `genie init` to generate config
+    - Validate JSON with `jq` before saving
+    - Keep backup of working configuration
+  </Accordion>
+
+  <Accordion title="Path resolution errors in MCP config" icon="route">
+    **Symptoms:**
+    - Error: "Cannot find module"
+    - Server script not found
+    - Wrong directory being used
+
+    **Cause:**
+    Relative paths, environment variables not expanded, or incorrect paths.
+
+    **Solution:**
+    ```bash
+    # Find Genie installation path
+    npm list -g @joshuapowell/genie-cli
+
+    # Find MCP server path
+    find ~ -name "index.js" -path "*genie-mcp-server*"
+
+    # Use absolute paths in config
+    # Replace $HOME with actual path
+    # Replace ~ with actual path
+
+    # Mac/Linux example:
+    "args": ["/Users/username/.genie/mcp-server/build/index.js"]
+
+    # Windows example:
+    "args": ["C:/Users/username/.genie/mcp-server/build/index.js"]
+
+    # Verify path exists
+    ls -la /path/to/index.js
+
+    # Test command directly
+    node /path/to/index.js
+
+    # Regenerate with correct paths
+    genie init --force
+    ```
+
+    **Prevention:**
+    - Always use absolute paths in MCP configuration
+    - Don't rely on environment variables unless IDE supports them
+    - Verify paths exist before saving configuration
+  </Accordion>
+
+  <Accordion title="Environment variables not loading" icon="circle-dollar">
+    **Symptoms:**
+    - API keys not found
+    - "ANTHROPIC_API_KEY is not set" errors
+    - Config values show as undefined
+
+    **Cause:**
+    IDE doesn't load shell environment or .env file not read.
+
+    **Solution:**
+    ```bash
+    # Add to MCP server env configuration
+    cat > ~/.claude/config.json << 'EOF'
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "node",
+          "args": ["/path/to/index.js"],
+          "env": {
+            "ANTHROPIC_API_KEY": "sk-ant-...",
+            "OPENAI_API_KEY": "sk-...",
+            "GENIE_HOME": "/path/to/.genie"
+          }
+        }
+      }
+    }
+    EOF
+
+    # Or use .env file in project root
+    cat > .env << 'EOF'
+    ANTHROPIC_API_KEY=sk-ant-...
+    OPENAI_API_KEY=sk-...
+    EOF
+
+    # Ensure .env is loaded by Genie
+    genie config set LOAD_ENV_FILE true
+
+    # Verify variables are accessible
+    genie config show
+
+    # Restart MCP server and IDE
+    genie restart
+    ```
+
+    **Prevention:**
+    - Store API keys in MCP config env section
+    - Use .env file for project-specific variables
+    - Don't commit .env to version control
+  </Accordion>
+</AccordionGroup>
+
+## Debugging MCP Connections
+
+<AccordionGroup>
+  <Accordion title="Enable MCP debug logging" icon="bug">
+    **Enable detailed MCP logs for troubleshooting:**
+
+    ```bash
+    # Enable debug mode
+    export DEBUG=genie:mcp,genie:mcp:*
+
+    # Start Genie with debug output
+    DEBUG=genie:* genie start
+
+    # Tail MCP logs in real-time
+    tail -f ~/.genie/logs/mcp-server.log
+
+    # Check IDE console logs
+    # Claude Code: Help > Toggle Developer Tools
+    # Cursor: Help > Toggle Developer Tools
+    # VSCode/Cline: Help > Toggle Developer Tools
+
+    # Test specific MCP endpoints
+    curl http://localhost:3000/tools
+    curl http://localhost:3000/health
+    curl http://localhost:3000/status
+
+    # Monitor network traffic
+    # Mac: use Network Link Conditioner
+    # Linux: use tcpdump
+    # Windows: use Wireshark
+    ```
+
+    **Log analysis checklist:**
+    - [ ] Server started successfully
+    - [ ] Tools registered correctly
+    - [ ] IDE connection established
+    - [ ] Tool calls received and processed
+    - [ ] No uncaught exceptions
+    - [ ] Response times reasonable (<1s)
+  </Accordion>
+
+  <Accordion title="Test MCP connection manually" icon="vial">
+    **Manual testing steps:**
+
+    ```bash
+    # 1. Verify server is running
+    genie status
+    # Should show: MCP Server: Running on port 3000
+
+    # 2. Test health endpoint
+    curl http://localhost:3000/health
+    # Should return: {"status":"ok","version":"x.x.x"}
+
+    # 3. List available tools
+    curl http://localhost:3000/tools
+    # Should return JSON array of tools
+
+    # 4. Test tool execution
+    curl -X POST http://localhost:3000/tools/genie_status \
+      -H "Content-Type: application/json" \
+      -d '{}'
+
+    # 5. Check agent list
+    curl http://localhost:3000/agents
+
+    # 6. Test from IDE
+    # Use IDE's built-in MCP tool tester if available
+    # Or call tool from chat interface
+
+    # 7. Monitor logs during test
+    tail -f ~/.genie/logs/mcp-server.log
+    ```
+
+    **Expected responses:**
+    - Health check: 200 OK with status
+    - Tool list: 200 OK with tool array
+    - Tool execution: 200 OK with result or error message
+    - Logs: Should show request/response cycle
+  </Accordion>
+
+  <Accordion title="Common MCP protocol errors" icon="triangle-exclamation">
+    **Understanding MCP error responses:**
+
+    | Error Code | Meaning | Solution |
+    |------------|---------|----------|
+    | `400 Bad Request` | Invalid request format | Check request JSON structure |
+    | `404 Not Found` | Tool or endpoint doesn't exist | Verify tool name spelling |
+    | `500 Internal Server Error` | Server-side error | Check server logs for details |
+    | `503 Service Unavailable` | Server overloaded or starting | Wait and retry, check resources |
+    | `ECONNREFUSED` | Server not running | Start server with `genie start` |
+    | `ETIMEDOUT` | Request timeout | Check network, increase timeout |
+
+    **Debug protocol issues:**
+    ```bash
+    # Enable protocol-level debugging
+    export DEBUG=genie:mcp:protocol
+
+    # Check request/response format
+    curl -v http://localhost:3000/tools/test
+
+    # Validate JSON payloads
+    echo '{"tool":"test"}' | jq .
+
+    # Test with minimal request
+    curl -X POST http://localhost:3000/tools/genie_status \
+      -H "Content-Type: application/json" \
+      -d '{}'
+
+    # Compare IDE request vs manual request
+    # Check IDE network tab for exact request format
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices for MCP Integration
+
+<Checklist>
+  - [ ] Always use `genie init` for initial MCP setup
+  - [ ] Use absolute paths in MCP configuration files
+  - [ ] Restart IDE completely after configuration changes
+  - [ ] Keep Genie and IDE versions up to date
+  - [ ] Monitor MCP logs when troubleshooting
+  - [ ] Test MCP server health before blaming IDE
+  - [ ] Use appropriate transport mode (stdio recommended)
+  - [ ] Set environment variables in MCP config
+  - [ ] Don't manually edit config unless necessary
+  - [ ] Keep backup of working MCP configuration
+</Checklist>
+
+## Still Having MCP Issues?
+
+If problems persist:
+
+1. **Collect diagnostic info:**
+   ```bash
+   genie status > status.txt
+   cat ~/.genie/logs/mcp-server.log > mcp-logs.txt
+   cat ~/.claude/config.json > config.txt
+   npm list -g @joshuapowell/genie-cli > version.txt
+   ```
+
+2. **Try minimal setup:**
+   - Stop all Genie processes
+   - Remove configuration
+   - Reinstall Genie
+   - Run `genie init` fresh
+   - Test before adding customizations
+
+3. **Get help:**
+   - GitHub Issues: [joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+   - Discord: Join community server
+   - Documentation: Check IDE-specific MCP docs
+   - Stack Overflow: Tag with `genie-cli` and `mcp`

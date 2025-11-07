@@ -1,218 +1,99 @@
 ---
 title: "Installation"
-description: "Get Genie up and running"
+description: "Get Genie running in 2 minutes"
 icon: "download"
 ---
 
 ## Prerequisites
 
-Before installing Genie, make sure you have:
-
-<AccordionGroup>
-  <Accordion title="Node.js (v18 or higher)">
-    ```bash
-    # Check your Node.js version
-    node --version
-
-    # Should output v18.0.0 or higher
-    ```
-
-    If you need to install or upgrade Node.js:
-    - **macOS**: `brew install node`
-    - **Ubuntu/Debian**: `sudo apt install nodejs npm`
-    - **Windows**: Download from [nodejs.org](https://nodejs.org)
-  </Accordion>
-
-  <Accordion title="Git">
-    ```bash
-    # Check if Git is installed
-    git --version
-    ```
-
-    Genie works with Git repositories for context understanding.
-  </Accordion>
-
-  <Accordion title="LLM API Keys (Optional)">
-    For AI-powered features, you'll need API keys:
-    - **Claude**: Anthropic API key
-    - **OpenAI**: OpenAI API key
-    - **Gemini**: Google AI API key
-  </Accordion>
-</AccordionGroup>
-
----
-
-## Installation Methods
-
-<Tabs>
-  <Tab title="NPM (Global)">
-    Install Genie globally to use it from anywhere:
-
-    ```bash
-    npm install -g automagik-genie
-    ```
-
-    Verify installation:
-
-    ```bash
-    genie --version
-    ```
-  </Tab>
-
-  <Tab title="NPM (Project)">
-    Install Genie as a project dependency:
-
-    ```bash
-    npm install --save-dev automagik-genie
-    ```
-
-    Add to your `package.json` scripts:
-
-    ```json
-    {
-      "scripts": {
-        "genie": "genie"
-      }
-    }
-    ```
-
-    Run with:
-
-    ```bash
-    npm run genie
-    ```
-  </Tab>
-
-  <Tab title="NPX (No Install)">
-    Run Genie without installing:
-
-    ```bash
-    npx automagik-genie
-    ```
-
-    Perfect for trying it out or one-time use!
-  </Tab>
-
-  <Tab title="From Source">
-    Clone and build from source:
-
-    ```bash
-    # Clone the repository
-    git clone https://github.com/namastexlabs/automagik-genie.git
-    cd automagik-genie
-
-    # Install dependencies
-    npm install
-
-    # Build
-    npm run build
-
-    # Link globally
-    npm link
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Configuration
-
-After installation, initialize Genie in your project:
+Just Node.js 18+. That's it.
 
 ```bash
-# Initialize Genie workspace
-genie init
-
-# This creates a .genie/ directory with configuration
+node --version
+# Should show v18.0.0 or higher
 ```
 
-Configure your AI settings in `.genie/config.json`:
-
-```json
-{
-  "mcp": {
-    "enabled": true,
-    "port": 3000
-  },
-  "agents": {
-    "coder": {
-      "enabled": true,
-      "llm": "claude"
-    },
-    "reviewer": {
-      "enabled": true,
-      "llm": "claude"
-    }
-  },
-  "llms": {
-    "claude": {
-      "apiKey": "your-anthropic-api-key",
-      "model": "claude-3-5-sonnet-20241022"
-    }
-  }
-}
-```
-
-<Info>
-**Security Tip**: Never commit `.genie/config.json` to version control! Add it to `.gitignore`.
-</Info>
+If you don't have Node.js, install it:
+- **macOS**: `brew install node`
+- **Ubuntu/Debian**: `sudo apt install nodejs npm`
+- **Windows**: Download from [nodejs.org](https://nodejs.org)
 
 ---
 
-## MCP Server Setup (Optional)
+## One-Command Install (Recommended)
 
-To expose Genie as an MCP server for other AI agents:
+Installs Node.js (if needed), pnpm, Genie, AND Forge in one shot:
 
 ```bash
-# Start the MCP server
-genie serve
-
-# Or specify a port
-genie serve --port 3001
+bash -c "$(curl -fsSL https://install.namastex.ai/get-genie.sh)"
 ```
 
-Add to your MCP client configuration (e.g., Claude Desktop):
+**What this does:**
+- Detects your OS
+- Installs Node.js 18+ if missing
+- Installs pnpm package manager
+- Installs `automagik-genie` globally
+- Installs `automagik-forge` (REQUIRED backend)
+- Adds both to PATH
 
-```json
-{
-  "mcpServers": {
-    "genie": {
-      "command": "genie",
-      "args": ["serve"]
-    }
-  }
-}
+**Output you'll see:**
 ```
+Detecting OS... ✓
+Installing Node.js... ✓
+Installing pnpm... ✓
+Installing automagik-genie... ✓
+Installing automagik-forge... ✓
+Adding to PATH... ✓
+
+Genie is installed!
+
+Run 'genie' to get started.
+```
+
+---
+
+## Manual Install
+
+```bash
+npm install -g automagik-genie
+```
+
+**IMPORTANT:** This installs both the Genie CLI AND Forge backend. Forge is not optional - it's the execution engine that actually runs your tasks.
+
+The install creates:
+- **genie** - CLI command
+- **automagik-forge** - Backend server (runs automatically)
 
 ---
 
 ## Verify Installation
 
-Test that everything is working:
-
 ```bash
-# Check version
 genie --version
+# Should output: 2.5.11-rc.4 (or later)
 
-# Get help
-genie --help
+which genie
+# Should show path like: /usr/local/bin/genie
 
-# Initialize a workspace (if not done yet)
-genie init
-
-# Check MCP server status
-genie serve --check
+forge --version
+# Should output: 2.5.11-rc.4 (or later)
 ```
 
-You should see output similar to:
+If `genie --version` works but `which genie` fails, you have a PATH issue (see troubleshooting below).
 
-```
-automagik-genie v1.0.0
+---
 
-✓ Workspace initialized
-✓ Configuration created
-✓ MCP server ready
-```
+## What Got Installed
+
+- **genie** - Main CLI command
+- **forge** - Backend server (bundled with genie)
+- **.genie/** - Framework files (created on first run)
+
+**Binary names:**
+- Short: `genie`
+- Full: `automagik-genie`
+
+Both work the same. Use whichever you prefer.
 
 ---
 
@@ -220,53 +101,152 @@ automagik-genie v1.0.0
 
 <AccordionGroup>
   <Accordion title="Command not found: genie">
-    If you installed globally but get "command not found":
-
-    1. Check NPM global bin path:
-       ```bash
-       npm config get prefix
-       ```
-
-    2. Add to your PATH (add to `~/.bashrc` or `~/.zshrc`):
-       ```bash
-       export PATH="$PATH:$(npm config get prefix)/bin"
-       ```
-
-    3. Reload your shell:
-       ```bash
-       source ~/.bashrc  # or ~/.zshrc
-       ```
-  </Accordion>
-
-  <Accordion title="MCP server won't start">
-    Check if the port is already in use:
+    PATH issue. Add to `~/.bashrc` or `~/.zshrc`:
 
     ```bash
-    # Try a different port
-    genie serve --port 3001
+    export PATH="$PATH:$(npm config get prefix)/bin"
     ```
 
-    Or kill the process using the port:
+    Then reload:
     ```bash
-    # macOS/Linux
-    lsof -ti:3000 | xargs kill -9
+    source ~/.bashrc  # or ~/.zshrc
+    ```
 
-    # Windows
-    netstat -ano | findstr :3000
+    **Still not working?**
+    ```bash
+    # Find where npm installs global packages
+    npm config get prefix
+    # Example output: /usr/local
+
+    # Check if genie is actually installed
+    ls -la $(npm config get prefix)/bin/genie
+
+    # If it exists but doesn't run, check permissions
+    chmod +x $(npm config get prefix)/bin/genie
     ```
   </Accordion>
 
-  <Accordion title="Template sync errors">
-    Make sure you're in a Git repository:
-
+  <Accordion title="Permission denied">
+    Use sudo for global installs:
     ```bash
-    git init  # If not already a Git repo
-    git remote add origin <your-repo-url>
+    sudo npm install -g automagik-genie
     ```
 
-    Genie uses Git for template synchronization.
+    **OR** configure npm to use a user directory (recommended):
+    ```bash
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    export PATH=~/.npm-global/bin:$PATH
+
+    # Add to ~/.bashrc or ~/.zshrc to make permanent
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    ```
+
+    Then install without sudo:
+    ```bash
+    npm install -g automagik-genie
+    ```
+  </Accordion>
+
+  <Accordion title="npm ERR! code EACCES">
+    You don't have write permissions to npm's global install directory.
+
+    **Fix:**
+    ```bash
+    # Option 1: Use sudo (quick but less secure)
+    sudo npm install -g automagik-genie
+
+    # Option 2: Change npm's default directory (recommended)
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+    npm install -g automagik-genie
+    ```
+  </Accordion>
+
+  <Accordion title="Wrong Node.js version">
+    Genie requires Node.js 18+. Check your version:
+
+    ```bash
+    node --version
+    # If < v18.0.0, upgrade:
+
+    # macOS
+    brew upgrade node
+
+    # Ubuntu/Debian
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Or use nvm (recommended)
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    nvm install 18
+    nvm use 18
+    ```
+  </Accordion>
+
+  <Accordion title="Installation hangs or times out">
+    Network issue or npm registry problem.
+
+    ```bash
+    # Try with verbose logging
+    npm install -g automagik-genie --verbose
+
+    # Or use a different registry
+    npm install -g automagik-genie --registry https://registry.npmjs.org/
+
+    # Check your internet connection
+    ping registry.npmjs.org
+    ```
   </Accordion>
 </AccordionGroup>
+
+---
+
+## Environment Variables (Optional)
+
+You can configure Genie via environment variables:
+
+```bash
+# Genie configuration
+export GENIE_HOME="~/.genie"          # Where Genie stores data
+export GENIE_LOG_LEVEL="info"        # Logging verbosity
+export FORGE_PORT="8887"              # Forge backend port
+export MCP_PORT="8885"                # MCP server port
+```
+
+Add these to `~/.bashrc` or `~/.zshrc` to make them permanent.
+
+---
+
+## Updating Genie
+
+```bash
+# Update to latest version
+npm update -g automagik-genie
+
+# Check for updates
+npm outdated -g automagik-genie
+
+# Install specific version
+npm install -g automagik-genie@2.5.11-rc.4
+```
+
+---
+
+## Uninstalling
+
+```bash
+# Remove Genie and Forge
+npm uninstall -g automagik-genie
+
+# Remove .genie directory (CAUTION: deletes your data!)
+rm -rf ~/.genie
+
+# Or just backup instead of deleting
+mv ~/.genie ~/.genie.backup
+```
 
 ---
 
@@ -274,9 +254,9 @@ automagik-genie v1.0.0
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/genie/quickstart">
-    Create your first AI-powered workspace
+    Run your first Genie command in 5 minutes
   </Card>
-  <Card title="Introduction" icon="book" href="/genie/introduction">
-    Learn more about Genie
+  <Card title="CLI Reference" icon="terminal" href="/genie/cli/commands">
+    See all available commands
   </Card>
 </CardGroup>

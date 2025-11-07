@@ -1,0 +1,154 @@
+---
+title: "CLI Commands"
+description: "Complete command reference"
+icon: "terminal"
+---
+
+## Server Management
+
+### `genie` (no arguments)
+
+Starts unified server (Forge + MCP together).
+
+**First run:** Interactive setup wizard
+**Subsequent runs:** Starts servers immediately
+
+```bash
+genie
+# Output:
+# ✅ Forge backend: http://localhost:8887
+# ✅ MCP server: http://localhost:8885/sse
+# 🌐 Genie is ready!
+```
+
+### `genie status`
+
+Show server status.
+
+```bash
+genie status
+# Output: Shows Forge and MCP server status
+```
+
+### `genie statusline`
+
+One-line status output (useful for scripts).
+
+```bash
+genie statusline
+# Output: Single line status summary
+```
+
+### `genie dashboard`
+
+Engagement statistics.
+
+```bash
+genie dashboard
+# One-time stats display
+```
+
+### `genie dashboard-live`
+
+Live updating statistics dashboard.
+
+```bash
+genie dashboard-live
+# Real-time stats with auto-refresh
+```
+
+## Agent Execution
+
+### `genie talk <agent>`
+
+Open browser session with agent.
+
+```bash
+genie talk architect
+# Opens: http://localhost:8887/task/xyz123
+# CLI exits after opening browser
+```
+
+## Workspace Management
+
+### `genie init [template]`
+
+Initialize workspace.
+
+**Templates:** code, create (or interactive selection)
+
+**Flags:**
+- `--yes` - Auto-accept all prompts
+
+```bash
+genie init              # Interactive wizard
+genie init code --yes   # Auto-accept code template
+```
+
+### `genie rollback`
+
+Restore backup snapshot.
+
+**Flags:**
+- `--list` - Show available backups
+- `--latest` - Restore most recent
+- `--id <backupId>` - Restore specific backup
+
+```bash
+genie rollback --list
+genie rollback --latest
+genie rollback --id backup-20251104-153022
+```
+
+### `genie update`
+
+Sync with latest version.
+
+**Flags:**
+- `--force` - Skip confirmation prompts
+
+```bash
+genie update
+genie update --force
+```
+
+## Utilities
+
+### `genie mcp-cleanup`
+
+Clean MCP resources (sessions, logs, temp files).
+
+```bash
+genie mcp-cleanup
+```
+
+### `genie cleanup`
+
+General cleanup operations.
+
+```bash
+genie cleanup
+```
+
+### `genie help`
+
+Show help information.
+
+```bash
+genie help
+genie help <command>  # Help for specific command
+```
+
+### `genie helper <command>`
+
+Run utility helper scripts. See [Helper Commands](/genie/cli/helper-commands) for details.
+
+```bash
+genie helper list  # Show all available helpers
+```
+
+## Command Not Documented?
+
+These are ALL the commands that exist. If it's not listed here, it doesn't exist.
+
+Check `src/cli/commands/` in the repo to verify.

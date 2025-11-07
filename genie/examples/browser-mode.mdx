@@ -1,0 +1,70 @@
+---
+title: "Browser Mode"
+description: "Using genie talk for interactive sessions"
+icon: "browser"
+---
+
+## What Is Browser Mode?
+
+`genie talk` opens the Forge web UI for interactive chat with an agent.
+
+**Not a terminal REPL** - Opens your browser.
+
+## Start Browser Session
+
+```bash
+$ genie talk architect
+Creating browser session...
+Opening: http://localhost:8887/task/task-abc123
+✅ Browser opened
+```
+
+**What opens:** Forge UI with chat interface
+
+**CLI behavior:** Exits after opening browser (Forge keeps running)
+
+## Browser Interface
+
+You see:
+- Chat input box
+- Agent responses in real-time
+- File tree (left sidebar)
+- Diff view (for code changes)
+
+Type messages directly in browser.
+
+Agent responds using configured executor (Claude Code, OpenCode, etc.)
+
+## Close Session
+
+Just close the browser tab. Session stays in Forge.
+
+View later:
+```bash
+$ genie list sessions
+# Shows task-abc123
+
+$ genie view task-abc123
+# Full transcript
+```
+
+## When to Use Browser Mode
+
+**Use browser mode when:**
+- Interactive exploration
+- Real-time feedback
+- Visual diff review
+
+**Use CLI mode when:**
+- Automation/scripts
+- Batch processing
+- CI/CD pipelines
+
+## Reality Check
+
+This is NOT a magic AI interface. It's just:
+1. Forge web UI (existing tool)
+2. Opened by Genie CLI
+3. Chat interface to agents
+
+That's it.

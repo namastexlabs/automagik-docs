@@ -1,0 +1,888 @@
+---
+title: "CLI Errors"
+description: "Troubleshooting Genie command-line interface errors"
+---
+
+## Command Execution Errors
+
+<AccordionGroup>
+  <Accordion title="'genie' command not found" icon="terminal">
+    **Symptoms:**
+    - Running `genie` shows "command not found"
+    - Installation completed without errors
+    - `which genie` returns nothing
+
+    **Cause:**
+    npm global bin directory not in system PATH.
+
+    **Solution:**
+    ```bash
+    # Find npm global bin path
+    npm config get prefix
+
+    # Add to PATH (Mac/Linux - add to ~/.bashrc or ~/.zshrc)
+    export PATH="$(npm config get prefix)/bin:$PATH"
+
+    # For bash users:
+    echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+
+    # For zsh users:
+    echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+
+    # Windows PowerShell:
+    $npmPath = npm config get prefix
+    [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$npmPath", "User")
+
+    # Verify genie is accessible
+    which genie
+    genie --version
+    ```
+
+    **Alternative: Use npx (no installation needed):**
+    ```bash
+    npx @joshuapowell/genie-cli init
+    npx @joshuapowell/genie-cli status
+    ```
+
+    **Prevention:**
+    - Configure PATH during Node.js installation
+    - Use nvm which handles PATH automatically
+    - Consider using npx for one-off commands
+  </Accordion>
+
+  <Accordion title="Command runs but shows 'Unknown command'" icon="question">
+    **Symptoms:**
+    - `genie` works but specific commands fail
+    - Error: "Unknown command: <command>"
+    - Help shows different commands than expected
+
+    **Cause:**
+    Outdated version, typo, or command not available in your version.
+
+    **Solution:**
+    ```bash
+    # Check current version
+    genie --version
+
+    # Update to latest version
+    npm update -g @joshuapowell/genie-cli
+
+    # Verify update
+    genie --version
+
+    # Check available commands
+    genie --help
+
+    # Verify command spelling
+    genie help | grep <command>
+
+    # Some commands might be in subgroups:
+    genie agent --help
+    genie forge --help
+    genie session --help
+    ```
+
+    **Common command corrections:**
+    - `genie run` → `genie agent run`
+    - `genie list` → `genie agent list`
+    - `genie sync` → `genie forge sync`
+    - `genie clean` → `genie cleanup`
+
+    **Prevention:**
+    - Keep Genie updated regularly
+    - Use `genie --help` to verify command names
+    - Check documentation for correct syntax
+  </Accordion>
+
+  <Accordion title="Command hangs indefinitely" icon="spinner">
+    **Symptoms:**
+    - Command starts but never completes
+    - No output or progress indication
+    - Cannot cancel with Ctrl+C
+
+    **Cause:**
+    Deadlock, network timeout, or waiting for user input.
+
+    **Solution:**
+    ```bash
+    # Force terminate the process
+    # Press Ctrl+C multiple times
+    # Or press Ctrl+Z then: kill %1
+
+    # Check if command is waiting for input
+    # Some commands may prompt for confirmation
+
+    # Run with timeout wrapper
+    timeout 60s genie <command>  # Linux/Mac
+    # Windows: Use PowerShell Start-Process with timeout
+
+    # Check if network request is hanging
+    # Test network connectivity:
+    curl https://api.anthropic.com
+    curl https://forge.joshuapowell.ai
+
+    # Run with debug output to see where it hangs
+    DEBUG=genie:* genie <command>
+
+    # Check for zombie processes
+    ps aux | grep genie
+    kill -9 <PID>
+    ```
+
+    **Prevention:**
+    - Use `--timeout` flag for long-running commands
+    - Check network connectivity before running
+    - Use `--yes` flag to skip confirmations
+    - Monitor with `genie dashboard` in another terminal
+  </Accordion>
+
+  <Accordion title="Permission denied errors" icon="lock">
+    **Symptoms:**
+    - Error: "EACCES: permission denied"
+    - Cannot write to directories
+    - Cannot execute command
+
+    **Cause:**
+    Insufficient file permissions or incorrect installation.
+
+    **Solution:**
+    ```bash
+    # DO NOT run genie with sudo!
+
+    # Fix npm global permissions
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+
+    # Reinstall without sudo
+    npm install -g @joshuapowell/genie-cli
+
+    # Fix .genie directory permissions
+    chmod -R u+w ~/.genie
+
+    # Fix project directory permissions
+    chmod -R u+w .
+
+    # Verify you own the directories
+    ls -la ~/.genie
+    ls -la .
+    ```
+
+    **Prevention:**
+    - Never use `sudo` with npm or genie
+    - Configure npm to use user directory for globals
+    - Ensure project directories have write permissions
+  </Accordion>
+</AccordionGroup>
+
+## Initialization Errors
+
+<AccordionGroup>
+  <Accordion title="'genie init' fails immediately" icon="circle-xmark">
+    **Symptoms:**
+    - Init command exits with error
+    - No configuration files created
+    - Error about missing dependencies
+
+    **Cause:**
+    Missing Node.js, wrong version, or corrupted installation.
+
+    **Solution:**
+    ```bash
+    # Verify Node.js version
+    node --version  # Must be >= 18.0.0
+
+    # Update Node.js if needed
+    # Using nvm (recommended):
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    nvm install 20
+    nvm use 20
+
+    # Verify npm is working
+    npm --version
+
+    # Clear npm cache
+    npm cache clean --force
+
+    # Reinstall Genie
+    npm uninstall -g @joshuapowell/genie-cli
+    npm install -g @joshuapowell/genie-cli
+
+    # Try init again with verbose output
+    DEBUG=genie:* genie init
+
+    # Check for existing configuration conflicts
+    mv ~/.genie ~/.genie.backup
+    genie init
+    ```
+
+    **Prevention:**
+    - Use Node.js LTS version (18 or 20)
+    - Keep npm updated
+    - Use nvm for Node version management
+  </Accordion>
+
+  <Accordion title="Init creates files but configuration is invalid" icon="file-circle-exclamation">
+    **Symptoms:**
+    - Init completes but subsequent commands fail
+    - Configuration validation errors
+    - Missing required fields in config
+
+    **Cause:**
+    Interrupted initialization or missing environment variables.
+
+    **Solution:**
+    ```bash
+    # Check configuration validity
+    cat ~/.genie/config.json | jq .
+
+    # Validate configuration
+    genie config validate
+
+    # Set required environment variables
+    export ANTHROPIC_API_KEY="sk-ant-..."
+    export OPENAI_API_KEY="sk-..."
+
+    # Reinitialize with force flag
+    genie init --force
+
+    # Verify required files exist
+    ls -la ~/.genie/
+    # Should contain:
+    # - config.json
+    # - mcp-server/
+    # - logs/
+
+    # Check for initialization errors
+    cat ~/.genie/logs/init.log
+    ```
+
+    **Prevention:**
+    - Set API keys before running init
+    - Don't interrupt init process
+    - Run init in stable network environment
+  </Accordion>
+
+  <Accordion title="Init fails with port conflict" icon="plug">
+    **Symptoms:**
+    - Error: "Port 3000 is already in use"
+    - Init cannot bind to port
+    - Another service using the port
+
+    **Cause:**
+    Another application (possibly another Genie instance) using port 3000.
+
+    **Solution:**
+    ```bash
+    # Find what's using the port
+    lsof -i :3000  # Mac/Linux
+    netstat -ano | findstr :3000  # Windows
+
+    # Kill the process if it's not needed
+    kill -9 <PID>  # Mac/Linux
+    taskkill /PID <PID> /F  # Windows
+
+    # Or initialize with different port
+    genie init --port 3001
+
+    # Configure to use custom port permanently
+    genie config set MCP_PORT 3001
+
+    # Verify port is free
+    nc -zv localhost 3001  # Should fail if port is free
+    ```
+
+    **Prevention:**
+    - Check available ports before init
+    - Use non-standard port if 3000 is commonly used
+    - Configure port in environment variables
+  </Accordion>
+
+  <Accordion title="Init fails to download required files" icon="download">
+    **Symptoms:**
+    - Network errors during init
+    - Cannot download MCP server files
+    - Timeout errors
+
+    **Cause:**
+    Network issues, firewall, or npm registry problems.
+
+    **Solution:**
+    ```bash
+    # Test network connectivity
+    ping registry.npmjs.org
+    curl https://registry.npmjs.org/@joshuapowell/genie-cli
+
+    # Try with different registry
+    npm config set registry https://registry.npmjs.org/
+
+    # If behind corporate proxy
+    npm config set proxy http://proxy.company.com:8080
+    npm config set https-proxy http://proxy.company.com:8080
+
+    # Increase timeout
+    npm config set fetch-timeout 60000
+
+    # Clear npm cache and retry
+    npm cache clean --force
+    genie init --force
+
+    # Manual download if automated fails
+    # Visit: https://github.com/joshuapowell/genie
+    # Download latest release
+    # Extract to ~/.genie/
+    ```
+
+    **Prevention:**
+    - Ensure stable internet connection
+    - Configure proxy settings if needed
+    - Whitelist npm registry in firewall
+  </Accordion>
+</AccordionGroup>
+
+## Update & Rollback Errors
+
+<AccordionGroup>
+  <Accordion title="Update fails with version conflict" icon="code-compare">
+    **Symptoms:**
+    - `npm update` shows dependency conflicts
+    - Cannot update to latest version
+    - Version resolution errors
+
+    **Cause:**
+    npm cache issues or conflicting global packages.
+
+    **Solution:**
+    ```bash
+    # Check current version
+    genie --version
+    npm list -g @joshuapowell/genie-cli
+
+    # Clear npm cache
+    npm cache clean --force
+
+    # Force reinstall latest
+    npm uninstall -g @joshuapowell/genie-cli
+    npm install -g @joshuapowell/genie-cli@latest
+
+    # Verify update
+    genie --version
+
+    # If specific version needed
+    npm install -g @joshuapowell/genie-cli@1.2.3
+
+    # Check for peer dependency issues
+    npm list -g --depth=0
+    ```
+
+    **Prevention:**
+    - Keep npm updated: `npm install -g npm@latest`
+    - Avoid having multiple versions installed
+    - Use npm rather than yarn for global packages
+  </Accordion>
+
+  <Accordion title="Update breaks existing configuration" icon="wrench-simple-slash">
+    **Symptoms:**
+    - After update, genie commands fail
+    - Configuration format changed
+    - Tools no longer work
+
+    **Cause:**
+    Breaking changes between versions.
+
+    **Solution:**
+    ```bash
+    # Check version changelog
+    genie changelog
+
+    # Backup current configuration
+    cp -r ~/.genie ~/.genie.backup
+
+    # Migrate configuration to new format
+    genie config migrate
+
+    # Or start fresh
+    mv ~/.genie ~/.genie.old
+    genie init
+
+    # Restore important data
+    cp ~/.genie.old/.env ~/.genie/
+    cp ~/.genie.old/collectives ~/.genie/ -r
+
+    # Check migration guide
+    genie docs --topic migration
+    ```
+
+    **Rollback if needed:**
+    ```bash
+    # Uninstall current version
+    npm uninstall -g @joshuapowell/genie-cli
+
+    # Install previous working version
+    npm install -g @joshuapowell/genie-cli@1.2.3
+
+    # Restore backup
+    rm -rf ~/.genie
+    mv ~/.genie.backup ~/.genie
+
+    # Verify rollback
+    genie --version
+    genie status
+    ```
+
+    **Prevention:**
+    - Backup before major updates
+    - Read changelog before updating
+    - Test updates in separate directory first
+  </Accordion>
+
+  <Accordion title="Cannot rollback to previous version" icon="clock-rotate-left">
+    **Symptoms:**
+    - Rollback command fails
+    - Old version not available
+    - Data incompatible with old version
+
+    **Cause:**
+    Version no longer published or data migration irreversible.
+
+    **Solution:**
+    ```bash
+    # Check available versions
+    npm view @joshuapowell/genie-cli versions
+
+    # Install specific version
+    npm install -g @joshuapowell/genie-cli@1.2.3
+
+    # If version unpublished, try nearby version
+    npm install -g @joshuapowell/genie-cli@1.2.2
+
+    # Restore from backup
+    rm -rf ~/.genie
+    mv ~/.genie.backup ~/.genie
+
+    # If no backup, start fresh
+    genie init --clean
+
+    # Export data before clean install
+    genie export --output ./genie-backup.json
+    ```
+
+    **Prevention:**
+    - Always backup before updates
+    - Test rollback procedure periodically
+    - Keep exported data archives
+  </Accordion>
+</AccordionGroup>
+
+## Helper Command Errors
+
+<AccordionGroup>
+  <Accordion title="'genie status' shows incorrect information" icon="circle-info">
+    **Symptoms:**
+    - Status shows server running but it's not
+    - Stale information displayed
+    - Inconsistent state reports
+
+    **Cause:**
+    PID file not updated or process crashed without cleanup.
+
+    **Solution:**
+    ```bash
+    # Force status refresh
+    genie status --refresh
+
+    # Manually check process
+    ps aux | grep genie
+
+    # Clean stale PID files
+    rm ~/.genie/*.pid
+
+    # Restart to reset state
+    genie stop --force
+    genie start
+
+    # Verify status
+    genie status
+    curl http://localhost:3000/health
+    ```
+
+    **Prevention:**
+    - Use `genie stop` rather than killing processes
+    - Run status with --refresh for accurate info
+    - Clean up after crashes with `genie cleanup`
+  </Accordion>
+
+  <Accordion title="'genie cleanup' removes too much" icon="trash">
+    **Symptoms:**
+    - Cleanup deletes important data
+    - Cannot recover after cleanup
+    - Loses active sessions
+
+    **Cause:**
+    Cleanup ran with aggressive flags or misunderstood scope.
+
+    **Solution:**
+    ```bash
+    # Check what cleanup will do (dry run)
+    genie cleanup --dry-run
+
+    # Restore from backup if available
+    cp -r ~/.genie.backup ~/.genie
+
+    # Selective cleanup instead of --all
+    genie cleanup --sessions --days 30
+    genie cleanup --logs --size 100mb
+
+    # Export before cleanup
+    genie export --output ./backup.json
+    genie cleanup --all
+    genie import --input ./backup.json
+    ```
+
+    **Cleanup safety guidelines:**
+    - Always use `--dry-run` first
+    - Backup before aggressive cleanup
+    - Use specific flags rather than `--all`
+    - Keep at least 7 days of history
+
+    **Prevention:**
+    - Run cleanup regularly with conservative settings
+    - Export important data before major cleanup
+    - Set up automatic backups
+  </Accordion>
+
+  <Accordion title="'genie config' changes don't take effect" icon="gear">
+    **Symptoms:**
+    - Config set command succeeds but values unchanged
+    - Old values still in use
+    - Changes revert after restart
+
+    **Cause:**
+    Config cached in memory or environment variables overriding.
+
+    **Solution:**
+    ```bash
+    # Verify change was saved
+    genie config get <KEY>
+    cat ~/.genie/config.json | jq .<key>
+
+    # Restart to reload config
+    genie restart
+
+    # Check for environment variable override
+    env | grep GENIE
+
+    # Unset overriding environment variables
+    unset GENIE_<KEY>
+
+    # Force config reload
+    genie config reload
+
+    # Edit config directly if needed
+    nano ~/.genie/config.json
+    genie config validate
+    genie restart
+    ```
+
+    **Prevention:**
+    - Restart after configuration changes
+    - Check environment variables for conflicts
+    - Use `genie config show` to verify active config
+  </Accordion>
+</AccordionGroup>
+
+## Dashboard Errors
+
+<AccordionGroup>
+  <Accordion title="Dashboard won't start or open" icon="chart-simple">
+    **Symptoms:**
+    - `genie dashboard` fails to open browser
+    - Blank page or connection refused
+    - Dashboard URL returns 404
+
+    **Cause:**
+    Port conflict, server not running, or browser issues.
+
+    **Solution:**
+    ```bash
+    # Check if server is running
+    genie status
+
+    # Start server if not running
+    genie start
+
+    # Try specific port
+    genie dashboard --port 3002
+
+    # Manual browser open
+    open http://localhost:3000  # Mac
+    xdg-open http://localhost:3000  # Linux
+    start http://localhost:3000  # Windows
+
+    # Check if port is accessible
+    curl http://localhost:3000
+
+    # Disable auto-open and use manual URL
+    genie dashboard --no-open
+    # Then open http://localhost:3000 manually
+
+    # Check firewall settings
+    # Ensure localhost connections allowed
+    ```
+
+    **Prevention:**
+    - Start Genie before opening dashboard
+    - Use consistent port configuration
+    - Allow localhost in firewall rules
+  </Accordion>
+
+  <Accordion title="Dashboard shows no data" icon="table">
+    **Symptoms:**
+    - Dashboard loads but displays empty
+    - No agents, sessions, or stats shown
+    - "No data available" messages
+
+    **Cause:**
+    Fresh installation, data not loaded, or API connection issue.
+
+    **Solution:**
+    ```bash
+    # Check if Genie has run any operations
+    genie agent list
+    genie session list
+
+    # Verify API endpoint is responding
+    curl http://localhost:3000/api/status
+
+    # Check browser console for errors
+    # Chrome: F12 > Console
+    # Look for API call failures
+
+    # Clear browser cache
+    # Ctrl+Shift+Delete (Chrome/Firefox)
+
+    # Refresh data
+    genie dashboard --refresh
+
+    # Run some operations to populate data
+    genie agent run researcher --task "Test task"
+    genie dashboard
+    ```
+
+    **Prevention:**
+    - Dashboard shows data only after operations run
+    - Check browser console for API errors
+    - Ensure server is running before opening dashboard
+  </Accordion>
+
+  <Accordion title="Dashboard performance is very slow" icon="gauge-simple">
+    **Symptoms:**
+    - Dashboard takes long to load
+    - UI is laggy or unresponsive
+    - High CPU usage when dashboard open
+
+    **Cause:**
+    Too much historical data, memory issues, or browser problems.
+
+    **Solution:**
+    ```bash
+    # Clean up old data
+    genie cleanup --sessions --days 7
+
+    # Reduce dashboard refresh rate
+    genie config set DASHBOARD_REFRESH_INTERVAL 5000
+
+    # Limit data displayed
+    genie dashboard --limit 100
+
+    # Close other tabs/applications
+    # Dashboard can be resource intensive
+
+    # Try different browser
+    # Chrome recommended, Firefox/Safari alternatives
+
+    # Increase Node.js memory
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    genie restart
+
+    # Use CLI instead for quick checks
+    genie status
+    genie agent list
+    ```
+
+    **Prevention:**
+    - Regular cleanup of old data
+    - Monitor system resources
+    - Use dashboard selectively for visualization
+    - Use CLI for quick status checks
+  </Accordion>
+</AccordionGroup>
+
+## Process Management Errors
+
+<AccordionGroup>
+  <Accordion title="Cannot stop Genie process" icon="stop">
+    **Symptoms:**
+    - `genie stop` doesn't work
+    - Process keeps running after stop command
+    - Multiple Genie processes running
+
+    **Cause:**
+    Process not responding to signals or PID file incorrect.
+
+    **Solution:**
+    ```bash
+    # Force stop
+    genie stop --force
+
+    # Manually find and kill process
+    ps aux | grep genie
+    kill -9 <PID>
+
+    # Kill all Genie processes
+    pkill -9 -f genie
+
+    # Clean up PID files
+    rm ~/.genie/*.pid
+
+    # Verify all stopped
+    ps aux | grep genie
+
+    # Restart cleanly
+    genie start
+    ```
+
+    **Prevention:**
+    - Use `genie stop` instead of kill when possible
+    - Avoid force-killing unless necessary
+    - Check for zombie processes regularly
+  </Accordion>
+
+  <Accordion title="Multiple Genie instances running" icon="clone">
+    **Symptoms:**
+    - Port conflict errors
+    - Inconsistent behavior
+    - `ps aux | grep genie` shows multiple processes
+
+    **Cause:**
+    Started multiple times without stopping previous instance.
+
+    **Solution:**
+    ```bash
+    # Stop all instances
+    genie stop --all
+
+    # Or kill all manually
+    pkill -9 -f genie
+
+    # Clean up
+    rm ~/.genie/*.pid
+    genie cleanup --processes
+
+    # Start single instance
+    genie start
+
+    # Verify only one running
+    ps aux | grep genie | grep -v grep
+    ```
+
+    **Prevention:**
+    - Check status before starting: `genie status`
+    - Use `genie restart` instead of stop/start
+    - Monitor with `ps aux | grep genie` periodically
+  </Accordion>
+
+  <Accordion title="Genie crashes and won't restart" icon="bomb">
+    **Symptoms:**
+    - Process crashes immediately after start
+    - Error logs show repeated crash-restart cycles
+    - Cannot complete startup
+
+    **Cause:**
+    Corrupted data, configuration error, or missing dependencies.
+
+    **Solution:**
+    ```bash
+    # Check crash logs
+    cat ~/.genie/logs/error.log
+    cat ~/.genie/logs/crash.log
+
+    # Try safe mode
+    genie start --safe-mode
+
+    # Reset to defaults
+    mv ~/.genie/config.json ~/.genie/config.json.backup
+    genie init --force
+
+    # Clean reinstall
+    npm uninstall -g @joshuapowell/genie-cli
+    rm -rf ~/.genie
+    npm install -g @joshuapowell/genie-cli
+    genie init
+
+    # Start with minimal config
+    genie start --minimal
+
+    # Check Node.js version
+    node --version  # Must be >= 18.0.0
+    ```
+
+    **Prevention:**
+    - Backup configuration regularly
+    - Monitor error logs for warnings
+    - Keep dependencies updated
+    - Test configuration changes in isolation
+  </Accordion>
+</AccordionGroup>
+
+## Command-Line Best Practices
+
+<Checklist>
+  - [ ] Keep Genie updated to latest stable version
+  - [ ] Use `genie status` before running operations
+  - [ ] Read command help: `genie <command> --help`
+  - [ ] Use `--dry-run` flags when available
+  - [ ] Backup before destructive operations
+  - [ ] Check logs when commands fail
+  - [ ] Use absolute paths in configurations
+  - [ ] Set environment variables properly
+  - [ ] Run cleanup regularly
+  - [ ] Monitor resource usage via dashboard
+</Checklist>
+
+## Getting Help with CLI Issues
+
+When reporting CLI problems:
+
+1. **Collect diagnostic information:**
+   ```bash
+   genie --version
+   node --version
+   npm --version
+   genie status
+   cat ~/.genie/logs/error.log | tail -50
+   ```
+
+2. **Enable debug mode:**
+   ```bash
+   DEBUG=genie:* genie <command> 2>&1 | tee debug.log
+   ```
+
+3. **Test with minimal setup:**
+   - Create test directory
+   - Run `genie init` fresh
+   - Try failing command again
+   - Note if works in clean environment
+
+4. **Report issues:**
+   - GitHub: [joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+   - Include: version, OS, error logs, reproduction steps
+   - Use issue template if available
+
+5. **Community help:**
+   - Discord server for real-time help
+   - Stack Overflow with `genie-cli` tag
+   - Documentation search for known issues

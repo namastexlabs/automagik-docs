@@ -1,0 +1,102 @@
+---
+title: "Basic Workflow"
+description: "Real terminal session with actual output"
+icon: "terminal"
+---
+
+## Complete Session: Code Analysis
+
+**Terminal 1: Start Genie**
+
+```bash
+$ cd my-project
+$ genie
+🧞 Starting unified server...
+✅ Forge backend: http://localhost:8887
+✅ MCP server: http://localhost:8885/sse
+🌐 Genie is ready!
+
+Press Ctrl+C to stop
+```
+
+**Terminal 2: Run Analysis**
+
+```bash
+$ genie list agents | grep plan
+plan - Architecture analysis and planning
+
+$ genie run plan "Analyze authentication system architecture"
+{
+  "sessionId": "ses-2025-11-04-abc123",
+  "status": "running",
+  "agent": "plan",
+  "executor": "claude-code",
+  "taskId": "task-xyz789"
+}
+
+$ genie view ses-2025-11-04-abc123
+Session: ses-2025-11-04-abc123
+Agent: plan
+Status: running
+Started: 2025-11-04 15:30:22
+
+[Agent output streams here as it works...]
+
+# Wait for completion (or use --live flag to follow)
+$ genie view ses-2025-11-04-abc123 --live
+[Streaming output in real-time...]
+```
+
+**Terminal 3: Check Status**
+
+```bash
+$ genie list sessions
+┌──────────────────────────┬──────┬─────────┬──────────────┐
+│ Session ID               │ Agent│ Status  │ Started      │
+├──────────────────────────┼──────┼─────────┼──────────────┤
+│ ses-2025-11-04-abc123    │ plan │ running │ 15:30:22     │
+└──────────────────────────┴──────┴─────────┴──────────────┘
+
+$ genie status
+Forge: ✅ Running (port 8887)
+MCP:   ✅ Running (port 8885)
+Active sessions: 1
+```
+
+## Stop and Clean Up
+
+```bash
+# Stop specific session
+$ genie stop ses-2025-11-04-abc123
+Session stopped: ses-2025-11-04-abc123
+
+# Or stop server (Terminal 1)
+^C  # Ctrl+C
+Shutting down...
+✅ Forge stopped
+✅ MCP stopped
+```
+
+## Background Execution
+
+```bash
+$ genie run plan "Analyze codebase" --background --name "arch-review"
+{
+  "sessionId": "ses-2025-11-04-def456",
+  "status": "queued",
+  "name": "arch-review"
+}
+
+# Check later
+$ genie view ses-2025-11-04-def456
+# ... shows results
+```
+
+## What Actually Happened
+
+1. Genie CLI → Created task via Forge API
+2. Forge → Executed using claude-code executor
+3. Results → Stored in Forge database
+4. You → Retrieved via `genie view`
+
+That's it. No magic.

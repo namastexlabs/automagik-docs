@@ -1,0 +1,92 @@
+---
+title: "MCP Integration"
+description: "Using Genie with Claude Desktop (verified working)"
+icon: "plug"
+---
+
+## Claude Desktop Setup (Verified)
+
+**Config file location:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+**Add to config:**
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "automagik-genie-mcp"
+    }
+  }
+}
+```
+
+**Important:** Forge must be running before starting Claude Desktop.
+
+## Start Sequence
+
+**Terminal 1: Start Genie**
+```bash
+$ genie
+# Starts Forge + MCP unified server
+```
+
+**Then start Claude Desktop** → MCP tools appear
+
+## Available MCP Tools
+
+Claude Desktop will show these tools:
+- `list_agents` - See available agents
+- `run` - Execute agent
+- `list_sessions` - Show active sessions
+- `view` - View session transcript
+- `resume` - Continue session
+- `stop` - Terminate session
+- `list_spells` - List knowledge patterns
+- `read_spell` - Read spell content
+- `get_workspace_info` - Workspace metadata
+
+## Example: Using in Claude Desktop
+
+**You:** "List available agents using the genie MCP tool"
+
+**Claude:** *[Uses list_agents tool]* "Here are the available agents: plan, architect, implementor..."
+
+**You:** "Run the plan agent to analyze the authentication system"
+
+**Claude:** *[Uses run tool]* "I've started the analysis. Session ID: ses-abc123"
+
+## Standalone MCP Mode
+
+If you want ONLY MCP (not unified server):
+
+```bash
+# Terminal 1: Start Forge
+$ cd ~/.genie  # Or wherever Forge is
+$ forge
+
+# Terminal 2: Start MCP only
+$ automagik-genie-mcp
+```
+
+But unified mode (`genie`) is easier - starts both together.
+
+## Troubleshooting
+
+**Tools don't appear in Claude Desktop:**
+- Check Forge is running: `curl http://localhost:8887/health`
+- Check MCP config syntax (valid JSON)
+- Restart Claude Desktop
+
+**"Connection refused":**
+- Forge not running
+- Run `genie` first, then start Claude Desktop
+
+## Reality Check
+
+MCP integration just gives Claude Desktop access to Genie CLI commands.
+
+It's stdio transport (Claude ↔ Genie via stdin/stdout).
+
+No network, no magic, just process communication.

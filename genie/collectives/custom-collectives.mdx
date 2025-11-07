@@ -1,0 +1,1463 @@
+---
+title: "Custom Collectives"
+description: "Build domain-specific collectives for any industry or use case"
+icon: "plus"
+---
+
+## Why Create Custom Collectives?
+
+While **Code** and **Create** collectives cover software development and content creation, your organization likely has domain-specific needs:
+
+<CardGroup cols={2}>
+  <Card title="Industry-Specific Work" icon="industry">
+    Finance, healthcare, legal, real estate, manufacturing - each has unique workflows
+  </Card>
+
+  <Card title="Organizational Processes" icon="building">
+    Sales, HR, operations, compliance - internal processes need automation
+  </Card>
+
+  <Card title="Specialized Expertise" icon="graduation-cap">
+    Data science, design, research, education - specialized disciplines
+  </Card>
+
+  <Card title="Custom Workflows" icon="diagram-project">
+    Unique business processes that don't fit standard collectives
+  </Card>
+</CardGroup>
+
+---
+
+## Collective Directory Structure
+
+A custom collective follows this structure:
+
+```
+.genie/
+└── collectives/
+    └── your-collective/
+        ├── agents/               # Specialized agents
+        │   ├── agent1.md
+        │   ├── agent2.md
+        │   └── agent3.md
+        │
+        ├── spells/               # Behavioral protocols
+        │   ├── spell1.md
+        │   ├── spell2.md
+        │   └── spell3.md
+        │
+        ├── workflows/            # Repeatable processes
+        │   ├── workflow1.md
+        │   ├── workflow2.md
+        │   └── workflow3.md
+        │
+        └── teams/                # Advisory councils
+            └── council.md
+```
+
+---
+
+## Creating Agents
+
+Agents are defined in Markdown files with specific sections:
+
+### Agent Template
+
+```markdown
+# Agent Name
+
+## Purpose
+Clear statement of what this agent does
+
+## Specialties
+- Specialty 1
+- Specialty 2
+- Specialty 3
+
+## Shape-Shifts Into (optional)
+Different forms this agent can take based on context
+
+## When to Use
+Situations where this agent is the right choice
+
+## Usage Examples
+genie summon agent-name "Example task"
+
+## Behavioral Protocols
+- Protocol 1
+- Protocol 2
+- Protocol 3
+
+## Output Format (optional)
+Expected output structure
+
+## Tools & Integrations (optional)
+External tools this agent uses
+```
+
+### Example: Financial Analyst Agent
+
+**File**: `.genie/collectives/finance/agents/analyst.md`
+
+```markdown
+# Financial Analyst Agent
+
+## Purpose
+Analyze financial data, identify trends, and provide actionable insights
+
+## Specialties
+- Financial statement analysis
+- Trend identification
+- Ratio calculation and interpretation
+- Forecasting and projections
+- Risk assessment
+- Investment analysis
+
+## Shape-Shifts Into
+- Balance sheet analyst
+- Income statement analyst
+- Cash flow analyst
+- Investment analyst
+- Risk analyst
+
+## When to Use
+- Analyzing financial statements
+- Evaluating investment opportunities
+- Assessing financial health
+- Creating financial forecasts
+- Identifying financial risks
+
+## Usage Examples
+```bash
+# Analyze financial health
+genie summon analyst "Analyze Q4 financial statements"
+
+# Investment evaluation
+genie summon analyst "Evaluate investment in Company X"
+
+# Risk assessment
+genie summon analyst "Assess financial risks in expansion plan"
+```
+
+## Behavioral Protocols
+- Use multiple analytical methods for validation
+- Consider both quantitative and qualitative factors
+- Provide context for all metrics
+- Highlight key risks and opportunities
+- Support conclusions with data
+- Consider industry benchmarks
+
+## Output Format
+### Analysis Summary
+- Key findings (3-5 bullet points)
+- Critical metrics
+- Trends identified
+
+### Detailed Analysis
+- Financial ratios
+- Trend analysis
+- Comparative analysis
+- Risk factors
+
+### Recommendations
+- Actionable insights
+- Risk mitigation strategies
+- Next steps
+
+## Tools & Integrations
+- Financial APIs (Alpha Vantage, Yahoo Finance)
+- Spreadsheet integration
+- Visualization tools
+```
+
+---
+
+## Creating Spells (Behavioral Protocols)
+
+Spells define how agents should behave and make decisions:
+
+### Spell Template
+
+```markdown
+# Spell Name
+
+## Purpose
+What this spell guides agents to do
+
+## Protocol
+Step-by-step behavioral guidelines:
+1. Step 1
+2. Step 2
+3. Step 3
+
+## Decision Rules
+- Rule 1
+- Rule 2
+- Rule 3
+
+## Quality Criteria
+How to validate the work meets standards:
+- Criterion 1
+- Criterion 2
+- Criterion 3
+
+## Examples
+Concrete examples of applying this spell
+
+## Anti-Patterns
+What NOT to do
+```
+
+### Example: Financial Risk Assessment Spell
+
+**File**: `.genie/collectives/finance/spells/risk-assessment.md`
+
+```markdown
+# Financial Risk Assessment Spell
+
+## Purpose
+Guide systematic evaluation of financial risks in business decisions
+
+## Protocol
+
+### 1. Identify Risk Categories
+- Market risk
+- Credit risk
+- Liquidity risk
+- Operational risk
+- Regulatory risk
+
+### 2. Quantify Each Risk
+- Probability of occurrence (%)
+- Potential impact ($)
+- Risk score = Probability × Impact
+
+### 3. Prioritize Risks
+- Critical: Risk score > $1M
+- High: Risk score $100K-$1M
+- Medium: Risk score $10K-$100K
+- Low: Risk score < $10K
+
+### 4. Develop Mitigation Strategies
+For each critical/high risk:
+- Prevention measures
+- Detection mechanisms
+- Response plans
+- Recovery procedures
+
+### 5. Document Findings
+- Risk register
+- Mitigation plan
+- Monitoring protocols
+
+## Decision Rules
+
+### When to Escalate
+- Any critical risk identified
+- Multiple high risks in same category
+- New risks outside expected categories
+- Risk trends worsening
+
+### When to Deep Dive
+- Risk score > $500K
+- Low-probability but catastrophic impact
+- Regulatory or compliance implications
+- Affects multiple business units
+
+### When to Accept
+- Risk score < $10K
+- Cost of mitigation > risk impact
+- Risk is temporary and declining
+- Already covered by insurance
+
+## Quality Criteria
+
+### Complete Risk Assessment
+- All risk categories evaluated
+- Quantitative and qualitative analysis
+- Industry benchmarks considered
+- Historical data analyzed
+
+### Actionable Mitigation
+- Specific, not generic recommendations
+- Cost-benefit analysis included
+- Implementation timeline defined
+- Responsibility assigned
+
+### Clear Communication
+- Executive summary (1 page)
+- Risk matrix visualization
+- Plain language (avoid jargon)
+- Action items prioritized
+
+## Examples
+
+### Good Risk Assessment
+```
+Risk: Customer concentration (80% revenue from top 3 clients)
+- Probability: 30% chance of losing one in next year
+- Impact: $2M revenue loss
+- Risk Score: $600K (High)
+
+Mitigation:
+1. Diversify client base (add 10 new clients)
+2. Strengthen relationships with top clients
+3. Create client retention program
+4. Build 6-month cash reserve
+
+Timeline: 6 months
+Owner: Sales Director
+Cost: $150K
+Benefit: Reduce risk score to $200K (Medium)
+```
+
+### Poor Risk Assessment
+```
+Risk: Business risk
+Impact: Bad
+Mitigation: Be careful
+
+❌ Too vague
+❌ Not quantified
+❌ No actionable steps
+```
+
+## Anti-Patterns
+
+### ❌ Analysis Paralysis
+Don't spend months analyzing risks - make reasonable estimates and iterate
+
+### ❌ Risk Theater
+Don't create risk assessments just to check boxes - focus on actual risk reduction
+
+### ❌ Ignoring Low-Probability/High-Impact
+Don't dismiss risks just because they're unlikely - catastrophic risks need attention
+
+### ❌ Static Risk Assessment
+Don't treat risk assessment as one-time - risks change, reassess regularly
+```
+
+---
+
+## Creating Workflows
+
+Workflows coordinate multiple agents for complex processes:
+
+### Workflow Template
+
+```markdown
+# Workflow Name
+
+## Purpose
+What this workflow accomplishes
+
+## Trigger
+When this workflow should run
+
+## Steps
+
+### Step 1: [Name]
+**Agent**: agent-name
+**Task**: What the agent does
+**Input**: What it receives
+**Output**: What it produces
+**Validation**: How to check quality
+
+### Step 2: [Name]
+[Same structure]
+
+## Validation Gates
+Quality checks before proceeding:
+- Gate 1
+- Gate 2
+- Gate 3
+
+## Rollback Procedures
+What to do if something fails:
+- Scenario 1: Response
+- Scenario 2: Response
+
+## Success Criteria
+How to know the workflow succeeded:
+- Criterion 1
+- Criterion 2
+```
+
+### Example: Quarterly Financial Report Workflow
+
+**File**: `.genie/collectives/finance/workflows/quarterly-report.md`
+
+```markdown
+# Quarterly Financial Report Workflow
+
+## Purpose
+Generate comprehensive quarterly financial reports with analysis and insights
+
+## Trigger
+- End of each quarter
+- Manual request for ad-hoc analysis
+- Board meeting preparation
+
+## Steps
+
+### Step 1: Data Collection
+**Agent**: data-collector
+**Task**: Gather all financial data for the quarter
+**Input**: Quarter to analyze (e.g., Q4 2024)
+**Output**:
+- Raw financial data
+- Transaction records
+- Account balances
+**Validation**:
+- All accounts included
+- Data reconciled with bank statements
+- No missing months
+
+### Step 2: Financial Statement Preparation
+**Agent**: accountant
+**Task**: Prepare standard financial statements
+**Input**: Raw financial data from Step 1
+**Output**:
+- Balance Sheet
+- Income Statement
+- Cash Flow Statement
+- Statement of Changes in Equity
+**Validation**:
+- All statements balance
+- GAAP compliant
+- Prior quarter included for comparison
+
+### Step 3: Financial Analysis
+**Agent**: analyst
+**Task**: Analyze financial statements and identify trends
+**Input**: Financial statements from Step 2
+**Output**:
+- Key financial ratios
+- Trend analysis
+- Variance analysis (actual vs. budget)
+- Industry benchmark comparison
+**Validation**:
+- All major ratios calculated
+- Trends explained
+- Significant variances identified
+
+### Step 4: Risk Assessment
+**Agent**: risk-analyst
+**Task**: Identify financial risks using risk-assessment spell
+**Input**: Financial data and analysis
+**Output**:
+- Risk register
+- Risk scores
+- Mitigation recommendations
+**Validation**:
+- All risk categories evaluated
+- Critical risks identified
+- Mitigation plans actionable
+
+### Step 5: Visualization Creation
+**Agent**: visualizer (from Create collective)
+**Task**: Create charts and graphs
+**Input**: Financial data and analysis
+**Output**:
+- Revenue trends chart
+- Expense breakdown chart
+- Cash flow visualization
+- Ratio comparison charts
+**Validation**:
+- All key metrics visualized
+- Charts clearly labeled
+- Data accurate
+
+### Step 6: Report Writing
+**Agent**: writer (from Create collective)
+**Task**: Write executive summary and detailed report
+**Input**: All outputs from previous steps
+**Output**:
+- Executive summary (2 pages)
+- Detailed financial report (10-15 pages)
+- Appendices with detailed statements
+**Validation**:
+- Clear and concise writing
+- Key insights highlighted
+- Actionable recommendations
+
+### Step 7: Review & Refinement
+**Agent**: financial-controller
+**Task**: Review entire report for accuracy and completeness
+**Input**: Draft report
+**Output**: Final report with approval
+**Validation**:
+- All numbers verified
+- Statements reconciled
+- Report meets standards
+
+### Step 8: Distribution
+**Agent**: distributor
+**Task**: Format and distribute report to stakeholders
+**Input**: Final report
+**Output**:
+- PDF formatted report
+- Email distribution
+- Portal upload
+**Validation**:
+- All stakeholders received report
+- Access permissions correct
+- Archive copy saved
+
+## Validation Gates
+
+### After Step 2: Financial Statement Validation
+- All statements balance
+- Previous quarter comparison included
+- GAAP compliance verified
+**If Fails**: Return to Step 1 for data validation
+
+### After Step 6: Content Quality Gate
+- Executive summary is clear and actionable
+- Report is free of errors
+- Visualizations are accurate
+**If Fails**: Return to appropriate step for corrections
+
+### After Step 7: Final Approval Gate
+- Financial controller approval
+- CFO review completed
+- Board-ready quality
+**If Fails**: Refine based on feedback
+
+## Rollback Procedures
+
+### Data Issues Discovered Late
+1. Halt workflow immediately
+2. Identify scope of incorrect data
+3. Return to Step 1 with corrections
+4. Restart from affected step
+
+### Analysis Errors Found
+1. Preserve original report (timestamped)
+2. Correct analysis
+3. Re-run from Step 3 forward
+4. Document corrections made
+
+### Missed Deadline
+1. Prepare interim summary report
+2. Complete full workflow in parallel
+3. Replace interim with full report
+4. Add explanatory note
+
+## Success Criteria
+
+### Report Completeness
+- All required sections included
+- All financial statements present
+- Analysis covers all key areas
+- Risks identified and assessed
+
+### Report Quality
+- Accuracy: All numbers verified
+- Clarity: Easy to understand
+- Insights: Actionable recommendations
+- Timeliness: Delivered on schedule
+
+### Stakeholder Satisfaction
+- Questions answered proactively
+- Meets board requirements
+- Supports decision-making
+- No revisions needed
+
+## Automation Triggers
+
+### Automated Quarterly Run
+Schedule workflow to run automatically:
+- April 15 (Q1)
+- July 15 (Q2)
+- October 15 (Q3)
+- January 15 (Q4)
+
+### Alert Conditions
+Send alerts if:
+- Critical risks identified
+- Significant budget variances (>15%)
+- Cash flow concerns
+- Regulatory compliance issues
+
+## Metrics & Monitoring
+
+### Workflow Performance
+- Total time to complete
+- Time per step
+- Error rate
+- Revision count
+
+### Report Quality
+- Stakeholder satisfaction score
+- Number of follow-up questions
+- Action item completion rate
+- Forecast accuracy (measured next quarter)
+```
+
+---
+
+## Creating Advisory Teams
+
+Teams are groups of agents that collaborate on complex decisions:
+
+### Team Template
+
+```markdown
+# Team Name
+
+## Purpose
+What this team advises on
+
+## Members
+- **Agent 1**: Perspective they provide
+- **Agent 2**: Perspective they provide
+- **Agent 3**: Perspective they provide
+
+## When to Convene
+Situations requiring team consultation
+
+## Decision Process
+How the team reaches decisions:
+1. Step 1
+2. Step 2
+3. Step 3
+
+## Output Format
+Structure of team recommendations
+
+## Examples
+Example consultations and decisions
+```
+
+### Example: Finance Council
+
+**File**: `.genie/collectives/finance/teams/finance-council.md`
+
+```markdown
+# Finance Council
+
+## Purpose
+Provide collaborative financial decision-making and strategic advisory
+
+## Members
+
+- **CFO Agent**: Overall financial strategy and governance perspective
+- **Analyst Agent**: Data-driven analysis and trend insights
+- **Risk Agent**: Risk assessment and mitigation strategies
+- **Auditor Agent**: Compliance and control perspective
+- **Forecaster Agent**: Future projections and scenario planning
+
+## When to Convene
+
+### Major Financial Decisions
+- Capital investments > $500K
+- New business ventures
+- Debt financing decisions
+- M&A opportunities
+
+### Strategic Planning
+- Annual budget approval
+- Long-term financial strategy
+- Resource allocation decisions
+- Growth vs. profitability trade-offs
+
+### Crisis Management
+- Liquidity concerns
+- Major customer loss
+- Regulatory issues
+- Market disruptions
+
+### Performance Issues
+- Multiple quarters of declining performance
+- Significant budget variances
+- Cash flow problems
+- Profitability concerns
+
+## Decision Process
+
+### 1. Context Setting (CFO Agent)
+- Present the decision or question
+- Provide background and constraints
+- Set decision criteria
+
+### 2. Analysis Phase (All Members)
+Each agent provides their perspective:
+
+**Analyst Agent**:
+- Historical data analysis
+- Trend identification
+- Quantitative assessment
+
+**Risk Agent**:
+- Risk identification
+- Risk quantification
+- Mitigation strategies
+
+**Auditor Agent**:
+- Compliance requirements
+- Control implications
+- Regulatory considerations
+
+**Forecaster Agent**:
+- Future scenarios
+- Projections
+- Sensitivity analysis
+
+### 3. Discussion Phase (Facilitated by CFO)
+- Identify areas of agreement
+- Discuss areas of disagreement
+- Explore alternatives
+- Debate trade-offs
+
+### 4. Recommendation Phase
+- Synthesize perspectives
+- Develop recommendation
+- Document dissenting views
+- Identify action items
+
+### 5. Documentation
+- Decision summary
+- Supporting analysis
+- Risk factors
+- Implementation plan
+
+## Output Format
+
+### Executive Summary
+**Decision Question**: [One sentence]
+
+**Recommendation**: [Clear recommendation with confidence level]
+
+**Key Factors**:
+- Factor 1
+- Factor 2
+- Factor 3
+
+**Risks**: [Top 3 risks]
+
+**Action Items**: [Next steps with owners]
+
+### Detailed Analysis
+
+#### Financial Analysis (Analyst)
+[Data, trends, quantitative assessment]
+
+#### Risk Assessment (Risk Agent)
+[Risks, scores, mitigation plans]
+
+#### Compliance Review (Auditor)
+[Regulatory requirements, control needs]
+
+#### Future Scenarios (Forecaster)
+[Best case, base case, worst case projections]
+
+### Recommendations
+- **Primary Recommendation**: [Detailed recommendation]
+- **Alternative Options**: [Other viable options]
+- **Dissenting Views**: [If any council members disagree]
+
+### Implementation Plan
+- Timeline
+- Resources needed
+- Responsibilities
+- Success metrics
+
+## Examples
+
+### Example 1: Capital Investment Decision
+
+**Question**: Should we invest $2M in new manufacturing equipment?
+
+**Council Process**:
+
+**CFO**: "We're considering $2M investment in equipment to increase capacity by 40%. Need council input."
+
+**Analyst**:
+- Current capacity utilization: 85%
+- Projected demand growth: 30% over 3 years
+- Equipment payback period: 4 years at current prices
+- ROI: 18% over 7-year equipment life
+
+**Risk Agent**:
+- Market risk: Demand projections uncertain (Medium risk, $400K)
+- Technology risk: Equipment could become obsolete (Low risk, $200K)
+- Execution risk: Installation disruption (Medium risk, $300K)
+- Overall risk score: $900K (Medium-High)
+- Mitigation: Phased purchase, lease options, demand guarantees
+
+**Auditor**:
+- Requires board approval (>$1M)
+- Depreciation impacts taxes
+- Financing covenants allow this investment
+- Environmental permits needed
+
+**Forecaster**:
+- Best case: 35% demand growth, payback 3.2 years
+- Base case: 30% demand growth, payback 4 years
+- Worst case: 20% demand growth, payback 6.5 years
+- Sensitivity: Most sensitive to demand growth rate
+
+**Recommendation**:
+✅ **APPROVE with conditions**
+
+Proceed with investment BUT:
+1. Phase purchase: $1M now, $1M in Year 2
+2. Secure demand commitments from top 3 customers
+3. Evaluate lease vs. buy options
+4. Set up monthly monitoring of capacity utilization
+
+**Confidence Level**: 75%
+
+**Dissenting Views**: None
+
+**Action Items**:
+1. CFO: Get board approval (2 weeks)
+2. Operations: Secure customer commitments (3 weeks)
+3. Finance: Evaluate lease options (2 weeks)
+4. Operations: Plan installation schedule (4 weeks)
+
+### Example 2: Pricing Strategy
+
+**Question**: Should we increase prices by 15% to offset cost increases?
+
+**Council Process**:
+
+**Analyst**:
+- Costs increased 12% due to supply chain
+- Current margin: 35%
+- With 15% price increase: 42% margin
+- Competitor prices 8% higher than us currently
+
+**Risk Agent**:
+- Customer loss risk: HIGH (30% probability, $1.5M impact)
+- Competitor response risk: MEDIUM (Need to monitor)
+- Brand perception risk: MEDIUM (seen as expensive)
+
+**Forecaster**:
+- Best case: 15% increase, lose 5% customers = +$850K profit
+- Base case: 15% increase, lose 15% customers = +$200K profit
+- Worst case: 15% increase, lose 30% customers = -$400K profit
+
+**Recommendation**:
+⚠️ **DO NOT APPROVE 15% increase**
+
+**Alternative**: Tiered approach
+1. Immediate: 5% across-the-board increase
+2. Month 3: Additional 3-5% for specific product lines
+3. Month 6: Evaluate and adjust
+
+This reduces customer shock and allows monitoring of response.
+
+**Confidence Level**: 85%
+
+**Dissenting Views**:
+- Analyst believes we can do 10% immediately
+
+**Action Items**:
+1. Implement 5% increase (1 month)
+2. Communicate value justification to customers
+3. Monitor churn rates weekly
+4. Re-evaluate at Month 3
+
+## Best Practices
+
+### Preparation
+- Share background materials in advance
+- Provide clear decision criteria
+- Set time expectations
+
+### Facilitation
+- Ensure all voices heard
+- Focus on data and reasoning
+- Avoid groupthink
+- Welcome disagreement
+
+### Documentation
+- Record all perspectives
+- Document dissenting views
+- Clear action items
+- Follow-up schedule
+
+### Follow-Up
+- Track implementation
+- Measure outcomes
+- Learn and improve
+- Update decision frameworks
+```
+
+---
+
+## Example: Finance Collective
+
+Let's build a complete Finance Collective:
+
+### Structure
+
+```
+.genie/collectives/finance/
+├── agents/
+│   ├── analyst.md          # Financial analysis
+│   ├── accountant.md       # Bookkeeping and statements
+│   ├── auditor.md          # Compliance and controls
+│   ├── forecaster.md       # Projections and scenarios
+│   ├── risk-analyst.md     # Risk assessment
+│   └── cfo.md              # Strategic financial leadership
+│
+├── spells/
+│   ├── risk-assessment.md      # Risk evaluation protocol
+│   ├── gaap-compliance.md      # Accounting standards
+│   ├── forecasting-method.md   # Forecasting methodology
+│   ├── variance-analysis.md    # Budget vs. actual analysis
+│   └── investment-criteria.md  # Investment evaluation
+│
+├── workflows/
+│   ├── quarterly-report.md     # Quarterly reporting
+│   ├── budget-planning.md      # Annual budget creation
+│   ├── cash-flow-mgmt.md       # Cash flow management
+│   └── investment-review.md    # Investment evaluation
+│
+└── teams/
+    └── finance-council.md      # Financial advisory team
+```
+
+### Usage Examples
+
+```bash
+# Financial analysis
+genie summon analyst "Analyze Q4 financial performance"
+
+# Run quarterly report workflow
+genie forge .genie/collectives/finance/workflows/quarterly-report.md
+
+# Get Finance Council input on major decision
+genie council finance "Should we acquire Company X for $5M?"
+
+# Risk assessment
+genie summon risk-analyst "Assess risks in expansion to Europe"
+
+# Budget planning
+genie forge .genie/collectives/finance/workflows/budget-planning.md
+```
+
+---
+
+## Example: Health Collective
+
+Healthcare and wellness collective:
+
+### Agents
+
+<CardGroup cols={2}>
+  <Card title="diagnostician" icon="stethoscope">
+    Health assessment and symptom analysis
+  </Card>
+
+  <Card title="researcher" icon="microscope">
+    Medical research and evidence review
+  </Card>
+
+  <Card title="educator" icon="book-medical">
+    Patient education and health literacy
+  </Card>
+
+  <Card title="tracker" icon="chart-line">
+    Health metrics tracking and trends
+  </Card>
+
+  <Card title="wellness-coach" icon="heart">
+    Lifestyle and wellness guidance
+  </Card>
+
+  <Card title="pharmacist" icon="pills">
+    Medication information and interactions
+  </Card>
+</CardGroup>
+
+### Spells
+
+- **medical-ethics.md**: Ethical guidelines for health advice
+- **evidence-based.md**: Use peer-reviewed research
+- **patient-centered.md**: Focus on patient needs and understanding
+- **privacy-first.md**: HIPAA compliance and privacy protection
+
+### Workflows
+
+- **symptom-assessment.md**: Systematic symptom evaluation
+- **treatment-research.md**: Research treatment options
+- **medication-review.md**: Check interactions and side effects
+- **wellness-plan.md**: Create personalized wellness plans
+
+---
+
+## Example: Legal Collective
+
+Legal and compliance collective:
+
+### Agents
+
+<CardGroup cols={2}>
+  <Card title="contract-reviewer" icon="file-contract">
+    Contract review and analysis
+  </Card>
+
+  <Card title="legal-researcher" icon="scale-balanced">
+    Legal research and precedents
+  </Card>
+
+  <Card title="compliance-officer" icon="shield-check">
+    Regulatory compliance checking
+  </Card>
+
+  <Card title="risk-assessor" icon="triangle-exclamation">
+    Legal risk assessment
+  </Card>
+
+  <Card title="drafter" icon="pen">
+    Legal document drafting
+  </Card>
+
+  <Card title="negotiator" icon="handshake">
+    Contract negotiation support
+  </Card>
+</CardGroup>
+
+### Spells
+
+- **due-diligence.md**: Thorough review protocol
+- **risk-mitigation.md**: Legal risk reduction
+- **plain-language.md**: Write clearly, not legalese
+- **precedent-analysis.md**: Learn from case law
+
+### Workflows
+
+- **contract-review.md**: Systematic contract analysis
+- **compliance-audit.md**: Regulatory compliance check
+- **dispute-resolution.md**: Conflict resolution process
+- **policy-creation.md**: Create company policies
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start with Core Agents">
+    Begin with 4-6 essential agents:
+
+    **Good First Set**:
+    - Primary executor agent
+    - Quality reviewer agent
+    - Risk/compliance agent
+    - Subject matter expert agent
+
+    **Don't**:
+    - Create 30 agents immediately
+    - Over-specialize too early
+    - Duplicate existing collective capabilities
+  </Accordion>
+
+  <Accordion title="Create Spells for Consistency">
+    Spells ensure consistent behavior:
+
+    ```markdown
+    # Without Spell
+    Each agent might assess risk differently
+
+    # With risk-assessment.md Spell
+    All agents use same methodology
+    → Consistent, comparable results
+    ```
+  </Accordion>
+
+  <Accordion title="Design Workflows for Common Processes">
+    Identify repeatable processes first:
+
+    **High-Value Workflows**:
+    - Frequent (weekly/monthly/quarterly)
+    - Multi-step coordination
+    - Quality-critical
+    - Cross-agent collaboration
+
+    **Low Priority**:
+    - One-off tasks
+    - Simple single-agent work
+    - Ad-hoc requests
+  </Accordion>
+
+  <Accordion title="Leverage Existing Collectives">
+    Don't reinvent the wheel:
+
+    ```bash
+    # Your finance agent needs documentation
+    # Use Create collective's writer
+    genie summon writer "Document financial report format"
+
+    # Your custom agent needs code review
+    # Use Code collective's reviewer
+    genie summon reviewer "Review financial API integration"
+    ```
+
+    Cross-collective collaboration is encouraged!
+  </Accordion>
+
+  <Accordion title="Test Before Deploying">
+    Validate your collective works:
+
+    ```bash
+    # Test individual agents
+    genie summon your-agent "Test task"
+
+    # Test workflows end-to-end
+    genie forge .genie/collectives/your-collective/workflows/test.md
+
+    # Test advisory team
+    genie council your-team "Test decision"
+    ```
+  </Accordion>
+
+  <Accordion title="Document Everything">
+    Good documentation ensures:
+    - Others can use your collective
+    - You remember how it works later
+    - Agents have clear guidelines
+    - Quality stays consistent
+
+    **Document**:
+    - Agent capabilities and usage
+    - Spell protocols and reasoning
+    - Workflow steps and validation
+    - Team decision processes
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Getting Started
+
+<Steps>
+  <Step title="Identify Domain Need">
+    What domain-specific work do you need?
+
+    **Questions to Ask**:
+    - What repetitive tasks exist?
+    - What expertise is needed?
+    - What processes are manual?
+    - What decisions need multiple perspectives?
+  </Step>
+
+  <Step title="Create Collective Directory">
+    ```bash
+    # Create collective structure
+    mkdir -p .genie/collectives/your-collective/{agents,spells,workflows,teams}
+    ```
+  </Step>
+
+  <Step title="Create Core Agents">
+    Start with 3-5 essential agents:
+
+    ```bash
+    # Use Create collective to help
+    genie summon agent-creator "Create financial analyst agent for finance collective"
+    ```
+
+    Refine the generated agent definition
+  </Step>
+
+  <Step title="Define Behavioral Spells">
+    Create 2-3 key spells for consistency:
+
+    ```bash
+    # Use Create collective to help
+    genie summon spell-creator "Create risk assessment spell for finance collective"
+    ```
+
+    Refine the generated spell
+  </Step>
+
+  <Step title="Build First Workflow">
+    Create one high-value workflow:
+
+    ```bash
+    # Use Create collective to help
+    genie summon workflow-creator "Create quarterly report workflow for finance collective"
+    ```
+
+    Test and refine
+  </Step>
+
+  <Step title="Create Advisory Team (Optional)">
+    For complex decisions, create a team:
+
+    ```bash
+    # Define team in teams/ directory
+    # Include 3-5 agents with different perspectives
+    ```
+  </Step>
+
+  <Step title="Test Everything">
+    ```bash
+    # Test agents
+    genie summon your-agent "Test task"
+
+    # Test workflow
+    genie forge .genie/collectives/your-collective/workflows/your-workflow.md
+
+    # Test team
+    genie council your-team "Test decision"
+    ```
+  </Step>
+
+  <Step title="Iterate and Improve">
+    - Gather feedback
+    - Add missing capabilities
+    - Refine protocols
+    - Optimize workflows
+  </Step>
+</Steps>
+
+---
+
+## CLI Commands for Custom Collectives
+
+```bash
+# Create new collective
+genie collective create <name>
+
+# List all collectives
+genie collective list
+
+# Add agent to collective
+genie collective add-agent <collective> <agent-name>
+
+# Add spell to collective
+genie collective add-spell <collective> <spell-name>
+
+# Add workflow to collective
+genie collective add-workflow <collective> <workflow-name>
+
+# Test collective
+genie collective test <name>
+
+# Export collective (for sharing)
+genie collective export <name> --output collective.tar.gz
+
+# Import collective
+genie collective import collective.tar.gz
+
+# Validate collective structure
+genie collective validate <name>
+```
+
+---
+
+## Sharing Custom Collectives
+
+Once you've built a valuable collective, share it:
+
+### Export Your Collective
+
+```bash
+# Export to tarball
+genie collective export finance --output finance-collective.tar.gz
+
+# Export to git repo
+genie collective export finance --git https://github.com/you/finance-collective
+```
+
+### Documentation for Users
+
+Include a README:
+
+```markdown
+# Finance Collective
+
+Domain-specific collective for financial analysis and reporting.
+
+## Installation
+
+```bash
+genie collective import finance-collective.tar.gz
+```
+
+## Agents
+
+- **analyst**: Financial analysis and insights
+- **auditor**: Compliance and controls
+- **forecaster**: Projections and scenarios
+
+## Workflows
+
+- **quarterly-report**: Generate quarterly financial reports
+- **budget-planning**: Annual budget creation
+
+## Usage Examples
+
+[Examples here]
+
+## Requirements
+
+- Access to financial data APIs
+- Spreadsheet integration
+- Python 3.8+
+
+## License
+
+MIT
+```
+
+---
+
+## Advanced Topics
+
+### Dynamic Agent Creation
+
+Create agents on-the-fly for unique situations:
+
+```bash
+# Create temporary specialized agent
+genie agent create-temp "M&A deal evaluator" \
+  --collective finance \
+  --lifetime "1 week" \
+  --specialties "M&A, due diligence, valuation"
+```
+
+### Collective Inheritance
+
+Build on existing collectives:
+
+```
+.genie/collectives/
+├── finance/              # Base finance collective
+└── finance-startup/      # Extends finance for startups
+    ├── extends: finance
+    ├── agents/
+    │   └── vc-analyst.md    # Additional agent
+    └── spells/
+        └── startup-metrics.md  # Additional spell
+```
+
+### Cross-Collective Workflows
+
+Workflows can span multiple collectives:
+
+```markdown
+# Product Launch Workflow
+
+## Steps
+
+### 1. Build Feature (Code Collective)
+**Agent**: implementor
+**Task**: Build the feature
+
+### 2. Create Documentation (Create Collective)
+**Agent**: writer
+**Task**: Document the feature
+
+### 3. Financial Analysis (Finance Collective)
+**Agent**: analyst
+**Task**: Project revenue impact
+
+### 4. Launch (Create Collective)
+**Agent**: announcements
+**Task**: Multi-platform launch
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Code Collective" icon="code" href="/genie/collectives/code-collective">
+    Learn from 34 specialized development agents
+  </Card>
+
+  <Card title="Create Collective" icon="wand-magic-sparkles" href="/genie/collectives/create-collective">
+    See shape-shifting in action
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/genie/workflows">
+    Master workflow orchestration
+  </Card>
+
+  <Card title="Community Collectives" icon="users" href="https://github.com/namastexlabs/genie-collectives">
+    Browse community-created collectives
+  </Card>
+</CardGroup>
+
+---
+
+## Resources
+
+<AccordionGroup>
+  <Accordion title="Collective Templates">
+    Download starter templates:
+    - Finance Collective Template
+    - Healthcare Collective Template
+    - Legal Collective Template
+    - Sales Collective Template
+    - HR Collective Template
+
+    ```bash
+    genie collective template list
+    genie collective template download finance
+    ```
+  </Accordion>
+
+  <Accordion title="Community Collectives">
+    Browse and install community collectives:
+
+    ```bash
+    # Browse available collectives
+    genie collective browse
+
+    # Install community collective
+    genie collective install community/finance-saas
+
+    # Contribute your collective
+    genie collective publish your-collective
+    ```
+  </Accordion>
+
+  <Accordion title="Best Practices Guide">
+    **Naming Conventions**:
+    - Agents: noun (analyst, reviewer, creator)
+    - Spells: noun or verb-noun (risk-assessment, commit-advisory)
+    - Workflows: noun-phrase (quarterly-report, budget-planning)
+
+    **File Organization**:
+    - One agent per file
+    - One spell per file
+    - One workflow per file
+    - Clear, descriptive names
+
+    **Documentation**:
+    - Purpose statement for everything
+    - Usage examples in every agent
+    - Validation criteria in workflows
+    - Decision processes in teams
+  </Accordion>
+
+  <Accordion title="Troubleshooting">
+    **Agent not working as expected**:
+    - Review agent definition clarity
+    - Check if relevant spells are applied
+    - Validate input format
+    - Test with simpler tasks first
+
+    **Workflow failing**:
+    - Test each step independently
+    - Check validation gates
+    - Verify agent availability
+    - Review error messages
+
+    **Team not providing good advice**:
+    - Ensure diverse perspectives
+    - Provide sufficient context
+    - Review decision process
+    - Consider adding/removing members
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Ready to build your own collective?** Start small, test often, and iterate based on feedback. The best collectives emerge from real needs and continuous refinement.

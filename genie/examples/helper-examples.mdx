@@ -1,0 +1,104 @@
+---
+title: "Helper Utilities"
+description: "Real helper command examples"
+icon: "wrench"
+---
+
+## List All Helpers
+
+```bash
+$ genie helper list
+Available helpers:
+- count-tokens
+- validate-frontmatter
+- detect-markers
+- analyze-commit
+- check-secrets
+- detect-todos
+- detect-unlabeled-blocks
+- find-empty-sections
+- validate-links
+- embeddings
+- bullet-id
+- bullet-counter
+- bullet-find
+- validate-paths
+- create-frontmatter
+```
+
+## Token Counting
+
+```bash
+$ genie helper count-tokens .genie/agents/plan.md
+1,234 tokens (tiktoken cl100k_base)
+```
+
+## Validation Examples
+
+```bash
+$ genie helper validate-frontmatter .genie/agents/
+Checking: .genie/agents/plan.md
+✅ Valid frontmatter
+
+Checking: .genie/agents/implementor.md
+❌ Invalid frontmatter: Missing 'name' field
+
+Total: 34 files, 33 valid, 1 error
+```
+
+## Secret Detection
+
+```bash
+$ genie helper check-secrets --staged
+Checking staged files...
+❌ Found potential secret: src/config.ts:12
+   Pattern: API key
+
+Do not commit. Remove secret or add to .gitignore.
+```
+
+## Embeddings Check
+
+```bash
+$ genie helper embeddings "Always validate user input" .genie/spells/security.md "Input Validation"
+Computing embeddings...
+Similarity: 0.92
+Threshold: 0.85
+❌ DUPLICATE: This learning already exists in target file
+
+Do not add - would be redundant.
+```
+
+## Pre-commit Hook
+
+```bash
+$ cat .git/hooks/pre-commit
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+genie helper validate-frontmatter .genie/ || exit 1
+genie helper check-secrets --staged || exit 1
+genie helper detect-markers . || exit 1
+
+echo "✅ All checks passed"
+```
+
+Make executable:
+```bash
+$ chmod +x .git/hooks/pre-commit
+```
+
+## Helpers Are Scripts
+
+All helpers are just Node.js scripts:
+
+```bash
+$ ls .genie/scripts/helpers/
+count-tokens.js
+validate-frontmatter.js
+... (15 total)
+```
+
+No magic. Just utilities.

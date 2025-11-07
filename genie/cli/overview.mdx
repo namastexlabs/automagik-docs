@@ -1,0 +1,57 @@
+---
+title: "CLI Overview"
+description: "Genie command-line interface explained"
+icon: "terminal"
+---
+
+## Binary Names
+
+Genie has multiple entry points (all do the same thing):
+
+| Command | Entry Point | Use Case |
+|---------|-------------|----------|
+| `genie` | genie-cli.js | Recommended (shortest) |
+| `automagik-genie` | automagik-genie.js | Full name |
+| `automagik-genie-mcp` | mcp.js | MCP stdio mode only |
+
+**Just use `genie`** - it's the simplest.
+
+## Command Categories
+
+**Server Management**
+- `genie` - Start Forge + MCP unified server
+- `genie status` - Show server status
+- `genie dashboard` - Stats dashboard
+- `genie dashboard-live` - Live stats updates
+
+**Agent Execution**
+- `genie talk <agent>` - Open browser session
+
+**Workspace**
+- `genie init [template]` - Initialize workspace
+- `genie rollback` - Restore backup
+- `genie update` - Sync with latest version
+
+**Utilities**
+- `genie mcp-cleanup` - Clean MCP resources
+- `genie cleanup` - General cleanup
+- `genie statusline` - One-line status output
+- `genie help` - Show help
+- `genie helper <command>` - Utility scripts
+
+## Exit Codes
+
+- 0 = Success
+- 1 = Error
+- 2 = Invalid arguments
+
+## Global Flags
+
+- `--help` - Show help for any command
+- `--version` - Show version
+
+## Where Commands Are Implemented
+
+All commands in: `src/cli/commands/*.ts`
+
+Each file = one command.

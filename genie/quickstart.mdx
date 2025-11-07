@@ -1,461 +1,496 @@
 ---
 title: "Quick Start"
-description: "Create your first AI-powered workspace in 5 minutes"
+description: "Run your first Genie command in 5 minutes"
 icon: "rocket"
 ---
 
-## Create Your First AI-Powered Workspace in 5 Minutes
+## Your First Genie Command
 
-This guide will walk you through setting up Genie, creating a ready-to-run AI workspace, and executing your first plan → wish → forge → review workflow.
-
----
-
-## Step 1: Initialize Genie
+### Step 1: Start Genie
 
 ```bash
-# Navigate to your project
-cd my-project
-
-# Initialize Genie workspace
-genie init
-
-# This creates:
-# - .genie/ directory
-# - config.json
-# - workflow templates
+cd your-project
+genie
 ```
+
+**First time?** Interactive wizard appears:
+
+```
+🧞 Welcome to Genie!
+
+Select templates (Space to select, Enter to confirm):
+❯ ◯ Code Collective (34 agents for software development)
+  ◯ Create Collective (9 agents for content/strategy)
+
+Select executor:
+❯ Claude Code (requires Anthropic API key)
+  OpenCode (local, no API key needed)
+  Codex (requires OpenAI API key)
+
+Initialize git repository? (Y/n)
+Install git hooks? (Y/n)
+```
+
+**What happens next:**
+1. Creates `.genie/` directory with framework files
+2. Starts Forge backend (port 8887)
+3. Starts MCP server (port 8885)
+4. Opens browser to Forge UI
+
+**Output you'll see:**
+```
+✅ Initialized .genie/ directory
+✅ Forge backend: http://localhost:8887
+✅ MCP server: http://localhost:8885/sse
+🌐 Opening Forge UI in browser...
+🧞 Genie is ready!
+
+Keep this terminal running.
+Open a new terminal to run commands.
+```
+
+**Already set up?** Genie just starts the servers:
+
+```bash
+genie
+# ✅ Forge backend: http://localhost:8887
+# ✅ MCP server: http://localhost:8885/sse
+# 🧞 Genie is ready!
+```
+
+<Info>
+**IMPORTANT:** Keep this terminal running. The Forge backend and MCP server run here. Open a NEW terminal for commands.
+</Info>
 
 ---
 
-## Step 2: Configure Genie
+### Step 2: Run Your First Agent
 
-Edit `.genie/config.json`:
+Open a NEW terminal (keep servers running):
 
+```bash
+genie run plan "Analyze the architecture of this codebase"
+```
+
+**Output:**
 ```json
 {
-  "mcp": {
-    "enabled": true,
-    "port": 3000
-  },
-  "agents": {
-    "coder": {
-      "enabled": true,
-      "llm": "claude",
-      "model": "claude-3-5-sonnet-20241022"
-    },
-    "reviewer": {
-      "enabled": true,
-      "llm": "claude"
-    }
-  },
-  "llms": {
-    "claude": {
-      "apiKey": "sk-ant-your-key-here"
-    }
-  },
-  "repository": {
-    "autoIndex": true,
-    "excludePaths": ["node_modules", ".git", "dist"]
-  }
+  "sessionId": "abc-123-def",
+  "status": "running",
+  "agent": "plan",
+  "executor": "claude-code",
+  "forgeUrl": "http://localhost:8887/sessions/abc-123-def"
 }
 ```
 
+**What's happening:**
+1. Genie CLI sends task to Forge backend
+2. Forge executes using your chosen executor (Claude Code, OpenCode, etc.)
+3. Results stream to Forge database
+4. You get a session ID to track progress
+
 ---
 
-## Step 3: Index Your Repository
-
-Genie needs to understand your codebase:
+### Step 3: View Results
 
 ```bash
-# Index repository
-genie index
+genie view abc-123-def
+```
 
-# This analyzes:
-# - File structure
-# - Code patterns
-# - Dependencies
-# - Documentation
+**Output:**
+```
+Session: abc-123-def
+Agent: plan
+Status: completed
+Duration: 2m 34s
 
-# You should see:
-# ✓ Repository indexed
-# ✓ 247 files analyzed
-# ✓ Context ready for agents
+=== Analysis ===
+
+Architecture Overview:
+- Monorepo structure with 3 packages
+- TypeScript + Node.js backend
+- React frontend
+- Shared utilities package
+
+Tech Stack:
+- Framework: Next.js 14
+- Database: PostgreSQL
+- API: tRPC
+- Testing: Jest + Playwright
+
+Recommendations:
+1. Add API documentation
+2. Implement caching layer
+3. Add monitoring/observability
 ```
 
 ---
 
-## Step 4: Make Your First Wish
-
-Use the Genie workflow: **Plan → Wish → Forge → Review**
+### Step 4: Try Browser Mode
 
 ```bash
-# Make a wish (what you want to build)
-genie wish "Add user authentication with JWT tokens"
+genie talk architect
+```
 
-# Genie creates:
-# - wishes/add-user-authentication.md
-# - Detailed specification
-# - Implementation plan
+**What happens:**
+1. Opens Forge UI in browser
+2. Starts chat session with architect agent
+3. Interactive conversation in browser
+
+**Browser interface:**
+```
+┌─────────────────────────────────────────┐
+│ Chat with architect                      │
+├─────────────────────────────────────────┤
+│ You: How would you refactor this API?   │
+│                                          │
+│ architect: I'd suggest these changes:   │
+│ 1. Extract business logic to services   │
+│ 2. Add middleware for validation        │
+│ 3. Implement repository pattern...      │
+│                                          │
+│ [Type your message...]                   │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## Step 5: Execute the Plan
+## Common Commands
 
 ```bash
-# Genie plans the implementation
-genie plan wishes/add-user-authentication.md
+# List available agents
+genie list agents
 
-# Output shows:
-# Plan: Add User Authentication
-#
-# Steps:
-# 1. Create auth middleware
-# 2. Add JWT token generation
-# 3. Add login endpoint
-# 4. Add signup endpoint
-# 5. Add authentication tests
-#
-# Estimated time: 2-3 hours
+# Output:
+# Available agents:
+# - plan          Strategy and architecture
+# - code          Code implementation
+# - test          Test creation
+# - review        Code review
+# - debug         Debugging
+# - docs          Documentation
+
+# List your sessions
+genie list sessions
+
+# Output:
+# Active sessions:
+# abc-123-def    plan      running    2m ago
+# xyz-456-ghi    code      completed  1h ago
+
+# Check server status
+genie status
+
+# Output:
+# Forge backend: ✅ running (http://localhost:8887)
+# MCP server: ✅ running (http://localhost:8885/sse)
+# Active sessions: 1
+# Uptime: 2h 34m
+
+# Stop a running session
+genie stop abc-123-def
+
+# Output:
+# ✅ Session abc-123-def stopped
 ```
 
 ---
 
-## Step 6: Forge (Execute)
+## What Just Happened?
 
-Let Genie's agents build it:
+Let's break down the architecture:
 
-```bash
-# Forge the implementation
-genie forge wishes/add-user-authentication.md
-
-# Progress:
-# ⚡ Forging: Add user authentication
-# ✓ Step 1/5: Create auth middleware (2 min)
-# ✓ Step 2/5: Add JWT token generation (3 min)
-# ✓ Step 3/5: Add login endpoint (2 min)
-# ✓ Step 4/5: Add signup endpoint (2 min)
-# ✓ Step 5/5: Add authentication tests (4 min)
-#
-# ✓ Implementation complete!
 ```
+┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+│  Genie CLI   │──────▶│    Forge     │──────▶│   Executor   │
+│              │       │   Backend    │       │ (Claude/etc) │
+└──────────────┘       └──────────────┘       └──────────────┘
+     │                        │                       │
+     │                        │                       │
+     │                        ▼                       │
+     │                  ┌──────────┐                  │
+     │                  │ Database │                  │
+     │                  │ (SQLite) │                  │
+     │                  └──────────┘                  │
+     │                        │                       │
+     │                        │                       │
+     ▼                        ▼                       ▼
+┌──────────────────────────────────────────────────────┐
+│                   Your Project                       │
+└──────────────────────────────────────────────────────┘
+```
+
+**What each piece does:**
+
+1. **Genie CLI** - Command-line interface you interact with
+2. **Forge Backend** - Server that manages task execution (port 8887)
+3. **MCP Server** - Model Context Protocol server for IDE integration (port 8885)
+4. **Executor** - The AI that actually does the work (Claude, OpenCode, etc.)
+5. **Database** - Stores sessions, results, and history
 
 ---
 
-## Step 7: Review
+## The Two Modes
 
-Review the AI-generated code:
+### Server Mode
 
 ```bash
-# Review the implementation
-genie review wishes/add-user-authentication.md
-
-# Genie's reviewer agent checks:
-# - Code quality
-# - Security issues
-# - Test coverage
-# - Documentation
-
-# Review Report:
-# ✓ Code quality: Excellent
-# ⚠ Security: Add rate limiting to login
-# ✓ Test coverage: 94%
-# ✓ Documentation: Complete
+genie  # Starts Forge + MCP, keeps running
 ```
+
+**Use when:**
+- Starting work on a project
+- Need persistent backend
+- Using IDE integration (Cursor, Claude Code)
+
+**Stops when:**
+- You press Ctrl+C
+- You close the terminal
+- System shuts down
+
+### Command Mode
+
+```bash
+genie run plan "..."        # Execute agent, get result
+genie talk architect        # Open browser session
+genie list sessions         # Show active sessions
+genie view <sessionId>      # View session results
+genie stop <sessionId>      # Stop running session
+```
+
+**Use when:**
+- Forge backend is already running (from server mode)
+- Quick one-off commands
+- Checking status or viewing results
 
 ---
 
-## Real-World Example: Feature Development
+## Real Example: Full Workflow
 
-Complete workflow from idea to production:
+Let's walk through a realistic scenario:
 
 <Steps>
-  <Step title="Plan: Analyze Requirements">
+  <Step title="Start Genie Server">
+    Terminal 1:
     ```bash
-    genie wish "Build a REST API for blog posts with CRUD operations"
+    cd ~/my-project
+    genie
 
-    # Genie creates detailed spec:
-    # - Database schema
-    # - API endpoints
-    # - Validation rules
-    # - Error handling
+    # ✅ Forge backend: http://localhost:8887
+    # ✅ MCP server: http://localhost:8885/sse
+    # 🧞 Genie is ready!
     ```
   </Step>
 
-  <Step title="Wish: Define Specifications">
-    Edit `wishes/blog-api.md` to refine:
+  <Step title="Create Architecture Plan">
+    Terminal 2 (new):
+    ```bash
+    genie run plan "Design a user authentication system with JWT tokens"
 
-    ```markdown
-    # Blog API
-
-    ## Endpoints
-    - GET /api/posts - List all posts
-    - GET /api/posts/:id - Get single post
-    - POST /api/posts - Create post
-    - PUT /api/posts/:id - Update post
-    - DELETE /api/posts/:id - Delete post
-
-    ## Validation
-    - Title: required, max 200 chars
-    - Content: required, max 5000 chars
-    - Author: required
+    # Output:
+    # {
+    #   "sessionId": "auth-plan-789",
+    #   "status": "running",
+    #   "agent": "plan"
+    # }
     ```
   </Step>
 
-  <Step title="Forge: AI Builds It">
+  <Step title="View Plan Results">
     ```bash
-    genie forge wishes/blog-api.md
+    genie view auth-plan-789
 
-    # Agents create:
-    # - Database models
-    # - Controllers
-    # - Routes
-    # - Validation middleware
-    # - Tests
-    # - API documentation
+    # Output shows:
+    # - Database schema for users
+    # - JWT token structure
+    # - API endpoints needed
+    # - Security considerations
     ```
   </Step>
 
-  <Step title="Review: Validate Quality">
+  <Step title="Implement Code">
     ```bash
-    genie review wishes/blog-api.md
+    genie run code "Implement the auth system from session auth-plan-789"
 
-    # Automated checks:
-    # ✓ All endpoints implemented
-    # ✓ Input validation present
-    # ✓ Error handling comprehensive
-    # ✓ Tests pass (97% coverage)
-    # ⚠ Add pagination to list endpoint
+    # Output:
+    # {
+    #   "sessionId": "auth-impl-890",
+    #   "status": "running",
+    #   "agent": "code",
+    #   "context": "auth-plan-789"
+    # }
     ```
   </Step>
 
-  <Step title="Iterate: Improve">
+  <Step title="Review Implementation">
     ```bash
-    # Add pagination based on review feedback
-    genie wish "Add pagination to blog posts list endpoint" \
-      --parent blog-api
+    genie run review "Review auth implementation from auth-impl-890"
 
-    genie forge wishes/blog-api-pagination.md
+    # Output shows:
+    # - Code quality assessment
+    # - Security audit
+    # - Improvement suggestions
+    ```
+  </Step>
+
+  <Step title="Create Tests">
+    ```bash
+    genie run test "Create tests for auth-impl-890"
+
+    # Output:
+    # {
+    #   "sessionId": "auth-test-901",
+    #   "status": "running",
+    #   "agent": "test"
+    # }
     ```
   </Step>
 </Steps>
 
 ---
 
-## Using the MCP Server
-
-Genie exposes an MCP server for other AI agents:
-
-**1. Start MCP Server**
-
-```bash
-# Start Genie MCP server
-genie serve --mcp
-
-# Server starts on port 3000
-# Available tools:
-# - genie_analyze_repo
-# - genie_make_wish
-# - genie_plan
-# - genie_forge
-# - genie_review
-```
-
-**2. Connect from Claude Desktop**
-
-Edit `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "genie": {
-      "command": "genie",
-      "args": ["serve", "--mcp"]
-    }
-  }
-}
-```
-
-**3. Use from Claude**
-
-```
-You: "Use Genie to add a search feature to my project"
-
-Claude: I'll use Genie to plan and implement a search feature.
-
-[Uses genie_make_wish]
-[Uses genie_plan]
-[Uses genie_forge]
-
-✓ Search feature implementation complete!
-```
-
----
-
-## Template Management
-
-Keep your project templates in sync:
-
-```bash
-# Create from template
-genie template create my-api --from express-api
-
-# Sync with latest template
-genie template sync my-api
-
-# List available templates
-genie template list
-
-# Create custom template
-genie template save my-api --name my-custom-template
-```
-
----
-
-## Common Workflows
-
-<Tabs>
-  <Tab title="Feature Development">
-    ```bash
-    # 1. Make wish
-    genie wish "Add email notifications"
-
-    # 2. Plan
-    genie plan wishes/email-notifications.md
-
-    # 3. Forge
-    genie forge wishes/email-notifications.md
-
-    # 4. Review
-    genie review wishes/email-notifications.md
-
-    # 5. Ship
-    git add .
-    git commit -m "feat: email notifications"
-    ```
-  </Tab>
-
-  <Tab title="Bug Fix">
-    ```bash
-    # 1. Describe bug
-    genie wish "Fix memory leak in WebSocket connection" \
-      --type bugfix
-
-    # 2. Analyze
-    genie analyze wishes/fix-websocket-leak.md
-
-    # 3. Fix
-    genie forge wishes/fix-websocket-leak.md
-
-    # 4. Verify
-    genie test wishes/fix-websocket-leak.md
-
-    # 5. Review
-    genie review wishes/fix-websocket-leak.md
-    ```
-  </Tab>
-
-  <Tab title="Refactoring">
-    ```bash
-    # 1. Define scope
-    genie wish "Refactor API client to use axios instead of fetch" \
-      --type refactor
-
-    # 2. Plan migration
-    genie plan wishes/refactor-api-client.md
-
-    # 3. Execute
-    genie forge wishes/refactor-api-client.md \
-      --conservative  # Preserve behavior
-
-    # 4. Validate
-    genie test --all
-    ```
-  </Tab>
-
-  <Tab title="Documentation">
-    ```bash
-    # 1. Request docs
-    genie wish "Add comprehensive API documentation" \
-      --type docs
-
-    # 2. Generate
-    genie forge wishes/api-documentation.md
-
-    # Generates:
-    # - README updates
-    # - API reference docs
-    # - Usage examples
-    # - Architecture diagrams
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Meta-Learning
-
-Genie learns from your patterns:
-
-```bash
-# View learned patterns
-genie patterns
-
-# Patterns detected:
-# - You prefer async/await over promises
-# - You use TypeScript strict mode
-# - You follow Conventional Commits
-# - You write tests with Jest
-
-# Genie applies these patterns automatically in future work!
-```
-
----
-
-## Pro Tips
+## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Keep Wishes Focused">
-    **Good wishes:**
+  <Accordion title="Forge won't start">
+    **Symptom:**
     ```bash
-    genie wish "Add JWT authentication middleware"
-    genie wish "Create user signup endpoint"
-    genie wish "Add input validation for user data"
+    genie
+    # ❌ Error: Failed to start Forge backend
+    # Error: Port 8887 already in use
     ```
 
-    **Too broad:**
+    **Fix:**
     ```bash
-    genie wish "Build entire authentication system"
-    # Better to split into smaller wishes
+    # Check what's using port 8887
+    lsof -i :8887
+    # Or on Windows:
+    netstat -ano | findstr :8887
+
+    # Kill the process using that port
+    kill -9 <PID>
+
+    # Or use a different port
+    FORGE_PORT=8888 genie
     ```
-  </Accordion>
 
-  <Accordion title="Review Before Merging">
-    Always review AI-generated code:
-
+    **Check logs:**
     ```bash
-    # Automated review
-    genie review wishes/my-feature.md
-
-    # Manual review
-    git diff
-    npm test
-    npm run lint
-
-    # Only then merge
-    git add .
-    git commit
+    cat .genie/state/forge.log
     ```
   </Accordion>
 
-  <Accordion title="Use Context from Memory">
+  <Accordion title="No agents found">
+    **Symptom:**
     ```bash
-    # Genie remembers past wishes
-    genie wish "Extend the authentication system with 2FA" \
-      --context "auth-system"
+    genie list agents
+    # ❌ No agents available
+    ```
 
-    # Genie recalls previous auth implementation
-    # and builds on top of it consistently
+    **Fix:**
+    ```bash
+    # Reinitialize Genie
+    genie init code --yes
+
+    # Verify .genie directory exists
+    ls -la .genie/
+
+    # Check if templates were downloaded
+    ls -la .genie/collectives/
+    ```
+  </Accordion>
+
+  <Accordion title="Session not found">
+    **Symptom:**
+    ```bash
+    genie view abc-123-def
+    # ❌ Error: Session not found
+    ```
+
+    **Fix:**
+    ```bash
+    # List all sessions
+    genie list sessions
+
+    # Check if session ID is correct
+    # Session IDs are case-sensitive
+
+    # Check if Forge backend is running
+    genie status
+    ```
+  </Accordion>
+
+  <Accordion title="Command hangs / no response">
+    **Symptom:**
+    ```bash
+    genie run plan "..."
+    # (nothing happens)
+    ```
+
+    **Fix:**
+    ```bash
+    # 1. Check if Forge is running
+    genie status
+
+    # 2. Check Forge logs
+    tail -f .genie/state/forge.log
+
+    # 3. Check if executor has API key
+    cat .genie/config.json | grep apiKey
+
+    # 4. Test network connectivity
+    curl http://localhost:8887/health
+    # Should return: {"status":"ok"}
+
+    # 5. Restart Forge
+    # Kill genie server (Ctrl+C)
+    # Start again: genie
+    ```
+  </Accordion>
+
+  <Accordion title="API key errors">
+    **Symptom:**
+    ```bash
+    genie run plan "..."
+    # ❌ Error: Invalid API key
+    ```
+
+    **Fix:**
+    ```bash
+    # Set API key during init
+    genie init code
+
+    # Or configure manually
+    # Edit .genie/config.json:
+    {
+      "executor": {
+        "type": "claude-code",
+        "apiKey": "sk-ant-your-key-here"
+      }
+    }
+
+    # Or use environment variable
+    export ANTHROPIC_API_KEY="sk-ant-..."
+    genie run plan "..."
+    ```
+  </Accordion>
+
+  <Accordion title="Browser doesn't open">
+    **Symptom:**
+    ```bash
+    genie talk architect
+    # (no browser window opens)
+    ```
+
+    **Fix:**
+    ```bash
+    # Manually open the URL
+    # The command prints the URL - copy it
+    genie talk architect
+    # Open in browser: http://localhost:8887/chat/architect
+
+    # Or check if default browser is set
+    echo $BROWSER  # Linux/Mac
     ```
   </Accordion>
 </AccordionGroup>
@@ -465,89 +500,31 @@ genie patterns
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Advanced Workflows" icon="diagram-project">
-    Learn:
-    - Multi-step planning
-    - Agent coordination
-    - Custom delivery agents
+  <Card title="CLI Commands" href="/genie/cli/commands">
+    See all available commands and options
   </Card>
-
-  <Card title="MCP Integration" icon="plug">
-    Connect:
-    - Claude Desktop
-    - VSCode
-    - Custom AI agents
+  <Card title="Real Examples" href="/genie/examples/basic-workflow">
+    Working examples with actual terminal output
   </Card>
-
-  <Card title="Template System" icon="copy">
-    Master:
-    - Template creation
-    - Sync strategies
-    - Custom templates
+  <Card title="Agents Reference" href="/genie/agents/overview">
+    Learn about each agent's capabilities
   </Card>
-
-  <Card title="Meta-Learning" icon="brain">
-    Explore:
-    - Pattern recognition
-    - Code style learning
-    - Preference adaptation
+  <Card title="Configuration" href="/genie/config/overview">
+    Configure executors, API keys, and preferences
   </Card>
 </CardGroup>
 
 ---
 
-## Troubleshooting
+## Summary
 
-<AccordionGroup>
-  <Accordion title="Repository indexing slow">
-    Exclude large directories:
+**What you learned:**
 
-    ```json
-    // .genie/config.json
-    {
-      "repository": {
-        "excludePaths": [
-          "node_modules",
-          "dist",
-          "build",
-          ".next",
-          "coverage"
-        ]
-      }
-    }
-    ```
-  </Accordion>
+1. ✅ `genie` starts Forge + MCP servers
+2. ✅ `genie run <agent> "task"` executes work
+3. ✅ `genie view <sessionId>` shows results
+4. ✅ `genie talk <agent>` opens browser chat
+5. ✅ Forge is required (not optional)
+6. ✅ Keep server running in one terminal
 
-  <Accordion title="Forge fails to generate code">
-    Check that your wish is clear:
-
-    ```bash
-    # Too vague
-    genie wish "make it better"
-
-    # Better
-    genie wish "Improve error handling in API routes by adding try-catch blocks and proper error responses"
-    ```
-  </Accordion>
-
-  <Accordion title="MCP server connection issues">
-    ```bash
-    # Check if server is running
-    genie serve --check
-
-    # Restart with verbose logging
-    genie serve --mcp --verbose
-
-    # Verify port isn't in use
-    lsof -i :3000
-    ```
-  </Accordion>
-</AccordionGroup>
-
----
-
-**Congratulations!** 🎉 You've created your first AI-powered workspace with Genie. You're ready to orchestrate AI agents for systematic development!
-
-<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
-  Share your wishes and workflows with the community
-</Card>
+**Ready for more?** → [CLI Commands Reference](/genie/cli/commands)

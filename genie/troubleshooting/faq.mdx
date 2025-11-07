@@ -1,0 +1,1333 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Genie"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Genie?" icon="lightbulb">
+    Genie is an AI agent orchestration CLI that brings autonomous AI capabilities to your development workflow. It's designed to work seamlessly with your favorite IDEs (Claude Code, Cursor, Cline, Gemini) through the Model Context Protocol (MCP).
+
+    **Key Features:**
+    - **AI Agent Management**: Create, run, and coordinate specialized AI agents
+    - **Collective Intelligence**: Organize agents into teams (collectives) that work together
+    - **Knowledge System**: Store and share knowledge through spells and neurons
+    - **MCP Integration**: Direct access to Genie tools from your IDE
+    - **Forge Sync**: Share and collaborate on agents across teams
+    - **Local-First**: Runs entirely on your machine with your own API keys
+
+    **Think of Genie as:**
+    - A conductor orchestrating multiple AI specialists
+    - Your personal AI development team
+    - A framework for autonomous coding workflows
+    - An MCP server providing AI capabilities to any IDE
+  </Accordion>
+
+  <Accordion title="How is Genie different from Claude, Cursor, or other AI tools?" icon="scale-balanced">
+    Genie complements rather than replaces your existing AI tools:
+
+    | Feature | Genie | Claude/GPT | Cursor/Cline |
+    |---------|-------|------------|--------------|
+    | **Agent Types** | Multiple specialized agents | Single conversation | Single assistant |
+    | **Coordination** | Agents work together | One-at-a-time | Sequential tasks |
+    | **Memory** | Shared knowledge (neurons) | Per-conversation | Limited context |
+    | **Persistence** | Collectives, spells saved | Conversation history | File-based |
+    | **Integration** | MCP + CLI | API/Web | IDE-native |
+    | **Autonomy** | Agents can chain tasks | Requires prompts | Requires guidance |
+
+    **Use Genie when:**
+    - You need multiple AI perspectives on a problem
+    - Building complex systems requiring coordination
+    - Want to preserve and reuse AI workflows
+    - Need autonomous task execution
+    - Working on team projects with shared AI resources
+
+    **Use regular AI tools when:**
+    - Quick one-off questions
+    - Simple code generation
+    - Conversational exploration
+    - Learning or experimenting
+  </Accordion>
+
+  <Accordion title="Do I need Forge?" icon="cloud">
+    **No, Forge is optional.** Genie works completely locally without Forge.
+
+    **Without Forge:**
+    - ✅ All core features work
+    - ✅ Create and run agents locally
+    - ✅ Build collectives and spells
+    - ✅ Use MCP integration
+    - ❌ Cannot sync across machines
+    - ❌ Cannot share with team
+    - ❌ No cloud backup
+
+    **With Forge:**
+    - ✅ Everything above, plus:
+    - ✅ Sync agents and collectives across devices
+    - ✅ Share resources with your team
+    - ✅ Browse community-created agents
+    - ✅ Automatic cloud backup
+    - ✅ Version history and rollback
+    - ✅ Team collaboration features
+
+    **When to use Forge:**
+    - Working across multiple machines
+    - Team collaborating on AI workflows
+    - Want community-shared resources
+    - Need backup and version control
+    - Building reusable agent templates
+
+    **Setup Forge:**
+    ```bash
+    genie forge login
+    genie forge push  # Upload your collectives
+    genie forge pull  # Download from cloud
+    ```
+  </Accordion>
+
+  <Accordion title="What data leaves my machine?" icon="shield-halved">
+    **Genie respects your privacy and keeps data local by default.**
+
+    **Data that NEVER leaves your machine:**
+    - Your code and files
+    - Project structure and contents
+    - Genie configuration files
+    - Local agent definitions
+    - Session history and logs
+
+    **Data sent to AI providers (Anthropic, OpenAI):**
+    - Only the prompts and context you explicitly send through agents
+    - API keys are stored locally and sent securely to providers
+    - Controlled by you through agent execution
+
+    **Data sent to Forge (if enabled):**
+    - Agent definitions and configurations
+    - Collective structures
+    - Spells and neurons (knowledge)
+    - Usage statistics (anonymous)
+    - NO code or project files
+
+    **Privacy controls:**
+    ```bash
+    # Disable telemetry
+    genie config set TELEMETRY false
+
+    # Check what would sync to Forge
+    genie forge sync --dry-run
+
+    # Use local-only mode
+    genie config set FORGE_ENABLED false
+    ```
+
+    **API Key Security:**
+    - Stored encrypted in ~/.genie/
+    - Never logged or transmitted to Genie servers
+    - Sent only to respective AI providers (Anthropic, OpenAI)
+    - Use environment variables for added security
+  </Accordion>
+
+  <Accordion title="Is Genie production-ready?" icon="check-circle">
+    **Current Status: Beta / Early Adoption**
+
+    **What works well:**
+    - ✅ Core agent execution
+    - ✅ MCP integration with major IDEs
+    - ✅ Local collective management
+    - ✅ Basic Forge sync
+    - ✅ CLI commands and dashboard
+    - ✅ Spell and neuron system
+
+    **What's experimental:**
+    - ⚠️ Advanced agent coordination
+    - ⚠️ Large-scale collective operations
+    - ⚠️ Forge team collaboration features
+    - ⚠️ Complex workflow automation
+
+    **Known limitations:**
+    - Rate limits depend on your AI provider tier
+    - Performance varies with task complexity
+    - Some edge cases in agent coordination
+    - Documentation still evolving
+
+    **Recommended for:**
+    - Individual developers experimenting with AI workflows
+    - Small teams testing AI-assisted development
+    - Side projects and prototyping
+    - Learning AI orchestration concepts
+
+    **Not yet recommended for:**
+    - Mission-critical production systems
+    - Large enterprise deployments
+    - Real-time production workflows
+    - Systems requiring 99.9% uptime
+
+    **Production readiness checklist:**
+    ```bash
+    # Test thoroughly before production use
+    genie agent run test --task "Validate critical path"
+
+    # Monitor resource usage
+    genie dashboard
+
+    # Set up error handling
+    genie config set ERROR_HANDLING strict
+
+    # Regular backups
+    genie export --output backup-$(date +%Y%m%d).json
+    ```
+  </Accordion>
+
+  <Accordion title="How much does Genie cost?" icon="dollar-sign">
+    **Genie itself is free and open source.**
+
+    **Costs you'll incur:**
+
+    **1. AI Provider API Costs:**
+    - Anthropic Claude: Pay-per-use (typical: $0.01-0.10 per agent run)
+    - OpenAI GPT-4: Pay-per-use (typical: $0.03-0.30 per agent run)
+    - Costs vary by model, token usage, and task complexity
+
+    **2. Forge (Optional):**
+    - Free tier: Basic sync, 10 collectives, 100 neurons
+    - Pro tier: $10/month - Unlimited resources, team features
+    - Team tier: $30/month - Advanced collaboration, priority support
+
+    **3. Compute Resources:**
+    - Runs locally on your machine (no cloud compute costs)
+    - Minimal resource usage (Node.js process)
+
+    **Typical monthly costs for a developer:**
+    - Light use (few agents/day): $5-10 in API costs
+    - Moderate use (daily development): $20-50 in API costs
+    - Heavy use (continuous automation): $100-200 in API costs
+
+    **Cost optimization tips:**
+    ```bash
+    # Use cheaper models for simple tasks
+    genie agent run coder --model gpt-3.5-turbo
+
+    # Monitor API usage
+    genie dashboard  # Check "API Usage" section
+
+    # Set spending limits
+    # Configure in your Anthropic/OpenAI dashboard
+
+    # Cache responses
+    genie config set ENABLE_CACHE true
+    ```
+
+    **Free alternatives:**
+    - Use Ollama with local models (coming soon)
+    - Rate-limited free tier APIs
+    - Development credits from AI providers
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="Which Node.js version do I need?" icon="node-js">
+    **Minimum: Node.js 18.0.0**
+    **Recommended: Node.js 20.x LTS**
+
+    **Check your version:**
+    ```bash
+    node --version
+    ```
+
+    **Install/Update Node.js:**
+
+    **Option 1: Using nvm (Recommended)**
+    ```bash
+    # Install nvm
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+    # Install Node.js 20
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
+
+    # Verify
+    node --version  # Should show v20.x.x
+    ```
+
+    **Option 2: Direct Install**
+    - **Mac**: Download from [nodejs.org](https://nodejs.org) or `brew install node`
+    - **Linux**: `sudo apt install nodejs npm` (Ubuntu) or distribution equivalent
+    - **Windows**: Download installer from [nodejs.org](https://nodejs.org)
+
+    **Why Node.js 18+?**
+    - Modern JavaScript features (ES modules, top-level await)
+    - Fetch API built-in
+    - Performance improvements
+    - Better memory management
+    - Long-term support
+
+    **Troubleshooting version issues:**
+    ```bash
+    # If you have old Node.js
+    nvm install 20
+    nvm use 20
+
+    # Reinstall Genie with new Node version
+    npm install -g @joshuapowell/genie-cli
+    ```
+  </Accordion>
+
+  <Accordion title="Can I run Genie offline?" icon="wifi-slash">
+    **Partially, but most features require internet.**
+
+    **Works offline:**
+    - ✅ View local agents and collectives
+    - ✅ Read spells and neurons
+    - ✅ Explore configuration
+    - ✅ View logs and history
+    - ✅ Access dashboard (local data)
+
+    **Requires internet:**
+    - ❌ Running agents (needs AI provider APIs)
+    - ❌ Forge sync
+    - ❌ Installing/updating Genie
+    - ❌ Downloading new agents from community
+
+    **Offline preparation:**
+    ```bash
+    # Sync before going offline
+    genie forge pull --all
+
+    # Export for offline reference
+    genie export --output offline-backup.json
+
+    # Cache commonly used data
+    genie neuron list > neurons-cache.txt
+    genie spell list > spells-cache.txt
+    ```
+
+    **Future offline support:**
+    - Local model integration (Ollama, LLaMA)
+    - Offline agent execution with cached responses
+    - Standalone mode for network-restricted environments
+  </Accordion>
+
+  <Accordion title="How do I uninstall Genie?" icon="trash-can">
+    **Complete uninstallation:**
+
+    ```bash
+    # 1. Stop all Genie processes
+    genie stop --all
+
+    # 2. (Optional) Export data for backup
+    genie export --output genie-backup.json
+
+    # 3. Uninstall CLI
+    npm uninstall -g @joshuapowell/genie-cli
+
+    # 4. Remove configuration and data
+    rm -rf ~/.genie
+
+    # 5. (Optional) Remove from IDE configs
+    # Claude Code:
+    # Edit ~/.claude/config.json - remove "genie" from mcpServers
+
+    # Cursor:
+    # Settings > Extensions > MCP Servers - remove Genie
+
+    # Cline:
+    rm -rf .cline/mcp.json  # or edit to remove Genie entry
+
+    # 6. Verify uninstallation
+    which genie  # Should return nothing
+    genie --version  # Should error: command not found
+    ```
+
+    **Partial uninstall (keep data):**
+    ```bash
+    # Remove CLI but keep data
+    npm uninstall -g @joshuapowell/genie-cli
+
+    # Reinstall later without losing data
+    npm install -g @joshuapowell/genie-cli
+    # Your ~/.genie directory remains intact
+    ```
+
+    **Clean reinstall:**
+    ```bash
+    # Complete removal
+    npm uninstall -g @joshuapowell/genie-cli
+    rm -rf ~/.genie
+
+    # Fresh install
+    npm install -g @joshuapowell/genie-cli
+    genie init
+    ```
+  </Accordion>
+
+  <Accordion title="Can I install Genie in a project (not globally)?" icon="folder">
+    **Yes! You can install Genie per-project.**
+
+    **Project-local installation:**
+    ```bash
+    # Navigate to your project
+    cd my-project
+
+    # Install locally
+    npm install @joshuapowell/genie-cli
+
+    # Initialize in project
+    npx genie init
+
+    # Run commands with npx
+    npx genie agent run coder --task "..."
+    npx genie status
+    ```
+
+    **Add to package.json scripts:**
+    ```json
+    {
+      "scripts": {
+        "genie": "genie",
+        "genie:start": "genie start",
+        "genie:status": "genie status",
+        "agent": "genie agent run"
+      },
+      "devDependencies": {
+        "@joshuapowell/genie-cli": "^1.0.0"
+      }
+    }
+    ```
+
+    **Then use:**
+    ```bash
+    npm run genie:start
+    npm run agent -- coder --task "Create Button component"
+    ```
+
+    **Benefits of local installation:**
+    - Project-specific Genie version
+    - Shared with team via package.json
+    - No global installation needed
+    - Version locked for consistency
+
+    **When to use global vs local:**
+    - **Global**: Personal workflow, multiple projects, CLI convenience
+    - **Local**: Team projects, CI/CD, version control, reproducibility
+  </Accordion>
+</AccordionGroup>
+
+## Usage Questions
+
+<AccordionGroup>
+  <Accordion title="How do I create custom agents?" icon="user-plus">
+    **Three ways to create custom agents:**
+
+    **1. Extend existing agent types:**
+    ```bash
+    # Create agent from template
+    genie agent create --type coder --name my-specialist
+
+    # Customize the agent
+    genie agent configure my-specialist \
+      --system-prompt "You are a React specialist focusing on hooks and performance" \
+      --model "gpt-4" \
+      --temperature 0.7
+    ```
+
+    **2. Define agent in collective:**
+    ```yaml
+    # my-collective.yaml
+    name: my-team
+    agents:
+      - id: react-expert
+        type: coder
+        specialization: "React components and hooks"
+        systemPrompt: |
+          You are a senior React developer.
+          Focus on modern patterns, hooks, and performance.
+          Always consider accessibility and best practices.
+        model: gpt-4
+        temperature: 0.7
+
+      - id: test-writer
+        type: tester
+        specialization: "Jest and React Testing Library"
+        systemPrompt: "Write comprehensive tests using RTL best practices"
+    ```
+
+    **3. Use spells for reusable prompts:**
+    ```bash
+    # Create spell with custom instructions
+    genie spell create react-component-template --content "
+    Create a React component following these rules:
+    - Use TypeScript
+    - Include PropTypes
+    - Add JSDoc comments
+    - Export as default
+    - Include usage example
+    "
+
+    # Use spell with any agent
+    genie agent run coder \
+      --spell react-component-template \
+      --task "Create Button component"
+    ```
+
+    **Advanced: Full custom agent:**
+    ```bash
+    # Create agent definition file
+    cat > custom-agent.json << 'EOF'
+    {
+      "id": "api-designer",
+      "type": "architect",
+      "name": "API Designer",
+      "description": "Specializes in RESTful API design",
+      "systemPrompt": "You are an expert API architect...",
+      "model": "gpt-4",
+      "temperature": 0.8,
+      "capabilities": ["design", "review", "document"],
+      "neurons": ["rest-best-practices", "api-patterns"]
+    }
+    EOF
+
+    # Import agent
+    genie agent import custom-agent.json
+    ```
+  </Accordion>
+
+  <Accordion title="Can I use multiple AI models?" icon="layer-group">
+    **Yes! Genie supports multiple AI providers and models.**
+
+    **Supported providers:**
+    - Anthropic (Claude)
+    - OpenAI (GPT-3.5, GPT-4)
+    - Coming soon: Ollama, LLaMA, Custom APIs
+
+    **Set default model:**
+    ```bash
+    # Set globally
+    genie config set DEFAULT_MODEL "gpt-4"
+
+    # Set per agent type
+    genie config set CODER_MODEL "gpt-4"
+    genie config set RESEARCHER_MODEL "claude-3-opus"
+    genie config set ANALYST_MODEL "gpt-3.5-turbo"
+    ```
+
+    **Override per execution:**
+    ```bash
+    # Use specific model for one task
+    genie agent run coder --model "gpt-4" --task "Complex algorithm"
+    genie agent run researcher --model "claude-3-opus" --task "Deep research"
+
+    # Use cheaper model for simple tasks
+    genie agent run coder --model "gpt-3.5-turbo" --task "Add comment"
+    ```
+
+    **Configure in collective:**
+    ```yaml
+    agents:
+      - id: senior-coder
+        model: gpt-4
+        task: "Complex refactoring"
+
+      - id: junior-coder
+        model: gpt-3.5-turbo
+        task: "Simple fixes"
+    ```
+
+    **API key setup for multiple providers:**
+    ```bash
+    # In .env or environment
+    export ANTHROPIC_API_KEY="sk-ant-..."
+    export OPENAI_API_KEY="sk-..."
+
+    # Or in Genie config
+    genie config set ANTHROPIC_API_KEY "sk-ant-..."
+    genie config set OPENAI_API_KEY "sk-..."
+    ```
+
+    **Model selection strategy:**
+    - **GPT-4**: Complex reasoning, architecture, critical code
+    - **Claude Opus**: Deep research, analysis, long context
+    - **GPT-3.5**: Simple tasks, quick fixes, high-volume operations
+    - **Claude Haiku**: Fast responses, simple queries, testing
+  </Accordion>
+
+  <Accordion title="How do collectives work?" icon="users">
+    **Collectives are groups of agents working together on complex tasks.**
+
+    **Key concepts:**
+    - **Collective**: A team of specialized agents
+    - **Coordinator**: Manages task distribution
+    - **Shared Context**: Neurons accessible to all agents
+    - **Workflow**: Defines how agents collaborate
+
+    **Create a collective:**
+    ```bash
+    # Create empty collective
+    genie collective create web-dev-team
+
+    # Add agents
+    genie collective add-agent web-dev-team researcher
+    genie collective add-agent web-dev-team coder
+    genie collective add-agent web-dev-team tester
+
+    # Run collective on task
+    genie collective run web-dev-team \
+      --task "Build authentication system with tests"
+    ```
+
+    **Define collective with YAML:**
+    ```yaml
+    # web-team.yaml
+    name: web-dev-team
+    description: Full-stack web development team
+
+    coordinator:
+      strategy: sequential  # or: parallel, adaptive
+
+    agents:
+      - id: researcher
+        role: "Research best practices and approaches"
+
+      - id: architect
+        role: "Design system architecture"
+        dependsOn: [researcher]
+
+      - id: frontend-coder
+        type: coder
+        specialization: "React frontend"
+        dependsOn: [architect]
+
+      - id: backend-coder
+        type: coder
+        specialization: "Node.js backend"
+        dependsOn: [architect]
+
+      - id: tester
+        role: "Write comprehensive tests"
+        dependsOn: [frontend-coder, backend-coder]
+
+    neurons:
+      - tech-stack
+      - coding-standards
+      - security-guidelines
+    ```
+
+    **Use the collective:**
+    ```bash
+    # Load and run
+    genie collective load web-team.yaml
+    genie collective run web-dev-team --task "Build user dashboard"
+    ```
+
+    **Collective execution flow:**
+    1. Coordinator analyzes task
+    2. Breaks into subtasks for agents
+    3. Agents work sequentially or parallel based on dependencies
+    4. Results shared through neurons
+    5. Final output synthesized
+
+    **Benefits:**
+    - Specialized expertise on different aspects
+    - Parallel execution for speed
+    - Knowledge sharing through neurons
+    - Reproducible workflows
+  </Accordion>
+
+  <Accordion title="What are spells?" icon="wand-magic-sparkles">
+    **Spells are reusable prompts, instructions, and templates.**
+
+    **Think of spells as:**
+    - Prompt templates
+    - Reusable instructions
+    - Context you frequently need
+    - Guidelines for consistent output
+
+    **Create spells:**
+    ```bash
+    # Simple text spell
+    genie spell create code-review-checklist --content "
+    Review code for:
+    - Type safety
+    - Error handling
+    - Performance
+    - Security
+    - Tests coverage
+    - Documentation
+    "
+
+    # From file
+    genie spell create react-component < react-template.md
+
+    # Interactive
+    genie spell create --interactive
+    ```
+
+    **Use spells:**
+    ```bash
+    # With agent
+    genie agent run reviewer \
+      --spell code-review-checklist \
+      --task "Review auth system"
+
+    # Multiple spells
+    genie agent run coder \
+      --spell typescript-config \
+      --spell react-patterns \
+      --task "Create UserProfile component"
+
+    # In collective
+    genie collective run team \
+      --spell project-guidelines \
+      --task "Build feature"
+    ```
+
+    **Example spells:**
+
+    **Code style spell:**
+    ```markdown
+    # coding-standards.md
+
+    ## TypeScript Style Guide
+    - Use interfaces for object shapes
+    - Prefer const over let
+    - Use async/await over promises
+    - Add JSDoc for public APIs
+    - Include error handling
+    ```
+
+    **Project context spell:**
+    ```markdown
+    # project-context.md
+
+    ## Tech Stack
+    - React 18 with TypeScript
+    - Tailwind CSS for styling
+    - Jest + RTL for testing
+    - Express backend
+
+    ## Conventions
+    - Components in src/components/
+    - Tests colocated with components
+    - Use barrel exports (index.ts)
+    ```
+
+    **Spell best practices:**
+    - Keep focused on single concern
+    - Make reusable across projects
+    - Version control your spells
+    - Share useful spells with team via Forge
+  </Accordion>
+
+  <Accordion title="What are neurons?" icon="brain">
+    **Neurons are shared knowledge stores for your agents.**
+
+    **Neurons store:**
+    - Project context and documentation
+    - API references and schemas
+    - Design decisions and rationale
+    - Code patterns and examples
+    - Learnings from previous tasks
+
+    **Key difference from spells:**
+    - **Spells**: Instructions and templates (read-only)
+    - **Neurons**: Dynamic knowledge that agents can read AND write
+
+    **Create neurons:**
+    ```bash
+    # Create empty neuron
+    genie neuron create project-architecture
+
+    # From file
+    genie neuron create api-spec --file ./openapi.yaml
+
+    # From command output
+    genie status | genie neuron create system-state
+    ```
+
+    **Agents write to neurons:**
+    ```bash
+    # Agent stores findings
+    genie agent run researcher \
+      --task "Research authentication patterns" \
+      --output-neuron auth-patterns
+
+    # Another agent reads from it
+    genie agent run coder \
+      --neuron auth-patterns \
+      --task "Implement authentication"
+    ```
+
+    **Collective shared neurons:**
+    ```yaml
+    # collective.yaml
+    name: dev-team
+
+    neurons:
+      - architecture  # All agents can read/write
+      - code-patterns
+      - decisions
+
+    agents:
+      - id: architect
+        outputNeuron: architecture
+
+      - id: coder
+        inputNeurons: [architecture, code-patterns]
+        outputNeuron: implementation-notes
+    ```
+
+    **View and manage neurons:**
+    ```bash
+    # List all neurons
+    genie neuron list
+
+    # View neuron content
+    genie neuron show architecture
+
+    # Update neuron
+    genie neuron update architecture --file new-arch.md
+
+    # Delete neuron
+    genie neuron delete old-patterns
+
+    # Export neurons
+    genie neuron export --output neurons-backup.json
+    ```
+
+    **Neuron use cases:**
+    - **Architecture decisions**: Store why choices were made
+    - **API specs**: Keep OpenAPI/GraphQL schemas
+    - **Coding patterns**: Document project-specific patterns
+    - **Research findings**: Accumulate knowledge over time
+    - **Team knowledge**: Share insights across developers
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Questions
+
+<AccordionGroup>
+  <Accordion title="How does the ACE protocol work?" icon="diagram-project">
+    **ACE (Agent Coordination Engine) is Genie's protocol for multi-agent orchestration.**
+
+    **Core concepts:**
+
+    **1. Agent Communication:**
+    - Agents don't directly message each other
+    - Communication happens through shared neurons
+    - Coordinator manages information flow
+
+    **2. Task Decomposition:**
+    ```
+    Complex Task
+    ├─> Subtask 1 (Agent A)
+    ├─> Subtask 2 (Agent B) [depends on Subtask 1]
+    └─> Subtask 3 (Agent C) [depends on Subtask 2]
+    ```
+
+    **3. Execution Strategies:**
+    - **Sequential**: One agent at a time, ordered
+    - **Parallel**: Multiple agents simultaneously
+    - **Adaptive**: Dynamic based on task complexity
+    - **Hierarchical**: Manager agent delegates to worker agents
+
+    **ACE workflow:**
+    ```
+    1. User submits task to collective
+       ↓
+    2. Coordinator analyzes task
+       ↓
+    3. Creates execution plan with subtasks
+       ↓
+    4. Assigns subtasks to specialized agents
+       ↓
+    5. Agents execute, write results to neurons
+       ↓
+    6. Coordinator synthesizes final output
+       ↓
+    7. Returns result to user
+    ```
+
+    **Example ACE coordination:**
+    ```yaml
+    task: "Build login system"
+
+    execution_plan:
+      - phase: research
+        agent: researcher
+        output: auth-research-neuron
+
+      - phase: design
+        agent: architect
+        input: auth-research-neuron
+        output: auth-architecture-neuron
+
+      - phase: implement
+        parallel:
+          - agent: frontend-coder
+            input: auth-architecture-neuron
+          - agent: backend-coder
+            input: auth-architecture-neuron
+
+      - phase: test
+        agent: tester
+        input: [auth-architecture-neuron, implementation-results]
+    ```
+
+    **Why ACE matters:**
+    - Enables complex multi-agent workflows
+    - Prevents chaos with many agents
+    - Provides reproducible orchestration
+    - Scales from 2 to 20+ agents
+    - Built-in error handling and recovery
+  </Accordion>
+
+  <Accordion title="Can I contribute to Master Genie?" icon="code-branch">
+    **Yes! Genie is open source and welcomes contributions.**
+
+    **Ways to contribute:**
+
+    **1. Code contributions:**
+    ```bash
+    # Fork and clone
+    git clone https://github.com/joshuapowell/genie.git
+    cd genie
+
+    # Create feature branch
+    git checkout -b feature/my-improvement
+
+    # Make changes, test, commit
+    npm test
+    git commit -m "Add feature X"
+
+    # Push and create PR
+    git push origin feature/my-improvement
+    ```
+
+    **2. Share agents and collectives:**
+    ```bash
+    # Push to Forge community
+    genie forge push --public
+
+    # Tag appropriately
+    genie forge tag my-agent \
+      --tags javascript,testing,automation
+    ```
+
+    **3. Documentation:**
+    - Improve guides and tutorials
+    - Add examples and use cases
+    - Translate to other languages
+    - Create video tutorials
+
+    **4. Bug reports and feature requests:**
+    - [GitHub Issues](https://github.com/joshuapowell/genie/issues)
+    - Provide reproduction steps
+    - Include system info and logs
+
+    **5. Community support:**
+    - Answer questions in Discord
+    - Write blog posts about your use cases
+    - Share success stories
+
+    **Contribution guidelines:**
+    - Follow existing code style
+    - Add tests for new features
+    - Update documentation
+    - Keep PRs focused and atomic
+    - Be respectful and collaborative
+
+    **Master Genie (the AI):**
+    - Coordinates community contributions
+    - Reviews and suggests improvements
+    - Manages release process
+    - Helps onboard new contributors
+  </Accordion>
+
+  <Accordion title="How do version updates work?" icon="arrow-up-from-bracket">
+    **Genie uses semantic versioning: MAJOR.MINOR.PATCH**
+
+    **Version types:**
+    - **Major (1.0.0 → 2.0.0)**: Breaking changes
+    - **Minor (1.0.0 → 1.1.0)**: New features, backward compatible
+    - **Patch (1.0.0 → 1.0.1)**: Bug fixes, no new features
+
+    **Check for updates:**
+    ```bash
+    # Current version
+    genie --version
+
+    # Check for updates
+    genie update --check
+
+    # View changelog
+    genie changelog
+    ```
+
+    **Update Genie:**
+    ```bash
+    # Update to latest
+    npm update -g @joshuapowell/genie-cli
+
+    # Update to specific version
+    npm install -g @joshuapowell/genie-cli@1.2.3
+
+    # Verify update
+    genie --version
+    ```
+
+    **Auto-update (optional):**
+    ```bash
+    # Enable auto-update check on startup
+    genie config set AUTO_UPDATE_CHECK true
+
+    # Genie will notify when updates available
+    # Manual confirmation required to install
+    ```
+
+    **Breaking changes:**
+    - Genie notifies before major version updates
+    - Migration guide provided
+    - Backward compatibility maintained when possible
+
+    **Update best practices:**
+    ```bash
+    # 1. Backup before major updates
+    genie export --output backup-$(date +%Y%m%d).json
+
+    # 2. Read changelog
+    genie changelog
+
+    # 3. Update
+    npm update -g @joshuapowell/genie-cli
+
+    # 4. Run migrations if needed
+    genie migrate
+
+    # 5. Test in non-critical project first
+    ```
+
+    **Rollback if needed:**
+    ```bash
+    # Install previous version
+    npm install -g @joshuapowell/genie-cli@1.2.3
+
+    # Restore backup
+    genie import --input backup.json
+    ```
+
+    **Stay informed:**
+    - GitHub releases: [github.com/joshuapowell/genie/releases](https://github.com/joshuapowell/genie/releases)
+    - Discord announcements
+    - Newsletter (optional signup)
+  </Accordion>
+
+  <Accordion title="Can teams share collectives?" icon="share-nodes">
+    **Yes! Teams can collaborate on collectives through Forge.**
+
+    **Setup team collaboration:**
+    ```bash
+    # 1. Create Forge account and team
+    genie forge login
+    genie forge team create my-company
+
+    # 2. Invite team members
+    genie forge team invite user@company.com
+
+    # 3. Create team collective
+    genie collective create api-team --team my-company
+
+    # 4. Push to team
+    genie forge push api-team --team my-company
+    ```
+
+    **Team member access:**
+    ```bash
+    # Join team (after invitation)
+    genie forge team join my-company
+
+    # Pull team collectives
+    genie forge pull --team my-company
+
+    # Use team collective
+    genie collective run api-team --task "..."
+
+    # Push updates
+    genie collective update api-team
+    genie forge push api-team --team my-company
+    ```
+
+    **Permission levels:**
+    - **Owner**: Full control, can delete team
+    - **Admin**: Manage members, push/pull all collectives
+    - **Member**: Pull collectives, push approved ones
+    - **Viewer**: Read-only access
+
+    **Version control:**
+    ```bash
+    # Forge maintains version history
+    genie forge history api-team
+
+    # Rollback to previous version
+    genie forge rollback api-team --version 1.2.0
+
+    # Branch for experimentation
+    genie forge branch api-team --name experimental
+    ```
+
+    **Team workflow example:**
+    ```bash
+    # Developer A: Creates collective
+    genie collective create feature-team
+    genie forge push feature-team --team acme-corp
+
+    # Developer B: Uses and improves
+    genie forge pull --team acme-corp
+    genie collective run feature-team --task "Build feature"
+    genie agent add feature-team new-specialist
+    genie forge push feature-team --message "Added specialist agent"
+
+    # Developer C: Uses updated version
+    genie forge pull feature-team --team acme-corp
+    # Automatically gets latest with new-specialist
+    ```
+
+    **Best practices:**
+    - Use descriptive collective names
+    - Document collective purpose and usage
+    - Regular sync to avoid conflicts
+    - Use branches for major changes
+    - Communicate updates to team
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Genie is running very slowly" icon="gauge-simple">
+    **Common causes and solutions:**
+
+    **1. Too many concurrent agents:**
+    ```bash
+    # Check active agents
+    genie agent list
+
+    # Stop unused agents
+    genie agent stop --all
+
+    # Limit concurrent agents
+    genie config set MAX_CONCURRENT_AGENTS 2
+    ```
+
+    **2. Rate limiting:**
+    ```bash
+    # Check rate limit status
+    genie dashboard  # View "API Usage"
+
+    # Wait for rate limit reset (usually 1 minute)
+
+    # Reduce request frequency
+    genie config set REQUEST_DELAY 1000  # 1 second between requests
+    ```
+
+    **3. Large context:**
+    ```bash
+    # Reduce context window
+    genie config set MAX_CONTEXT_TOKENS 4000
+
+    # Clear large neurons
+    genie neuron list
+    genie neuron delete large-neuron
+    ```
+
+    **4. System resources:**
+    ```bash
+    # Check resource usage
+    genie dashboard
+
+    # Increase Node.js memory
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    genie restart
+
+    # Clean up old data
+    genie cleanup --all
+    ```
+
+    **5. Network latency:**
+    ```bash
+    # Test API response time
+    time genie agent run coder --task "simple test"
+
+    # Check network
+    ping api.anthropic.com
+
+    # Use closer API endpoint if available
+    genie config set API_ENDPOINT "https://api-europe.anthropic.com"
+    ```
+  </Accordion>
+
+  <Accordion title="Agent not responding or stuck" icon="spinner">
+    **Diagnosis and fixes:**
+
+    **1. Check agent status:**
+    ```bash
+    genie agent status <agent-id>
+    genie agent logs <agent-id>
+    ```
+
+    **2. Timeout issues:**
+    ```bash
+    # Increase timeout
+    genie agent run <agent-id> --timeout 300000  # 5 minutes
+
+    # Stop stuck agent
+    genie agent stop <agent-id>
+    ```
+
+    **3. Rate limit hit:**
+    ```bash
+    # Check rate limits
+    genie dashboard
+
+    # Wait and retry
+    sleep 60
+    genie agent run <agent-id> --task "..."
+    ```
+
+    **4. Invalid API key:**
+    ```bash
+    # Verify API key
+    genie config get ANTHROPIC_API_KEY
+
+    # Update if expired
+    export ANTHROPIC_API_KEY="new-key"
+    genie config set ANTHROPIC_API_KEY "new-key"
+    ```
+
+    **5. Model unavailable:**
+    ```bash
+    # Try different model
+    genie agent run coder --model gpt-4 --task "..."
+
+    # Check model availability
+    curl https://api.openai.com/v1/models
+    ```
+
+    **6. Complex task:**
+    ```bash
+    # Break into simpler subtasks
+    genie agent run researcher --task "Part 1: Research options"
+    genie agent run researcher --task "Part 2: Evaluate choices"
+    ```
+  </Accordion>
+
+  <Accordion title="MCP tools not showing up in IDE" icon="toolbox">
+    **Quick fix checklist:**
+
+    ```bash
+    # 1. Verify server is running
+    genie status
+
+    # 2. Restart server
+    genie restart
+
+    # 3. Regenerate IDE config
+    genie init --force
+
+    # 4. Restart IDE completely (not just reload window)
+
+    # 5. Check MCP configuration
+    cat ~/.claude/config.json  # or IDE-specific path
+
+    # 6. Test server directly
+    curl http://localhost:3000/tools
+
+    # 7. Check IDE logs for errors
+    # Claude Code: Help > Toggle Developer Tools > Console
+    ```
+
+    **Still not working?**
+    See [MCP Integration Errors](/genie/troubleshooting/mcp-integration-errors) for detailed troubleshooting.
+  </Accordion>
+
+  <Accordion title="Forge connection failed" icon="cloud-slash">
+    **Connection troubleshooting:**
+
+    **1. Check Forge status:**
+    ```bash
+    # Test Forge accessibility
+    curl https://forge.joshuapowell.ai/health
+
+    # Check your connection
+    genie forge status
+    ```
+
+    **2. Authentication issues:**
+    ```bash
+    # Re-login
+    genie forge logout
+    genie forge login
+
+    # Verify credentials
+    genie config get FORGE_API_TOKEN
+    ```
+
+    **3. Network issues:**
+    ```bash
+    # Test connectivity
+    ping forge.joshuapowell.ai
+
+    # Check if behind proxy
+    genie config set FORGE_PROXY "http://proxy.company.com:8080"
+
+    # Try with VPN if company network blocks
+    ```
+
+    **4. Forge outage:**
+    - Check status page: [status.forge.joshuapowell.ai](https://status.forge.joshuapowell.ai)
+    - Wait and retry
+    - Use local-only mode meanwhile
+
+    **5. Work offline:**
+    ```bash
+    # Disable Forge temporarily
+    genie config set FORGE_ENABLED false
+
+    # Work locally
+    genie collective run local-team --task "..."
+
+    # Re-enable when Forge back
+    genie config set FORGE_ENABLED true
+    genie forge sync
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Need More Help?
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="/genie/overview">
+    Complete guides and API reference
+  </Card>
+
+  <Card title="Common Issues" icon="wrench" href="/genie/troubleshooting/common-issues">
+    Solutions to frequent problems
+  </Card>
+
+  <Card title="GitHub Issues" icon="github" href="https://github.com/joshuapowell/genie/issues">
+    Report bugs and request features
+  </Card>
+
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/genie">
+    Get help from the community
+  </Card>
+</CardGroup>
+
+**Can't find your answer?**
+
+1. **Search documentation**: Use the search bar above
+2. **Check GitHub**: Issues and discussions
+3. **Ask in Discord**: Real-time community support
+4. **Create issue**: For bugs or feature requests
+5. **Email support**: support@joshuapowell.ai (paid support)

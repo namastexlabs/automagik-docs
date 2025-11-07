@@ -1,0 +1,174 @@
+---
+title: "Helper Commands"
+description: "Utility scripts for workspace management"
+icon: "wrench"
+---
+
+## Overview
+
+Helper commands are utility scripts in `.genie/scripts/helpers/`.
+
+**Usage:** `genie helper <command> [args]`
+
+**List all helpers:**
+```bash
+genie helper list
+```
+
+## Token Management
+
+### count-tokens
+
+Count tokens in a file.
+
+```bash
+genie helper count-tokens path/to/file.md
+# Output: 1,234 tokens
+```
+
+## Validation
+
+### validate-frontmatter
+
+Validate YAML frontmatter in markdown files.
+
+```bash
+genie helper validate-frontmatter .genie/
+# Checks all .md files in directory
+```
+
+### validate-links
+
+Validate @reference links.
+
+```bash
+genie helper validate-links .genie/
+```
+
+### validate-paths
+
+Validate file path references.
+
+```bash
+genie helper validate-paths .
+```
+
+## Detection
+
+### detect-markers
+
+Find TODO/FIXME/merge conflicts.
+
+```bash
+genie helper detect-markers .
+```
+
+### detect-todos
+
+Find TODO/FIXME/WIP in markdown.
+
+```bash
+genie helper detect-todos .genie/
+```
+
+### detect-unlabeled-blocks
+
+Find code blocks without language labels.
+
+```bash
+genie helper detect-unlabeled-blocks .genie/
+```
+
+### find-empty-sections
+
+Detect empty markdown sections.
+
+```bash
+genie helper find-empty-sections .genie/
+```
+
+## Git Integration
+
+### analyze-commit
+
+Analyze commit message.
+
+```bash
+genie helper analyze-commit
+# Analyzes staged changes
+```
+
+### check-secrets
+
+Detect potential secrets in code.
+
+```bash
+genie helper check-secrets --staged
+```
+
+## ACE Protocol
+
+### embeddings
+
+Check for duplicate learnings (semantic deduplication).
+
+```bash
+genie helper embeddings "new learning text" target-file.md "Section Name"
+# Output: Similarity: 0.85 (threshold: 0.85)
+```
+
+### bullet-id
+
+Generate IDs for learning bullets.
+
+```bash
+genie helper bullet-id file.md
+```
+
+### bullet-counter
+
+Update helpful/harmful counters.
+
+```bash
+genie helper bullet-counter file.md bullet-id increment|decrement
+```
+
+### bullet-find
+
+Query learning bullets.
+
+```bash
+genie helper bullet-find "search query"
+```
+
+## Generation
+
+### create-frontmatter
+
+Generate content-aware frontmatter.
+
+```bash
+genie helper create-frontmatter file.md
+```
+
+## Pre-commit Integration
+
+Example `.git/hooks/pre-commit`:
+
+```bash
+#!/bin/bash
+set -e
+
+# Run validations
+genie helper validate-frontmatter .genie/
+genie helper check-secrets --staged
+genie helper detect-markers .
+
+echo "✅ Pre-commit checks passed"
+```
+
+## Implementation
+
+All helpers: `.genie/scripts/helpers/*.js`
+
+Router: `.genie/scripts/helpers/index.js`

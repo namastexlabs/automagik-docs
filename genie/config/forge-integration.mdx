@@ -1,0 +1,676 @@
+---
+title: 'Forge Integration'
+description: 'Integrate Genie with Forge backend for persistent state, WebSocket neurons, and session management'
+icon: 'fire'
+---
+
+# Forge Integration
+
+Forge is the optional backend infrastructure that powers Genie's persistent state, real-time neuron streaming, and advanced session management. When integrated, Forge provides:
+
+- **Persistent state** - Postgres-backed session storage
+- **Worktree isolation** - Separate git worktrees per session
+- **Real-time neurons** - WebSocket-based orchestrator streaming
+- **Faster sessions** - Database state vs file-based state
+- **Dashboard UI** - Web interface for session monitoring
+
+## What is Forge?
+
+Forge is a Rust-based backend service that provides:
+
+### Core Features
+- **Session Management** - Create, resume, stop, list agent sessions
+- **Task Orchestration** - Background execution, queuing, prioritization
+- **State Persistence** - SQLite/Postgres storage for sessions and tasks
+- **Neuron Streaming** - Real-time WebSocket connections for orchestrators
+- **API Client** - 80+ type-safe endpoints for Genie integration
+
+### Architecture
+```
+┌─────────────┐
+│ Genie CLI   │
+└──────┬──────┘
+       │ HTTP/WS
+       ▼
+┌─────────────┐
+│ Forge       │ (Rust + Axum + SQLx)
+│ Backend     │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ Postgres    │
+│ Database    │
+└─────────────┘
+```
+
+## Integration Benefits
+
+### With Forge
+✅ **Persistent State** - Sessions survive CLI restarts
+✅ **Faster Startup** - Database state vs file parsing
+✅ **Worktree Isolation** - Each session in separate worktree
+✅ **Real-Time Streaming** - Live neuron thoughts via WebSocket
+✅ **Dashboard UI** - Visual session monitoring
+✅ **Better Performance** - 10-100x faster than file-based state
+
+### Without Forge
+⚠️ **File-Based State** - Sessions in `.genie/state/` files
+⚠️ **Slower Startup** - Parse JSON state files
+⚠️ **No Worktrees** - Sessions share workspace
+⚠️ **No Streaming** - Polling-based updates
+⚠️ **CLI Only** - No web dashboard
+⚠️ **Limited Scale** - Performance degrades with many sessions
+
+## Installation
+
+### Prerequisites
+```bash
+# Install Rust (required for Forge)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Install dependencies
+npm install -g automagik-genie@latest
+```
+
+### Install Forge
+
+**Option 1: Quick Start (Recommended)**
+```bash
+# Clone Forge repository
+git clone https://github.com/namastexlabs/automagik-forge.git
+cd automagik-forge
+
+# Install dependencies
+pnpm install
+
+# Run database migrations
+pnpm migrate
+
+# Start Forge backend
+pnpm dev
+```
+
+**Option 2: Docker**
+```bash
+# Run Forge in Docker
+docker run -p 8887:8887 namastexlabs/automagik-forge:latest
+```
+
+**Option 3: Binary Release**
+```bash
+# Download prebuilt binary
+curl -L https://github.com/namastexlabs/automagik-forge/releases/latest/download/forge-linux-x64 -o forge
+chmod +x forge
+
+# Run Forge
+./forge --port 8887
+```
+
+### Verify Installation
+```bash
+# Check Forge is running
+curl http://localhost:8887/health
+
+# Check Genie can connect
+genie status
+
+# Expected output:
+# 📦 Forge Backend: 🟢 Running
+#    URL: http://localhost:8887
+```
+
+## Configuration
+
+### Environment Variables
+
+Configure Forge connection in Genie:
+
+```bash
+# .env or shell profile
+export FORGE_BASE_URL=http://localhost:8887
+export FORGE_PORT=8887
+export MCP_PORT=8885
+```
+
+### Genie Configuration
+
+Update `.genie/config.yaml` for Forge integration:
+
+```yaml
+defaults:
+  executor: OPENCODE
+  executorVariant: DEFAULT
+  background: true
+
+# Forge executor configurations
+forge:
+  executors:
+    OPENCODE:
+      DEFAULT:
+        OPENCODE:
+          append_prompt: null
+          additional_params: []
+```
+
+### Forge Configuration
+
+Configure Forge backend in its `config.toml`:
+
+```toml
+[server]
+host = "0.0.0.0"
+port = 8887
+
+[database]
+url = "postgresql://user:pass@localhost/forge"
+
+[worktrees]
+base_path = "/tmp/forge-worktrees"
+cleanup_hours = 24
+
+[sessions]
+max_concurrent = 10
+timeout_seconds = 3600
+```
+
+## Session Management
+
+### Creating Sessions via Forge
+
+When Forge is running, Genie automatically uses Forge for session management:
+
+```bash
+# Create session (Forge-backed)
+genie run implementor "implement feature X"
+
+# Behind the scenes:
+# 1. Genie calls Forge API: POST /tasks
+# 2. Forge creates session in Postgres
+# 3. Forge allocates worktree
+# 4. Returns session_id to Genie
+# 5. Genie saves session reference in .genie/.session
+```
+
+### Session State Storage
+
+**With Forge:**
+```
+┌─────────────────┐
+│ Postgres        │
+│                 │
+│ sessions table  │
+│ ├─ session_id  │
+│ ├─ agent_id    │
+│ ├─ status      │
+│ ├─ transcript  │ (JSON)
+│ └─ metadata    │ (JSON)
+└─────────────────┘
+```
+
+**Without Forge:**
+```
+.genie/state/agents/
+├── sessions.json         # Session index
+└── logs/
+    └── <session_id>.log  # Session transcript
+```
+
+### Worktree Isolation
+
+Forge automatically creates separate git worktrees for each session:
+
+```bash
+/tmp/forge-worktrees/
+├── session-abc123/       # Session 1 worktree
+│   ├── .git/            # Linked to main repo
+│   ├── src/             # Session 1 changes
+│   └── ...
+└── session-def456/       # Session 2 worktree
+    ├── .git/            # Linked to main repo
+    ├── src/             # Session 2 changes
+    └── ...
+```
+
+**Benefits:**
+- Parallel sessions don't conflict
+- Each session on separate branch
+- Automatic cleanup after session ends
+- Prevents workspace pollution
+
+## Neuron Streaming
+
+### What are Neurons?
+
+Neurons are **persistent orchestrator agents** that stream their thoughts in real-time via WebSocket:
+
+- **WISH** - Feature wish creation
+- **FORGE** - Implementation breakdown
+- **REVIEW** - QA validation
+- **MASTER** - Master orchestration
+
+### Neuron Configuration
+
+Neurons are defined in `.genie/neurons/<name>.md`:
+
+```yaml
+---
+name: WISH
+description: Feature wish creation and validation
+forge_profile_name: WISH
+---
+
+# WISH Neuron
+
+You are the WISH neuron, responsible for...
+```
+
+### Streaming Connection
+
+```bash
+# Start Forge
+genie
+
+# Connect to WISH neuron
+genie talk wish
+
+# Behind the scenes:
+# 1. Genie opens WebSocket to Forge
+# 2. Subscribes to neuron thought stream
+# 3. Displays thoughts in real-time
+```
+
+### Neuron Thought Stream
+
+**Example WebSocket messages:**
+
+```json
+{
+  "timestamp": "2025-01-04T15:30:00Z",
+  "neuron": "wish",
+  "source": "diff",
+  "data": {
+    "op": "add",
+    "path": "/thinking",
+    "value": "Analyzing feature requirements..."
+  }
+}
+```
+
+```json
+{
+  "timestamp": "2025-01-04T15:30:05Z",
+  "neuron": "wish",
+  "source": "diff",
+  "data": {
+    "op": "add",
+    "path": "/sections/requirements",
+    "value": "- User authentication\n- OAuth 2.0 support\n- JWT tokens"
+  }
+}
+```
+
+### Accessing Neuron Streams
+
+**MCP Resource URIs:**
+```
+neuron://wish/stream     - WISH neuron thought stream
+neuron://forge/stream    - FORGE neuron thought stream
+neuron://review/stream   - REVIEW neuron thought stream
+neuron://master/stream   - MASTER neuron thought stream
+```
+
+**Usage in Claude:**
+```
+Read neuron://wish/stream to see WISH neuron's current thinking
+```
+
+## Session Persistence
+
+### Session Reference File
+
+When using Forge, Genie stores session metadata in `.genie/.session`:
+
+```json
+{
+  "session_id": "abc123",
+  "project_id": "def456",
+  "attempt_id": "ghi789",
+  "agent": "implementor",
+  "forge_url": "http://localhost:8887",
+  "dashboard_url": "http://localhost:8887/session/abc123"
+}
+```
+
+### Resume from Anywhere
+
+```bash
+# Session created in workspace A
+cd /path/to/workspace-a
+genie run implementor "feature X" --background
+
+# Resume from workspace B
+cd /path/to/workspace-b
+genie resume abc123 "continue implementation"
+
+# Forge handles:
+# - Session lookup in database
+# - Worktree access
+# - Context restoration
+```
+
+## Dashboard UI
+
+### Accessing Dashboard
+
+```bash
+# Start Forge (includes web UI)
+genie
+
+# Dashboard URL shown in output
+📊 Dashboard: http://localhost:8887
+```
+
+### Dashboard Features
+
+**Session List:**
+- View all active/paused/completed sessions
+- Filter by agent, status, date
+- Quick access to transcripts
+
+**Session Detail:**
+- Live transcript updates
+- File tree view
+- Token usage tracking
+- Session metadata
+
+**System Status:**
+- Active sessions count
+- Forge uptime
+- Database status
+- Worktree usage
+
+**Analytics:**
+- Agent utilization
+- Average session duration
+- Token consumption trends
+- Error rates
+
+## Troubleshooting
+
+### Forge Not Running
+
+**Symptom:** `genie status` shows "Forge Backend: 🔴 Down"
+
+**Solution:**
+```bash
+# Check Forge process
+ps aux | grep forge
+
+# Start Forge manually
+cd /path/to/automagik-forge
+pnpm dev
+
+# Or use Docker
+docker start automagik-forge
+```
+
+### Connection Refused
+
+**Symptom:** `Error: connect ECONNREFUSED 127.0.0.1:8887`
+
+**Solution:**
+```bash
+# Check Forge is listening
+curl http://localhost:8887/health
+
+# Check firewall
+sudo ufw status
+
+# Verify port not in use
+lsof -i :8887
+```
+
+### Worktree Conflicts
+
+**Symptom:** `Error: worktree already exists`
+
+**Solution:**
+```bash
+# List worktrees
+git worktree list
+
+# Remove stale worktrees
+git worktree prune
+
+# Or clean via Forge API
+curl -X DELETE http://localhost:8887/worktrees/cleanup
+```
+
+### Database Connection Failed
+
+**Symptom:** `Error: database connection failed`
+
+**Solution:**
+```bash
+# Check Postgres is running
+pg_isready
+
+# Verify connection string
+echo $DATABASE_URL
+
+# Run migrations
+cd /path/to/automagik-forge
+pnpm migrate
+```
+
+### Session Not Found
+
+**Symptom:** `Error: session not found`
+
+**Solution:**
+```bash
+# Check session exists in database
+curl http://localhost:8887/sessions
+
+# Check .genie/.session file
+cat .genie/.session
+
+# Recreate session
+genie run <agent> "<prompt>"
+```
+
+## Performance Tuning
+
+### Database Optimization
+
+```toml
+# config.toml
+[database]
+pool_size = 20               # Connection pool size
+max_lifetime_seconds = 300   # Connection lifetime
+```
+
+### Worktree Management
+
+```toml
+# config.toml
+[worktrees]
+base_path = "/tmp/forge-worktrees"  # Fast SSD recommended
+cleanup_hours = 24                  # Auto-cleanup after 24h
+max_worktrees = 50                  # Prevent disk exhaustion
+```
+
+### WebSocket Tuning
+
+```toml
+# config.toml
+[websocket]
+ping_interval_seconds = 30    # Keep-alive interval
+max_message_size = 1048576    # 1MB max message
+compression = true            # Enable compression
+```
+
+## Security Considerations
+
+### Network Security
+
+```bash
+# Only expose Forge on localhost (production)
+FORGE_HOST=127.0.0.1
+
+# Use reverse proxy for external access
+nginx proxy_pass http://127.0.0.1:8887;
+```
+
+### Authentication
+
+```bash
+# Enable authentication (Forge v2.0+)
+FORGE_AUTH_ENABLED=true
+FORGE_API_KEY=your-secret-key
+
+# Configure in Genie
+export FORGE_API_KEY=your-secret-key
+```
+
+### Worktree Isolation
+
+```bash
+# Worktrees isolated per user
+chown -R $USER:$USER /tmp/forge-worktrees
+
+# Prevent cross-session access
+chmod 700 /tmp/forge-worktrees/*
+```
+
+## Migration Guide
+
+### From File-Based to Forge
+
+**Step 1: Backup State**
+```bash
+cp -r .genie/state/ .genie/state.backup/
+```
+
+**Step 2: Install Forge**
+```bash
+git clone https://github.com/namastexlabs/automagik-forge.git
+cd automagik-forge
+pnpm install && pnpm migrate && pnpm dev
+```
+
+**Step 3: Verify Connection**
+```bash
+genie status
+# Expected: 📦 Forge Backend: 🟢 Running
+```
+
+**Step 4: Test Session Creation**
+```bash
+genie run implementor "test task"
+# Verify session created in Forge dashboard
+```
+
+**Step 5: Clean Old State (Optional)**
+```bash
+# After confirming Forge works
+rm -rf .genie/state.backup/
+```
+
+## API Reference
+
+### Forge Client
+
+Genie includes a TypeScript Forge client with 80+ type-safe endpoints:
+
+```typescript
+import { ForgeClient } from '@genie/forge-client';
+
+const forge = new ForgeClient('http://localhost:8887');
+
+// Create session
+const session = await forge.createAndStartTask({
+  project_id: PROJECT_ID,
+  title: "Implement feature X",
+  prompt: "Add user authentication",
+  executor: "OPENCODE",
+  profile: "DEFAULT"
+});
+
+// Get session status
+const status = await forge.getSessionStatus(session.session_id);
+
+// Stream neuron thoughts
+const stream = forge.subscribeToNeuron('wish', attempt_id);
+stream.on('thought', (thought) => {
+  console.log(thought);
+});
+```
+
+### Key Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/health` | GET | Health check |
+| `/tasks` | POST | Create task/session |
+| `/sessions/{id}` | GET | Get session details |
+| `/sessions/{id}/transcript` | GET | Get transcript |
+| `/sessions` | GET | List sessions |
+| `/worktrees` | GET | List worktrees |
+| `/ws/neurons/{name}` | WS | Neuron stream |
+
+## Best Practices
+
+### 1. Always Use Forge for Production
+```bash
+# Development: File-based OK
+genie run implementor "quick test"
+
+# Production: Always use Forge
+export FORGE_BASE_URL=http://localhost:8887
+genie run implementor "production task"
+```
+
+### 2. Monitor Forge Health
+```bash
+# Add to monitoring
+curl http://localhost:8887/health | jq '.status'
+
+# Set up alerts
+if [ $(curl -s http://localhost:8887/health | jq -r '.status') != "ok" ]; then
+  alert "Forge is down!"
+fi
+```
+
+### 3. Regular Worktree Cleanup
+```bash
+# Cron job for cleanup
+0 2 * * * curl -X DELETE http://localhost:8887/worktrees/cleanup
+```
+
+### 4. Backup Database
+```bash
+# Daily backups
+pg_dump forge > forge-backup-$(date +%Y%m%d).sql
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Files" icon="gear" href="/genie/config/configuration-files">
+    Main configuration file structure
+  </Card>
+
+  <Card title="Agent Configuration" icon="robot" href="/genie/config/agent-configuration">
+    Configure agents with YAML frontmatter
+  </Card>
+
+  <Card title="Quality Assurance" icon="shield-check" href="/genie/config/quality-assurance">
+    QA framework and testing protocols
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/genie/cli/commands">
+    Complete CLI command reference
+  </Card>
+</CardGroup>

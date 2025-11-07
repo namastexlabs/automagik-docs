@@ -1,0 +1,739 @@
+---
+title: "Common Issues"
+description: "Solutions to frequently encountered problems when using Genie"
+---
+
+## Installation Issues
+
+<AccordionGroup>
+  <Accordion title="Installation fails with 'npm ERR! code EACCES'" icon="triangle-exclamation">
+    **Symptoms:**
+    - Permission denied errors during `npm install -g @joshuapowell/genie-cli`
+    - Installation fails partway through
+    - Cannot write to global npm directories
+
+    **Cause:**
+    Global npm installations require elevated permissions on some systems.
+
+    **Solution:**
+    ```bash
+    # Option 1: Use npx (no installation needed)
+    npx @joshuapowell/genie-cli init
+
+    # Option 2: Install with sudo (Linux/Mac)
+    sudo npm install -g @joshuapowell/genie-cli
+
+    # Option 3: Configure npm to use user directory
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+    npm install -g @joshuapowell/genie-cli
+    ```
+
+    **Prevention:**
+    Configure npm to use a user-owned directory for global packages from the start.
+  </Accordion>
+
+  <Accordion title="'genie' command not found after installation" icon="terminal">
+    **Symptoms:**
+    - Installation completes successfully
+    - Running `genie` produces "command not found"
+    - `npm list -g` shows package is installed
+
+    **Cause:**
+    npm's global bin directory is not in your system PATH.
+
+    **Solution:**
+    ```bash
+    # Find where npm installs global packages
+    npm config get prefix
+
+    # Add to PATH (Linux/Mac - add to ~/.bashrc or ~/.zshrc)
+    export PATH="$(npm config get prefix)/bin:$PATH"
+
+    # Windows PowerShell - add to profile
+    $npmPath = npm config get prefix
+    $env:PATH += ";$npmPath"
+
+    # Reload your shell
+    source ~/.bashrc  # or restart terminal
+    ```
+
+    **Prevention:**
+    Ensure npm's global bin directory is in your PATH during Node.js installation.
+  </Accordion>
+
+  <Accordion title="Version conflicts with existing Node.js" icon="code-compare">
+    **Symptoms:**
+    - Installation fails with version compatibility errors
+    - Error: "Requires Node.js >= 18.0.0"
+    - Existing projects break after Node update
+
+    **Cause:**
+    Genie requires Node.js 18 or higher, but your system has an older version.
+
+    **Solution:**
+    ```bash
+    # Check current version
+    node --version
+
+    # Option 1: Use nvm (recommended)
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
+
+    # Option 2: Update Node.js directly
+    # Visit https://nodejs.org and download latest LTS
+
+    # Verify installation
+    node --version  # Should show v18.x.x or higher
+    ```
+
+    **Prevention:**
+    Use nvm to manage multiple Node.js versions for different projects.
+  </Accordion>
+
+  <Accordion title="Installation hangs at 'Downloading binaries...'" icon="spinner">
+    **Symptoms:**
+    - Installation starts but never completes
+    - Hangs during binary download phase
+    - No error messages, just stops responding
+
+    **Cause:**
+    Network issues, firewall blocking downloads, or npm registry problems.
+
+    **Solution:**
+    ```bash
+    # Clear npm cache
+    npm cache clean --force
+
+    # Try with different registry
+    npm install -g @joshuapowell/genie-cli --registry=https://registry.npmjs.org/
+
+    # Increase timeout
+    npm install -g @joshuapowell/genie-cli --fetch-timeout=60000
+
+    # Use proxy if behind corporate firewall
+    npm config set proxy http://proxy.company.com:8080
+    npm config set https-proxy http://proxy.company.com:8080
+    ```
+
+    **Prevention:**
+    Configure npm proxy settings if working in a corporate environment.
+  </Accordion>
+</AccordionGroup>
+
+## MCP Server Issues
+
+<AccordionGroup>
+  <Accordion title="MCP server fails to start" icon="server">
+    **Symptoms:**
+    - Server won't start after running `genie init`
+    - Error: "Could not start MCP server"
+    - Port already in use errors
+
+    **Cause:**
+    Port conflicts, missing dependencies, or configuration issues.
+
+    **Solution:**
+    ```bash
+    # Check if port is already in use
+    lsof -i :3000  # or netstat -ano | findstr :3000 on Windows
+
+    # Kill process using the port
+    kill -9 <PID>
+
+    # Reinitialize with different port
+    genie init --port 3001
+
+    # Check MCP server logs
+    cat ~/.genie/logs/mcp-server.log
+
+    # Verify Node.js is working
+    node --version
+    npm --version
+
+    # Restart the MCP server
+    genie restart
+    ```
+
+    **Prevention:**
+    - Check for port conflicts before starting Genie
+    - Use `genie status` to verify server state before operations
+  </Accordion>
+
+  <Accordion title="MCP server starts but tools don't appear in IDE" icon="plug">
+    **Symptoms:**
+    - Server status shows "running"
+    - IDE doesn't show Genie tools
+    - No error messages in logs
+
+    **Cause:**
+    IDE configuration not properly connected to MCP server.
+
+    **Solution:**
+    ```bash
+    # Verify server is accessible
+    curl http://localhost:3000/health
+
+    # Check IDE MCP configuration
+    # For Claude Code: Check ~/.claude/config.json
+    # For Cursor: Check cursor.json MCP settings
+    # For Cline: Check .cline/mcp.json
+
+    # Regenerate configuration
+    genie init --force
+
+    # Restart IDE after configuration
+    ```
+
+    **For Claude Code:**
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "node",
+          "args": ["/path/to/genie-mcp-server/build/index.js"],
+          "env": {
+            "GENIE_PORT": "3000"
+          }
+        }
+      }
+    }
+    ```
+
+    **Prevention:**
+    - Always run `genie init` in your project directory
+    - Verify IDE configuration after initialization
+    - Restart IDE after configuration changes
+  </Accordion>
+
+  <Accordion title="MCP server crashes randomly" icon="bomb">
+    **Symptoms:**
+    - Server stops responding during operations
+    - Agents fail mid-execution
+    - Error logs show "Unexpected disconnect"
+
+    **Cause:**
+    Memory issues, unhandled errors, or resource exhaustion.
+
+    **Solution:**
+    ```bash
+    # Check memory usage
+    genie dashboard
+
+    # Review crash logs
+    cat ~/.genie/logs/error.log
+
+    # Increase Node.js memory limit
+    export NODE_OPTIONS="--max-old-space-size=4096"
+
+    # Clean up old sessions
+    genie cleanup --sessions
+
+    # Update to latest version
+    npm update -g @joshuapowell/genie-cli
+
+    # Restart with debug mode
+    DEBUG=genie:* genie start
+    ```
+
+    **Prevention:**
+    - Regularly clean up old sessions with `genie cleanup`
+    - Monitor memory usage via dashboard
+    - Keep Genie updated to latest version
+  </Accordion>
+</AccordionGroup>
+
+## Agent Execution Errors
+
+<AccordionGroup>
+  <Accordion title="Agent fails to start with 'No API key found'" icon="key">
+    **Symptoms:**
+    - Agent initialization fails immediately
+    - Error mentions missing API key
+    - Works with some agents but not others
+
+    **Cause:**
+    Required API keys not configured in environment or .env file.
+
+    **Solution:**
+    ```bash
+    # Check current environment
+    genie config show
+
+    # Set API keys
+    export ANTHROPIC_API_KEY="your-key-here"
+    export OPENAI_API_KEY="your-key-here"
+
+    # Or add to .env file in project root
+    echo "ANTHROPIC_API_KEY=your-key-here" >> .env
+    echo "OPENAI_API_KEY=your-key-here" >> .env
+
+    # Verify configuration
+    genie config get ANTHROPIC_API_KEY
+
+    # Update agent configuration
+    genie agent update <agent-id> --api-key-from-env
+    ```
+
+    **Prevention:**
+    - Set up API keys before running `genie init`
+    - Use .env file for project-specific keys
+    - Never commit API keys to version control
+  </Accordion>
+
+  <Accordion title="Agent execution times out" icon="clock">
+    **Symptoms:**
+    - Agent starts but never completes
+    - Times out after 5 minutes
+    - No progress updates during execution
+
+    **Cause:**
+    Task too complex, model rate limits, or network issues.
+
+    **Solution:**
+    ```bash
+    # Increase timeout for complex tasks
+    genie agent run <agent-id> --timeout 600000  # 10 minutes
+
+    # Check rate limit status
+    genie dashboard
+
+    # Break task into smaller steps
+    genie agent run researcher --task "Step 1: Research frameworks"
+    genie agent run researcher --task "Step 2: Compare features"
+
+    # Use streaming mode for progress
+    genie agent run <agent-id> --stream
+
+    # Check agent logs
+    cat ~/.genie/logs/agents/<agent-id>.log
+    ```
+
+    **Prevention:**
+    - Break complex tasks into smaller, manageable steps
+    - Use collectives for coordinated multi-agent work
+    - Monitor rate limits via dashboard
+  </Accordion>
+
+  <Accordion title="Agent produces incorrect or incomplete results" icon="triangle-exclamation">
+    **Symptoms:**
+    - Agent completes but output is wrong
+    - Partial results returned
+    - Agent misunderstands the task
+
+    **Cause:**
+    Unclear prompt, insufficient context, or agent type mismatch.
+
+    **Solution:**
+    ```bash
+    # Use more specific prompt
+    genie agent run coder --task "Create a React component named Button that accepts onClick and children props"
+
+    # Provide context via spells
+    genie spell create context.md --content "Project uses TypeScript and Tailwind"
+    genie agent run coder --spell context.md --task "Create Button component"
+
+    # Use appropriate agent type
+    genie agent run researcher --task "..." # for research
+    genie agent run coder --task "..."      # for code
+    genie agent run analyst --task "..."    # for analysis
+
+    # Check agent configuration
+    genie agent inspect <agent-id>
+
+    # Try different model
+    genie agent run coder --model "gpt-4" --task "..."
+    ```
+
+    **Prevention:**
+    - Be specific and clear in task descriptions
+    - Choose the right agent type for the task
+    - Provide context through spells when needed
+  </Accordion>
+
+  <Accordion title="Agent gets stuck in infinite loop" icon="arrows-spin">
+    **Symptoms:**
+    - Agent repeats same action over and over
+    - No progress toward completion
+    - Memory/CPU usage increases continuously
+
+    **Cause:**
+    Agent autonomy loop without proper exit conditions.
+
+    **Solution:**
+    ```bash
+    # Stop the agent immediately
+    genie agent stop <agent-id>
+
+    # Check agent state
+    genie agent inspect <agent-id>
+
+    # Review execution log
+    cat ~/.genie/logs/agents/<agent-id>.log
+
+    # Restart with stricter constraints
+    genie agent run <agent-id> --max-iterations 10 --task "..."
+
+    # Clean up the session
+    genie cleanup --agent <agent-id>
+    ```
+
+    **Prevention:**
+    - Use `--max-iterations` flag for autonomous agents
+    - Set clear exit conditions in task descriptions
+    - Monitor agent execution via dashboard
+  </Accordion>
+</AccordionGroup>
+
+## Forge Integration Issues
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to Forge" icon="link-slash">
+    **Symptoms:**
+    - Connection refused errors
+    - "Forge unavailable" messages
+    - Forge features don't work
+
+    **Cause:**
+    Forge not running, incorrect URL, or authentication issues.
+
+    **Solution:**
+    ```bash
+    # Check Forge status
+    curl https://forge.joshuapowell.ai/health
+
+    # Verify Forge URL in config
+    genie config get FORGE_URL
+
+    # Update Forge URL if needed
+    genie config set FORGE_URL https://forge.joshuapowell.ai
+
+    # Test authentication
+    genie forge test
+
+    # Check for network issues
+    ping forge.joshuapowell.ai
+
+    # Try with local development Forge
+    genie config set FORGE_URL http://localhost:3001
+    ```
+
+    **Prevention:**
+    - Verify Forge URL during initial setup
+    - Keep Forge credentials secure and up-to-date
+    - Monitor Forge status page for outages
+  </Accordion>
+
+  <Accordion title="Forge authentication fails" icon="lock">
+    **Symptoms:**
+    - 401 Unauthorized errors
+    - Cannot access shared collectives
+    - Token expired messages
+
+    **Cause:**
+    Invalid credentials, expired tokens, or account issues.
+
+    **Solution:**
+    ```bash
+    # Re-authenticate with Forge
+    genie forge login
+
+    # Check current authentication status
+    genie forge status
+
+    # Clear cached credentials
+    rm ~/.genie/forge-token.json
+
+    # Login again
+    genie forge login
+
+    # Verify API token
+    genie config get FORGE_API_TOKEN
+    ```
+
+    **Prevention:**
+    - Store Forge credentials securely
+    - Refresh tokens before they expire
+    - Use environment variables for CI/CD
+  </Accordion>
+
+  <Accordion title="Cannot sync collectives to/from Forge" icon="cloud-arrow-up">
+    **Symptoms:**
+    - Sync fails with network errors
+    - Collectives don't appear in Forge
+    - Local changes don't push to Forge
+
+    **Cause:**
+    Network issues, permission problems, or version conflicts.
+
+    **Solution:**
+    ```bash
+    # Check sync status
+    genie forge sync-status
+
+    # Force sync
+    genie forge sync --force
+
+    # Pull latest from Forge
+    genie forge pull
+
+    # Push local changes
+    genie forge push
+
+    # Resolve conflicts
+    genie forge resolve-conflicts
+
+    # Check permissions
+    genie forge permissions
+    ```
+
+    **Prevention:**
+    - Sync regularly to avoid large conflicts
+    - Communicate with team before major changes
+    - Use branches for experimental work
+  </Accordion>
+</AccordionGroup>
+
+## Session Management Issues
+
+<AccordionGroup>
+  <Accordion title="Old sessions taking up too much space" icon="database">
+    **Symptoms:**
+    - ~/.genie directory is very large
+    - Slow performance
+    - Disk space warnings
+
+    **Cause:**
+    Sessions and logs accumulate over time.
+
+    **Solution:**
+    ```bash
+    # Check disk usage
+    du -sh ~/.genie
+
+    # Clean old sessions (keeps last 7 days)
+    genie cleanup --sessions --days 7
+
+    # Clean all old data
+    genie cleanup --all
+
+    # List sessions to clean manually
+    genie session list
+
+    # Delete specific session
+    genie session delete <session-id>
+
+    # Archive before cleaning
+    genie session archive --output ./genie-backup.tar.gz
+    ```
+
+    **Prevention:**
+    - Run `genie cleanup` weekly
+    - Set up automatic cleanup with cron job
+    - Monitor disk usage via dashboard
+  </Accordion>
+
+  <Accordion title="Cannot restore previous session" icon="clock-rotate-left">
+    **Symptoms:**
+    - Session restore fails
+    - Data corruption errors
+    - Missing session files
+
+    **Cause:**
+    Corrupted session data or incomplete saves.
+
+    **Solution:**
+    ```bash
+    # List available sessions
+    genie session list
+
+    # Try to repair session
+    genie session repair <session-id>
+
+    # Check session integrity
+    genie session validate <session-id>
+
+    # Restore from backup if available
+    genie session restore --backup ~/.genie/backups/<session-id>.json
+
+    # Start fresh session if unrecoverable
+    genie session new
+    ```
+
+    **Prevention:**
+    - Regularly backup important sessions
+    - Don't force-kill Genie processes
+    - Use `genie stop` for clean shutdown
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="Genie is running very slowly" icon="gauge-simple">
+    **Symptoms:**
+    - Commands take long to execute
+    - UI is sluggish
+    - High CPU/memory usage
+
+    **Cause:**
+    Resource exhaustion, too many concurrent agents, or system issues.
+
+    **Solution:**
+    ```bash
+    # Check system resources
+    genie dashboard
+
+    # Stop unused agents
+    genie agent stop --all
+
+    # Clean up resources
+    genie cleanup --all
+
+    # Reduce concurrent agents
+    genie config set MAX_CONCURRENT_AGENTS 2
+
+    # Restart Genie
+    genie restart
+
+    # Check system resources
+    top  # or Task Manager on Windows
+
+    # Increase Node.js memory
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    ```
+
+    **Prevention:**
+    - Limit concurrent agents (2-3 for most systems)
+    - Regular cleanup of old sessions
+    - Monitor resource usage via dashboard
+  </Accordion>
+
+  <Accordion title="Dashboard won't load or is very slow" icon="chart-line">
+    **Symptoms:**
+    - Dashboard page doesn't load
+    - Blank screen or infinite loading
+    - Connection timeouts
+
+    **Cause:**
+    Port conflicts, server not running, or browser issues.
+
+    **Solution:**
+    ```bash
+    # Check if server is running
+    genie status
+
+    # Restart Genie
+    genie restart
+
+    # Try different port
+    genie dashboard --port 3002
+
+    # Clear browser cache
+    # Chrome: Ctrl+Shift+Delete
+    # Firefox: Ctrl+Shift+Delete
+
+    # Try different browser
+    # Access via: http://localhost:3000
+
+    # Check firewall settings
+    # Ensure localhost connections are allowed
+    ```
+
+    **Prevention:**
+    - Keep only one Genie instance running
+    - Don't block localhost in firewall
+    - Use modern browser (Chrome, Firefox, Safari)
+  </Accordion>
+</AccordionGroup>
+
+## Permission & Security Errors
+
+<AccordionGroup>
+  <Accordion title="Permission denied when creating files" icon="lock">
+    **Symptoms:**
+    - Agents cannot write files
+    - EACCES errors in logs
+    - Operations fail silently
+
+    **Cause:**
+    Insufficient file system permissions.
+
+    **Solution:**
+    ```bash
+    # Check directory permissions
+    ls -la
+
+    # Fix ownership
+    sudo chown -R $USER:$USER .
+
+    # Fix permissions
+    chmod -R u+w .
+
+    # Verify Genie can write
+    touch test-file.txt
+    rm test-file.txt
+
+    # Run Genie with proper permissions
+    # Never use sudo with Genie!
+    ```
+
+    **Prevention:**
+    - Run Genie as regular user (never sudo)
+    - Ensure project directories have write permissions
+    - Check .gitignore doesn't block Genie files
+  </Accordion>
+
+  <Accordion title="API rate limit exceeded" icon="gauge-max">
+    **Symptoms:**
+    - 429 errors in logs
+    - "Rate limit exceeded" messages
+    - Agents fail after several successful runs
+
+    **Cause:**
+    Too many API requests to AI provider.
+
+    **Solution:**
+    ```bash
+    # Check rate limit status
+    genie dashboard
+
+    # Wait for rate limit reset (usually 1 minute)
+
+    # Reduce concurrent agents
+    genie config set MAX_CONCURRENT_AGENTS 1
+
+    # Use different API keys for different projects
+    export ANTHROPIC_API_KEY="project-specific-key"
+
+    # Upgrade API tier if needed
+    # Visit provider's website to upgrade plan
+    ```
+
+    **Prevention:**
+    - Space out agent executions
+    - Use appropriate rate limits in config
+    - Monitor usage via dashboard
+    - Consider upgrading API tier for heavy usage
+  </Accordion>
+</AccordionGroup>
+
+## Need More Help?
+
+If you're still experiencing issues:
+
+1. **Check the logs**: `cat ~/.genie/logs/error.log`
+2. **Enable debug mode**: `DEBUG=genie:* genie <command>`
+3. **Update Genie**: `npm update -g @joshuapowell/genie-cli`
+4. **Search GitHub Issues**: [github.com/joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+5. **Ask the community**: Join our Discord server
+6. **Report a bug**: Create a new GitHub issue with:
+   - Genie version: `genie --version`
+   - Node version: `node --version`
+   - Operating system
+   - Full error logs
+   - Steps to reproduce

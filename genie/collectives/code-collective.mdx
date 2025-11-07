@@ -1,0 +1,895 @@
+---
+title: "Code Collective"
+description: "Software development and technical execution with 34 specialized agents"
+icon: "code"
+---
+
+## Overview
+
+The **Code Collective** is Genie's software development department - a comprehensive team of 34 specialized agents that handle every aspect of technical work, from architecture to deployment.
+
+<Card title="Technical Excellence Through Specialization" icon="star">
+The Code Collective embodies engineering best practices through:
+- **Role-based expertise**: Each agent masters a specific discipline
+- **Collaborative workflows**: Agents coordinate seamlessly
+- **Quality gates**: Built-in review and validation
+- **Publishing protocols**: Automatic RC releases on merge
+</Card>
+
+---
+
+## 34 Specialized Agents
+
+The Code Collective includes 34 specialized agents organized by function:
+
+### Core Development Agents
+
+<AccordionGroup>
+  <Accordion title="implementor - Feature Implementation">
+    **Purpose**: Build new features and functionality
+
+    **Specialties**:
+    - Feature development
+    - Integration work
+    - API implementation
+    - Database operations
+
+    **When to Use**: Building new capabilities, extending functionality
+
+    ```bash
+    genie summon implementor "Add user authentication with JWT"
+    ```
+  </Accordion>
+
+  <Accordion title="tests - Test Creation & Validation">
+    **Purpose**: Ensure code quality through comprehensive testing
+
+    **Specialties**:
+    - Unit test creation
+    - Integration testing
+    - Test coverage analysis
+    - Test maintenance
+
+    **When to Use**: Writing tests, validating coverage, test refactoring
+
+    ```bash
+    genie summon tests "Create comprehensive tests for auth module"
+    ```
+  </Accordion>
+
+  <Accordion title="genie - Independent Architect">
+    **Purpose**: Pressure-test ideas and provide independent analysis
+
+    **Specialties**:
+    - Architecture review
+    - Design validation
+    - Alternative approaches
+    - Risk assessment
+
+    **When to Use**: Major decisions, architecture review, design validation
+
+    ```bash
+    genie summon genie "Review proposed microservices architecture"
+    ```
+  </Accordion>
+
+  <Accordion title="debug - Bug Investigation">
+    **Purpose**: Hunt down and fix bugs systematically
+
+    **Specialties**:
+    - Root cause analysis
+    - Bug reproduction
+    - Fix implementation
+    - Regression prevention
+
+    **When to Use**: Mysterious bugs, production issues, complex debugging
+
+    ```bash
+    genie summon debug "Investigate memory leak in WebSocket handler"
+    ```
+  </Accordion>
+
+  <Accordion title="audit - Security & Risk Analysis">
+    **Purpose**: Identify security vulnerabilities and risks
+
+    **Specialties**:
+    - Security auditing
+    - Vulnerability scanning
+    - Risk assessment
+    - Compliance checking
+
+    **When to Use**: Security reviews, pre-release audits, compliance needs
+
+    ```bash
+    genie summon audit "Security audit of authentication system"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Git & Release Management
+
+<AccordionGroup>
+  <Accordion title="git - Git Operations, PRs, Releases">
+    **Purpose**: Manage Git operations and release processes
+
+    **Specialties**:
+    - Pull request creation
+    - Branch management
+    - Release preparation
+    - Git workflow automation
+
+    **When to Use**: Creating PRs, managing releases, git automation
+
+    ```bash
+    genie summon git "Create PR for authentication feature"
+    ```
+  </Accordion>
+
+  <Accordion title="commit - Commit Advisory">
+    **Purpose**: Guide commit message creation
+
+    **Specialties**:
+    - Conventional Commits
+    - Meaningful messages
+    - Change categorization
+    - Breaking change documentation
+
+    **When to Use**: Staging commits, maintaining clean history
+
+    ```bash
+    genie summon commit "Review and suggest commit message"
+    ```
+  </Accordion>
+
+  <Accordion title="publish - Publishing Operations">
+    **Purpose**: Handle package publishing and deployment
+
+    **Specialties**:
+    - NPM publishing
+    - Version management
+    - Release automation
+    - Publishing protocols
+
+    **When to Use**: Publishing packages, managing versions
+
+    **Protocol**: Auto-RC on merge to main
+  </Accordion>
+</AccordionGroup>
+
+### Planning & Strategy
+
+<AccordionGroup>
+  <Accordion title="roadmap - Strategic Planning">
+    **Purpose**: Long-term planning and strategy
+
+    **Specialties**:
+    - Feature roadmapping
+    - Priority assessment
+    - Resource planning
+    - Strategic alignment
+
+    **When to Use**: Planning sprints, setting priorities, long-term strategy
+
+    ```bash
+    genie summon roadmap "Plan Q1 feature roadmap"
+    ```
+  </Accordion>
+
+  <Accordion title="architect - System Design">
+    **Purpose**: Design system architecture and components
+
+    **Specialties**:
+    - System architecture
+    - Component design
+    - Technology selection
+    - Scalability planning
+
+    **When to Use**: Designing new systems, major refactoring
+
+    ```bash
+    genie summon architect "Design microservices architecture"
+    ```
+  </Accordion>
+
+  <Accordion title="analyzer - Code Analysis">
+    **Purpose**: Analyze code quality and patterns
+
+    **Specialties**:
+    - Code analysis
+    - Pattern detection
+    - Complexity metrics
+    - Technical debt assessment
+
+    **When to Use**: Code reviews, refactoring planning
+
+    ```bash
+    genie summon analyzer "Analyze codebase for improvement opportunities"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Quality & Refinement
+
+<AccordionGroup>
+  <Accordion title="refactor - Code Refactoring">
+    **Purpose**: Improve code structure without changing behavior
+
+    **Specialties**:
+    - Code cleanup
+    - Pattern application
+    - Dependency reduction
+    - Structure improvement
+
+    **When to Use**: Cleaning up code, applying patterns, reducing complexity
+
+    ```bash
+    genie summon refactor "Refactor auth module to use dependency injection"
+    ```
+  </Accordion>
+
+  <Accordion title="polish - Code Polish & Enhancement">
+    **Purpose**: Final polish and refinement
+
+    **Specialties**:
+    - Code style
+    - Naming improvements
+    - Documentation cleanup
+    - Final touches
+
+    **When to Use**: Pre-release polish, code quality improvements
+
+    ```bash
+    genie summon polish "Polish and refine authentication module"
+    ```
+  </Accordion>
+
+  <Accordion title="qa - Quality Assurance">
+    **Purpose**: Comprehensive quality validation
+
+    **Specialties**:
+    - Quality validation
+    - Acceptance testing
+    - Edge case verification
+    - Standards compliance
+
+    **When to Use**: Pre-release validation, quality gates
+
+    ```bash
+    genie summon qa "QA validation of authentication feature"
+    ```
+  </Accordion>
+
+  <Accordion title="fix - Bug Fixing">
+    **Purpose**: Fix identified bugs and issues
+
+    **Specialties**:
+    - Bug fixes
+    - Regression fixes
+    - Hotfix implementation
+    - Patch creation
+
+    **When to Use**: Fixing known bugs, creating hotfixes
+
+    ```bash
+    genie summon fix "Fix login timeout bug"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Optimization & Performance
+
+<AccordionGroup>
+  <Accordion title="optimize - Performance Optimization">
+    **Purpose**: Improve performance and efficiency
+
+    **Specialties**:
+    - Performance tuning
+    - Algorithm optimization
+    - Resource efficiency
+    - Bottleneck elimination
+
+    **When to Use**: Performance issues, optimization work
+
+    ```bash
+    genie summon optimize "Optimize database query performance"
+    ```
+  </Accordion>
+
+  <Accordion title="benchmark - Performance Benchmarking">
+    **Purpose**: Measure and track performance
+
+    **Specialties**:
+    - Benchmark creation
+    - Performance measurement
+    - Regression detection
+    - Optimization validation
+
+    **When to Use**: Measuring performance, tracking improvements
+
+    ```bash
+    genie summon benchmark "Create benchmarks for API endpoints"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Documentation & Communication
+
+<AccordionGroup>
+  <Accordion title="documenter - Technical Documentation">
+    **Purpose**: Create technical documentation
+
+    **Specialties**:
+    - API documentation
+    - Architecture docs
+    - Technical guides
+    - Code comments
+
+    **When to Use**: Documenting code, API docs, technical guides
+
+    ```bash
+    genie summon documenter "Document authentication API"
+    ```
+  </Accordion>
+
+  <Accordion title="explainer - Code Explanation">
+    **Purpose**: Explain how code works
+
+    **Specialties**:
+    - Code walkthroughs
+    - Concept explanation
+    - Documentation review
+    - Clarity improvement
+
+    **When to Use**: Onboarding, knowledge sharing, complex code
+
+    ```bash
+    genie summon explainer "Explain how JWT authentication works"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Specialized Technical Agents
+
+<CardGroup cols={2}>
+  <Card title="migration" icon="arrows-turn-right">
+    **Data & Code Migration**
+
+    Database migrations, API migrations, dependency upgrades
+  </Card>
+
+  <Card title="integration" icon="plug">
+    **System Integration**
+
+    Third-party APIs, service integration, webhook handling
+  </Card>
+
+  <Card title="devops" icon="server">
+    **DevOps Operations**
+
+    CI/CD, deployment, infrastructure, monitoring
+  </Card>
+
+  <Card title="monitoring" icon="chart-line">
+    **System Monitoring**
+
+    Logging, metrics, alerts, observability
+  </Card>
+
+  <Card title="cli" icon="terminal">
+    **CLI Development**
+
+    Command-line tools, CLI design, user experience
+  </Card>
+
+  <Card title="api" icon="code-branch">
+    **API Development**
+
+    REST APIs, GraphQL, API design, versioning
+  </Card>
+
+  <Card title="database" icon="database">
+    **Database Work**
+
+    Schema design, queries, migrations, optimization
+  </Card>
+
+  <Card title="frontend" icon="browser">
+    **Frontend Development**
+
+    UI components, state management, user experience
+  </Card>
+
+  <Card title="backend" icon="server">
+    **Backend Development**
+
+    Server logic, business logic, data processing
+  </Card>
+
+  <Card title="security" icon="shield">
+    **Security Operations**
+
+    Authentication, authorization, encryption, compliance
+  </Card>
+
+  <Card title="performance" icon="gauge-high">
+    **Performance Engineering**
+
+    Profiling, optimization, caching, scaling
+  </Card>
+
+  <Card title="testing" icon="vial">
+    **Testing Specialist**
+
+    Test strategy, test frameworks, coverage, automation
+  </Card>
+
+  <Card title="reviewer" icon="magnifying-glass">
+    **Code Review**
+
+    Pull request review, code quality, best practices
+  </Card>
+
+  <Card title="tech-writer" icon="pen-to-square">
+    **Technical Writing**
+
+    Developer docs, tutorials, guides, examples
+  </Card>
+</CardGroup>
+
+---
+
+## Code-Specific Spells
+
+The Code Collective includes 13 behavioral protocols (spells):
+
+<Tabs>
+  <Tab title="Quality Spells">
+    **commit-advisory.md**
+    - Guide Conventional Commits
+    - Meaningful messages
+    - Breaking change warnings
+
+    **pr-standards.md**
+    - PR structure requirements
+    - Review checklist
+    - Quality gates
+
+    **code-quality.md**
+    - Quality standards
+    - Best practices
+    - Pattern guidelines
+  </Tab>
+
+  <Tab title="Process Spells">
+    **tdd-workflow.md**
+    - Test-driven development
+    - Red-Green-Refactor
+    - Test-first mindset
+
+    **ci-cd-protocol.md**
+    - Continuous integration
+    - Deployment automation
+    - Pipeline management
+
+    **release-protocol.md**
+    - Versioning strategy
+    - Changelog generation
+    - Publishing steps
+  </Tab>
+
+  <Tab title="Architecture Spells">
+    **architecture-review.md**
+    - Design validation
+    - Trade-off analysis
+    - Alternative evaluation
+
+    **security-first.md**
+    - Security by design
+    - Threat modeling
+    - Vulnerability prevention
+
+    **performance-focus.md**
+    - Performance considerations
+    - Optimization opportunities
+    - Resource efficiency
+  </Tab>
+
+  <Tab title="Collaboration Spells">
+    **tech-council.md**
+    - Collaborative decision-making
+    - Expert consensus
+    - Risk assessment
+
+    **pair-programming.md**
+    - Collaborative coding
+    - Knowledge sharing
+    - Real-time feedback
+
+    **code-review.md**
+    - Review best practices
+    - Constructive feedback
+    - Learning opportunities
+
+    **documentation-standard.md**
+    - Documentation requirements
+    - Clarity guidelines
+    - Maintenance protocols
+  </Tab>
+</Tabs>
+
+---
+
+## Workflows
+
+The Code Collective has three primary workflows:
+
+### 1. Wish Workflow
+
+**Purpose**: Define what you want to build
+
+<Steps>
+  <Step title="Capture Intent">
+    Express your wish in natural language
+
+    ```bash
+    genie wish "Add rate limiting to API endpoints"
+    ```
+  </Step>
+
+  <Step title="Specification">
+    Genie creates structured specification:
+    - Requirements
+    - Acceptance criteria
+    - Technical approach
+    - Dependencies
+  </Step>
+
+  <Step title="Review & Refine">
+    Review and adjust specification before implementation
+  </Step>
+</Steps>
+
+### 2. Forge Workflow
+
+**Purpose**: Execute implementation with coordinated agents
+
+<Steps>
+  <Step title="Planning">
+    - Break down into tasks
+    - Identify required agents
+    - Sequence operations
+  </Step>
+
+  <Step title="Implementation">
+    - **implementor** writes code
+    - **tests** creates tests
+    - **documenter** adds docs
+    - Agents coordinate automatically
+  </Step>
+
+  <Step title="Validation">
+    - **tests** validates coverage
+    - **qa** checks quality
+    - **audit** reviews security
+  </Step>
+
+  <Step title="Polish">
+    - **polish** refines code
+    - **refactor** improves structure
+    - **documenter** finalizes docs
+  </Step>
+</Steps>
+
+### 3. Review Workflow
+
+**Purpose**: Validate quality and ensure standards
+
+<Steps>
+  <Step title="Automated Checks">
+    - Linting
+    - Type checking
+    - Test execution
+    - Security scanning
+  </Step>
+
+  <Step title="Agent Review">
+    - **reviewer** examines code
+    - **audit** checks security
+    - **qa** validates quality
+  </Step>
+
+  <Step title="Tech Council">
+    Advisory team reviews complex changes:
+    - Architecture decisions
+    - Performance implications
+    - Security considerations
+  </Step>
+
+  <Step title="Approval & Merge">
+    - All checks pass
+    - Reviews approved
+    - Ready for merge
+  </Step>
+</Steps>
+
+---
+
+## Tech Council (Advisory Team)
+
+The **Tech Council** is an advisory team for complex technical decisions:
+
+<Card title="Tech Council Composition" icon="users">
+**Members**:
+- **architect** - System design perspective
+- **security** - Security implications
+- **performance** - Performance considerations
+- **genie** - Independent pressure-testing
+- **senior-dev** - Experience and wisdom
+
+**When to Convene**:
+- Major architecture decisions
+- Breaking changes
+- New technology adoption
+- Complex refactoring
+- Performance-critical changes
+</Card>
+
+```bash
+# Convene Tech Council for decision
+genie council tech "Evaluate GraphQL vs REST for new API"
+
+# Council reviews and provides recommendations:
+# - architect: "GraphQL provides flexibility..."
+# - security: "Consider rate limiting implications..."
+# - performance: "REST simpler, GraphQL requires careful query design..."
+# - genie: "Alternative: Start with REST, add GraphQL later..."
+```
+
+---
+
+## Publishing Protocol
+
+The Code Collective follows a strict publishing protocol:
+
+### Auto-RC on Merge
+
+When code is merged to `main`:
+
+<Steps>
+  <Step title="Automatic RC Creation">
+    - Generate RC version (e.g., `v1.2.0-rc.1`)
+    - Create changelog
+    - Tag release
+  </Step>
+
+  <Step title="RC Testing">
+    - Deploy to staging
+    - Run integration tests
+    - Monitor for issues
+  </Step>
+
+  <Step title="Promotion to Stable">
+    Manual promotion after validation:
+    ```bash
+    genie publish promote-rc v1.2.0-rc.1
+    ```
+  </Step>
+
+  <Step title="Stable Release">
+    - Remove RC suffix
+    - Publish to NPM
+    - Create GitHub release
+    - Announce to community
+  </Step>
+</Steps>
+
+### Version Management
+
+```bash
+# Check current version
+genie version current
+
+# Create release candidate
+genie publish rc "v1.2.0-rc.1"
+
+# Promote to stable
+genie publish promote "v1.2.0"
+
+# View publishing history
+genie publish history
+```
+
+---
+
+## Using Code Collective Agents
+
+### Summon Individual Agents
+
+```bash
+# Summon specific agent for a task
+genie summon implementor "Build user registration endpoint"
+genie summon tests "Create tests for registration"
+genie summon git "Create PR for registration feature"
+```
+
+### Coordinated Multi-Agent Work
+
+```bash
+# Genie coordinates multiple agents automatically
+genie forge wishes/user-registration.md
+
+# Behind the scenes:
+# 1. implementor writes code
+# 2. tests creates tests
+# 3. documenter adds docs
+# 4. audit checks security
+# 5. polish refines everything
+# 6. git creates PR
+```
+
+### Tech Council Consultation
+
+```bash
+# Get expert opinions on complex decisions
+genie council tech "Should we migrate from REST to GraphQL?"
+
+# Council members provide perspectives:
+# - architect: Design implications
+# - performance: Performance impact
+# - security: Security considerations
+# - genie: Alternative approaches
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Let Agents Specialize">
+    Don't ask one agent to do everything:
+
+    **Good**:
+    ```bash
+    genie summon implementor "Build feature"
+    genie summon tests "Test feature"
+    genie summon documenter "Document feature"
+    ```
+
+    **Not Ideal**:
+    ```bash
+    genie summon implementor "Build, test, and document feature"
+    # Better to let specialists handle each part
+    ```
+  </Accordion>
+
+  <Accordion title="Use Workflows for Coordination">
+    Let workflows coordinate agents:
+
+    ```bash
+    # Workflow handles coordination
+    genie forge wishes/feature.md
+
+    # Rather than manual coordination:
+    # genie summon implementor ...
+    # genie summon tests ...
+    # genie summon documenter ...
+    ```
+  </Accordion>
+
+  <Accordion title="Trust the Publishing Protocol">
+    Follow the RC → Stable flow:
+
+    1. Merge to main (auto RC creation)
+    2. Test RC thoroughly
+    3. Promote to stable when validated
+    4. Never skip RC for significant changes
+  </Accordion>
+
+  <Accordion title="Leverage Tech Council">
+    Use Tech Council for important decisions:
+
+    - Architecture changes
+    - Technology adoption
+    - Breaking changes
+    - Performance-critical work
+
+    Don't use for routine decisions - they're busy!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Example Workflows
+
+### Feature Development
+
+```bash
+# 1. Make a wish
+genie wish "Add OAuth2 authentication"
+
+# 2. Forge implementation (coordinates multiple agents)
+genie forge wishes/oauth2-auth.md
+
+# Agents involved:
+# - architect: Design OAuth2 flow
+# - implementor: Build authentication
+# - security: Review security
+# - tests: Create comprehensive tests
+# - documenter: Document API
+# - polish: Refine code
+
+# 3. Review before merge
+genie review wishes/oauth2-auth.md
+
+# 4. Create PR
+genie summon git "Create PR for OAuth2 authentication"
+
+# 5. Merge → Auto RC created
+git merge feature/oauth2
+
+# 6. Test RC
+genie test rc v2.0.0-rc.1
+
+# 7. Promote to stable
+genie publish promote v2.0.0-rc.1
+```
+
+### Bug Fix Workflow
+
+```bash
+# 1. Investigate
+genie summon debug "Memory leak in WebSocket handler"
+
+# 2. Implement fix
+genie summon fix "Fix WebSocket memory leak based on debug findings"
+
+# 3. Create regression test
+genie summon tests "Add test to prevent WebSocket memory leak regression"
+
+# 4. Review fix
+genie summon reviewer "Review WebSocket fix"
+
+# 5. Create PR
+genie summon git "Create PR for WebSocket memory leak fix"
+```
+
+### Refactoring Workflow
+
+```bash
+# 1. Analyze codebase
+genie summon analyzer "Analyze auth module for refactoring opportunities"
+
+# 2. Get Tech Council input
+genie council tech "Refactor auth to dependency injection pattern?"
+
+# 3. Execute refactoring
+genie summon refactor "Refactor auth module to use dependency injection"
+
+# 4. Validate behavior unchanged
+genie summon tests "Ensure all auth tests still pass"
+
+# 5. Polish
+genie summon polish "Polish refactored auth module"
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Collective" icon="wand-magic-sparkles" href="/genie/collectives/create-collective">
+    Learn about content creation and documentation
+  </Card>
+
+  <Card title="Custom Collectives" icon="plus" href="/genie/collectives/custom-collectives">
+    Build your own domain-specific collectives
+  </Card>
+
+  <Card title="Workflows" icon="diagram-project" href="/genie/workflows">
+    Deep dive into workflow orchestration
+  </Card>
+
+  <Card title="CLI Reference" icon="terminal" href="/genie/cli">
+    Complete CLI command reference
+  </Card>
+</CardGroup>

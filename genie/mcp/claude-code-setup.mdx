@@ -1,0 +1,673 @@
+---
+title: "Claude Code Setup"
+description: "Configure Genie MCP for Claude Desktop and Claude Code"
+icon: "brain"
+---
+
+## Claude Code MCP Setup
+
+Connect Genie to Claude Code in 3 minutes and unlock intelligent orchestration with persistent memory.
+
+<Info>
+Works with both **Claude Desktop** (GUI app) and **Claude Code** (CLI). Same configuration for both.
+</Info>
+
+---
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Automagik Tools">
+    ```bash
+    # Verify uvx is installed (comes with uv)
+    uvx --version
+
+    # Test Genie
+    uvx automagik-tools@latest serve --tool genie --transport stdio --help
+    ```
+  </Step>
+
+  <Step title="Get OpenAI API Key">
+    Genie requires OpenAI for its agentic capabilities:
+
+    1. Visit https://platform.openai.com/api-keys
+    2. Create new API key
+    3. Copy key (starts with `sk-`)
+
+    <Warning>Keep your API key secure - never commit to Git!</Warning>
+  </Step>
+</Steps>
+
+---
+
+## Configuration
+
+### Option 1: Basic Setup (Recommended)
+
+Genie as standalone orchestrator - perfect for most users.
+
+<Steps>
+  <Step title="Open Claude Code Settings">
+    **For Claude Desktop**:
+    - **macOS**: `Claude → Settings` or `Cmd + ,`
+    - **Windows**: `File → Settings` or `Ctrl + ,`
+    - **Linux**: `File → Settings` or `Ctrl + ,`
+
+    Navigate to **MCP Servers** section
+  </Step>
+
+  <Step title="Add Genie Configuration">
+    Click **Edit Config** or manually edit config file:
+
+    **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+    **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+    **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+    Add this configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "genie": {
+          "command": "uvx",
+          "args": [
+            "automagik-tools@latest",
+            "serve",
+            "--tool",
+            "genie",
+            "--transport",
+            "stdio"
+          ],
+          "env": {
+            "OPENAI_API_KEY": "sk-your-openai-key-here",
+            "GENIE_MODEL": "gpt-4o-mini"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `sk-your-openai-key-here` with your actual OpenAI API key.
+  </Step>
+
+  <Step title="Restart Claude Code">
+    Fully quit and restart Claude Code for changes to take effect.
+
+    **macOS**: `Cmd + Q` then reopen
+    **Windows/Linux**: Close all windows then reopen
+  </Step>
+
+  <Step title="Test Genie">
+    In Claude Code, try:
+    ```
+    "Use Genie to help me plan a user authentication feature"
+    ```
+
+    Claude should use the `ask_genie` MCP tool and Genie will respond with intelligent orchestration!
+  </Step>
+</Steps>
+
+### Option 2: Genie + Other MCP Tools
+
+Connect Genie with other Automagik tools for maximum power.
+
+```json
+{
+  "mcpServers": {
+    "genie": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "serve",
+        "--tool",
+        "genie",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-openai-key-here",
+        "GENIE_MODEL": "gpt-4o-mini"
+      }
+    },
+    "automagik": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "serve",
+        "--tool",
+        "automagik",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "AUTOMAGIK_AGENTS_API_KEY": "your-agents-key",
+        "AUTOMAGIK_AGENTS_BASE_URL": "http://localhost:8881"
+      }
+    },
+    "omni": {
+      "command": "uvx",
+      "args": [
+        "automagik-tools@latest",
+        "serve",
+        "--tool",
+        "omni",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "OMNI_API_URL": "http://localhost:3000/api",
+        "OMNI_API_KEY": "your-omni-key"
+      }
+    }
+  }
+}
+```
+
+**Now Claude can**:
+- Use Genie to orchestrate workflows intelligently
+- Access Automagik agent management directly
+- Control Omni messaging through Genie or directly
+
+---
+
+## Available Tools in Claude Code
+
+After setup, Claude will have access to these Genie tools:
+
+<CardGroup cols={1}>
+  <Card title="ask_genie" icon="wand-magic-sparkles">
+    **Primary orchestration tool** - ask Genie anything
+
+    Example usage:
+    ```
+    "Use Genie to analyze my project and suggest improvements"
+    "Ask Genie to help me plan this feature with task breakdown"
+    "Use Genie to coordinate between my code analysis and task tools"
+    ```
+
+    **Claude will call**: `ask_genie(query="your request", context="...")`
+  </Card>
+
+  <Card title="genie_memory_stats" icon="brain">
+    **View learned memories** - see what Genie remembers
+
+    Example usage:
+    ```
+    "Show me what Genie has learned about my preferences"
+    "What does Genie remember about my project?"
+    ```
+
+    **Claude will call**: `genie_memory_stats()`
+  </Card>
+
+  <Card title="genie_clear_memories" icon="trash">
+    **Clear memories** - reset Genie's learning (use with caution)
+
+    Example usage:
+    ```
+    "Clear Genie's memories about me"
+    "Reset Genie's learned preferences"
+    ```
+
+    **Claude will call**: `genie_clear_memories(confirm=true)`
+  </Card>
+</CardGroup>
+
+---
+
+## Usage Examples
+
+### Feature Planning
+
+```
+You: "Use Genie to help me plan a complete user authentication system
+     with JWT tokens, refresh tokens, and role-based access control"
+
+Claude: I'll use Genie to help plan this authentication system.
+
+[Uses ask_genie MCP tool]
+
+Genie's Response:
+I'll help you plan a comprehensive authentication system. Based on
+industry best practices, here's a structured breakdown:
+
+**Core Components:**
+
+1. Authentication Service
+   - User registration with email verification
+   - Login with JWT token generation
+   - Logout with token invalidation
+   - Password reset flow
+
+2. Token Management
+   - Short-lived access tokens (15 min)
+   - Long-lived refresh tokens (7 days)
+   - Token rotation on refresh
+   - Secure storage recommendations
+
+3. Authorization System
+   - Role-based access control (RBAC)
+   - Permission middleware
+   - Role hierarchy (Admin > Manager > User)
+
+4. Security Measures
+   - Bcrypt password hashing
+   - Rate limiting on auth endpoints
+   - CSRF protection
+   - XSS prevention
+
+Would you like me to break this down into specific tasks or start
+with implementation details for any component?
+```
+
+### Context-Aware Development
+
+```
+You: "Use Genie to help me with the next step in my project"
+
+Claude: [Uses ask_genie]
+
+Genie: Based on our previous conversations, I recall you're building
+a React TypeScript application with an Express backend. You recently
+completed the database schema setup and were working on API endpoints.
+
+Your next logical steps are:
+
+1. **API Validation Layer** - Add input validation middleware
+   (you mentioned preferring Zod for TypeScript)
+
+2. **Error Handling** - Implement centralized error handling
+   (following your convention of detailed error codes)
+
+3. **Unit Tests** - Add tests for the endpoints you created
+   (using Jest as per your preference)
+
+I remember you like to work on backend before frontend. Should I
+help you with the validation layer first?
+```
+
+### Learning Preferences
+
+```
+You: "Use Genie - I prefer TypeScript over JavaScript and always
+     want comprehensive error handling in my APIs"
+
+Claude: [Uses ask_genie]
+
+Genie: Thank you for sharing your preferences! I've stored this in
+my memory:
+
+✓ Language preference: TypeScript over JavaScript
+✓ Code quality: Comprehensive error handling required in APIs
+
+I'll always apply these preferences to my suggestions. I'm also
+noticing patterns from our past work:
+
+- You use async/await consistently
+- You follow RESTful conventions
+- You prefer functional programming patterns
+- You write tests for critical paths
+
+I'll continue learning from our interactions to provide increasingly
+personalized assistance. Is there anything else about your workflow
+I should remember?
+```
+
+### Multi-Tool Orchestration
+
+```
+You: "Use Genie to analyze my codebase and then create tasks for
+     improvements in Forge"
+
+Claude: I'll use Genie to coordinate this workflow across tools.
+
+[Uses ask_genie with dynamic MCP server configuration]
+
+Genie: I've analyzed your codebase and coordinated with Forge. Here's
+what I found and created:
+
+**Analysis Results:**
+- 247 files scanned
+- 5 improvement areas identified
+- Technical debt: Medium
+- Test coverage: 76%
+
+**Tasks Created in Forge:**
+✓ Task #42: Optimize database queries (HIGH)
+  - Found N+1 queries in user service
+  - Estimated impact: 40% performance improvement
+
+✓ Task #43: Improve API error handling (MEDIUM)
+  - 12 endpoints missing try-catch blocks
+  - Should add centralized error middleware
+
+✓ Task #44: Increase test coverage to 90% (MEDIUM)
+  - Auth module needs integration tests
+  - Payment flow missing edge case tests
+
+✓ Task #45: Update API documentation (LOW)
+  - 8 endpoints lack OpenAPI specs
+  - Response schemas need documentation
+
+✓ Task #46: Security scan findings (CRITICAL)
+  - Update dependencies with known CVEs
+  - Add rate limiting to auth endpoints
+
+I've prioritized based on your preference for performance and security.
+Should I help you start with task #42?
+```
+
+---
+
+## Configuration Options
+
+### Model Selection
+
+Choose Genie's AI model based on your needs:
+
+```json
+{
+  "env": {
+    "GENIE_MODEL": "gpt-4o-mini"  // Fast and cost-effective (recommended)
+    // or
+    "GENIE_MODEL": "gpt-4o"       // More capable but slower/costlier
+    // or
+    "GENIE_MODEL": "gpt-4-turbo"  // Balance of speed and capability
+  }
+}
+```
+
+**Model Comparison**:
+
+| Model | Speed | Cost | Intelligence | Best For |
+|-------|-------|------|--------------|----------|
+| `gpt-4o-mini` | ⚡⚡⚡ | 💰 | ⭐⭐⭐ | Daily development |
+| `gpt-4o` | ⚡⚡ | 💰💰💰 | ⭐⭐⭐⭐⭐ | Complex planning |
+| `gpt-4-turbo` | ⚡⚡ | 💰💰 | ⭐⭐⭐⭐ | Balanced tasks |
+
+### Memory Database Location
+
+Customize where Genie stores memories:
+
+```json
+{
+  "env": {
+    "GENIE_MEMORY_DB": "/Users/you/.genie/memory.db",
+    "GENIE_STORAGE_DB": "/Users/you/.genie/storage.db"
+  }
+}
+```
+
+Default locations:
+- **Memory DB**: `~/.genie/memory.db`
+- **Storage DB**: `~/.genie/storage.db`
+
+### Multiple Configurations
+
+Set up different Genie instances for different projects:
+
+```json
+{
+  "mcpServers": {
+    "genie-work": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "serve", "--tool", "genie"],
+      "env": {
+        "OPENAI_API_KEY": "sk-work-key",
+        "GENIE_MEMORY_DB": "~/.genie/work_memory.db"
+      }
+    },
+    "genie-personal": {
+      "command": "uvx",
+      "args": ["automagik-tools@latest", "serve", "--tool", "genie"],
+      "env": {
+        "OPENAI_API_KEY": "sk-personal-key",
+        "GENIE_MEMORY_DB": "~/.genie/personal_memory.db"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Genie not appearing in Claude">
+    **Check**:
+    1. Config file saved correctly
+    2. Valid JSON (no trailing commas)
+    3. OpenAI API key present
+    4. Claude fully restarted (not just window closed)
+
+    **Test manually**:
+    ```bash
+    uvx automagik-tools@latest serve --tool genie --transport stdio
+    ```
+
+    Should show: `Genie MCP server running on stdio`
+
+    Press Ctrl+C to stop, then restart Claude.
+  </Accordion>
+
+  <Accordion title="OpenAI API key error">
+    **Error**: `OPENAI_API_KEY environment variable is required`
+
+    **Solutions**:
+    1. Verify key in config file under `env.OPENAI_API_KEY`
+    2. Key should start with `sk-`
+    3. No quotes around the key value in JSON
+    4. Check for typos in key
+
+    **Test key**:
+    ```bash
+    curl https://api.openai.com/v1/models \
+      -H "Authorization: Bearer sk-your-key-here"
+    ```
+
+    Should return list of models if valid.
+  </Accordion>
+
+  <Accordion title="Empty responses from Genie">
+    **Symptom**: Genie returns "❌ Agent returned empty response"
+
+    **Causes**:
+    1. **API quota exhausted** - Check OpenAI usage dashboard
+    2. **Rate limit hit** - Wait 60 seconds and retry
+    3. **Invalid API key** - Regenerate key
+    4. **Network issues** - Check internet connection
+
+    **Quick fix**: Switch to `gpt-4o-mini` if using `gpt-4o`:
+    ```json
+    {
+      "env": {
+        "GENIE_MODEL": "gpt-4o-mini"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Genie doesn't remember previous conversations">
+    **Solutions**:
+    1. Check memory database exists:
+       ```bash
+       ls -la ~/.genie/memory.db
+       ```
+
+    2. Verify write permissions:
+       ```bash
+       chmod 755 ~/.genie/
+       chmod 644 ~/.genie/*.db
+       ```
+
+    3. Use consistent user_id (automatic in Claude Code)
+
+    4. Check for database corruption:
+       ```bash
+       sqlite3 ~/.genie/memory.db "PRAGMA integrity_check;"
+       ```
+  </Accordion>
+
+  <Accordion title="Slow responses from Genie">
+    **Solutions**:
+    1. Switch to faster model:
+       ```json
+       {
+         "env": {
+           "GENIE_MODEL": "gpt-4o-mini"
+         }
+       }
+       ```
+
+    2. Reduce query complexity
+
+    3. Check OpenAI API status: https://status.openai.com
+
+    4. Limit number of concurrent MCP tools Genie connects to
+  </Accordion>
+
+  <Accordion title="Can't connect to other MCP tools through Genie">
+    **Symptom**: Genie says "No MCP servers configured"
+
+    **Solution**: Pass MCP servers directly in query:
+
+    ```
+    "Use Genie with the Forge and Omni tools to help me"
+    ```
+
+    Claude will automatically pass the available MCP server configs to Genie.
+
+    Or configure them in Genie's environment (advanced):
+    ```json
+    {
+      "env": {
+        "GENIE_MCP_SERVERS": "{\"forge\":{\"command\":\"npx\",\"args\":[\"automagik-forge\",\"--mcp\"]}}"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Simple" icon="seedling">
+    Begin with basic queries to let Genie learn:
+
+    ```
+    "Use Genie to introduce yourself"
+    "Help me plan a simple feature"
+    ```
+
+    Build to complex orchestration over time.
+  </Card>
+
+  <Card title="Provide Context" icon="info-circle">
+    Give Genie project details upfront:
+
+    ```
+    "I'm working on a React TypeScript app
+    with Firebase. Help me add user profiles."
+    ```
+
+    Genie will remember for future sessions.
+  </Card>
+
+  <Card title="Tell Genie Preferences" icon="heart">
+    Explicitly state your workflow preferences:
+
+    ```
+    "I prefer async/await over promises"
+    "Always write tests for new features"
+    "Use TypeScript strict mode"
+    ```
+
+    Genie learns and applies these automatically.
+  </Card>
+
+  <Card title="Review Memories" icon="list-check">
+    Periodically check what Genie learned:
+
+    ```
+    "Show me what you remember about my preferences"
+    ```
+
+    Clear outdated memories if your preferences change.
+  </Card>
+</CardGroup>
+
+---
+
+## Advanced Usage
+
+### Dynamic Tool Connection
+
+Ask Genie to connect to additional tools on-demand:
+
+```
+You: "Use Genie to connect to my local Forge instance and Omni API,
+     then help me create tasks and send notifications"
+
+Claude: [Automatically passes available MCP configs to ask_genie]
+
+Genie: I've connected to:
+- Forge MCP Server (localhost:8080)
+- Omni MCP Server (localhost:3000)
+
+I now have access to task management and messaging capabilities.
+How can I help you orchestrate these tools?
+```
+
+### Session Management
+
+Use different sessions for different projects:
+
+```json
+{
+  "mcpServers": {
+    "genie-projectA": {
+      "env": {
+        "GENIE_MEMORY_DB": "~/.genie/projectA.db",
+        "OPENAI_API_KEY": "sk-..."
+      }
+    },
+    "genie-projectB": {
+      "env": {
+        "GENIE_MEMORY_DB": "~/.genie/projectB.db",
+        "OPENAI_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+Each instance maintains separate memories and context.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Overview" icon="book" href="/genie/mcp/overview">
+    Learn more about Genie's MCP integration
+  </Card>
+
+  <Card title="Genie Introduction" icon="wand-magic-sparkles" href="/genie/introduction">
+    Understand Genie's core capabilities
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/genie/quickstart">
+    Get started with Genie in 5 minutes
+  </Card>
+
+  <Card title="Custom Clients" icon="code" href="/genie/mcp/custom-clients">
+    Build your own MCP client for Genie
+  </Card>
+</CardGroup>
+
+---
+
+**Congratulations!** 🎉 Claude Code now has Genie's intelligent orchestration with persistent memory. Start asking Genie to help with your development workflows!
