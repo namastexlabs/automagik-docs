@@ -1,0 +1,179 @@
+---
+title: CLI Overview
+description: Introduction to the Automagik Spark command-line interface
+---
+
+## Introduction
+
+The Automagik Spark CLI provides a comprehensive command-line interface for managing workflow sources, schedules, tasks, and workers. The CLI is the primary way to interact with Spark for administrative tasks and operational management.
+
+## Installation
+
+Install the Automagik Spark package via pip:
+
+```bash
+pip install automagik-spark
+```
+
+After installation, the `automagik-spark` command will be available in your terminal.
+
+## Command Structure
+
+All Spark CLI commands follow a consistent structure:
+
+```bash
+automagik-spark <group> <command> [options]
+```
+
+Where:
+- **`<group>`**: The command group (sources, workflows, schedules, tasks, worker, api, db, telemetry)
+- **`<command>`**: The specific command within the group
+- **`[options]`**: Command-specific options and flags
+
+## Command Groups
+
+| Group | Description |
+|-------|-------------|
+| `sources` | Manage workflow sources (LangFlow, Hive) |
+| `workflows` | List, sync, run, and delete workflows |
+| `schedules` | Create and manage workflow schedules |
+| `tasks` | View task execution history and retry failed tasks |
+| `worker` | Start, stop, and monitor Celery workers |
+| `api` | Start the FastAPI REST server |
+| `db` | Database migrations and management |
+| `telemetry` | Manage telemetry and usage tracking settings |
+
+## Global Options
+
+These options are available for all commands:
+
+```bash
+automagik-spark --help                    # Show help for all commands
+automagik-spark --debug                   # Enable debug logging
+automagik-spark --no-telemetry           # Disable telemetry for this session
+automagik-spark --version                # Show version information
+```
+
+### Debug Mode
+
+Enable detailed logging output for troubleshooting:
+
+```bash
+automagik-spark --debug workflows list
+```
+
+### Telemetry
+
+By default, Spark collects anonymous usage analytics to improve the product. To disable telemetry:
+
+```bash
+# Disable for a single command
+automagik-spark --no-telemetry sources list
+
+# Disable permanently
+automagik-spark telemetry disable
+
+# Or set environment variable
+export AUTOMAGIK_SPARK_DISABLE_TELEMETRY=true
+```
+
+## Configuration
+
+### Environment Variables
+
+The CLI reads configuration from environment variables. Key variables include:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AUTOMAGIK_DATABASE_URL` | PostgreSQL connection string | Required |
+| `CELERY_BROKER_URL` | Redis broker URL for Celery | `redis://localhost:6379/0` |
+| `CELERY_RESULT_BACKEND` | Redis result backend URL | `redis://localhost:6379/0` |
+| `AUTOMAGIK_HOST` | API server host | `0.0.0.0` |
+| `AUTOMAGIK_PORT` | API server port | `8883` |
+| `AUTOMAGIK_API_KEY` | API authentication key | Required |
+| `ENCRYPTION_KEY` | Key for encrypting API credentials | Auto-generated |
+| `AUTOMAGIK_SPARK_DISABLE_TELEMETRY` | Disable telemetry | `false` |
+| `AUTOMAGIK_SPARK_LOG_LEVEL` | Log level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `AUTOMAGIK_SPARK_WORKER_LOG` | Worker log file path | `/var/log/automagik/worker.log` |
+
+### Configuration File
+
+Store environment variables in a `.env` file in your project directory:
+
+```bash
+# Database Configuration
+AUTOMAGIK_DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/spark
+
+# Redis Configuration
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# API Configuration
+AUTOMAGIK_HOST=0.0.0.0
+AUTOMAGIK_PORT=8883
+AUTOMAGIK_API_KEY=your-secret-api-key
+
+# Encryption
+ENCRYPTION_KEY=your-32-byte-encryption-key
+
+# Logging
+AUTOMAGIK_SPARK_LOG_LEVEL=INFO
+```
+
+The CLI automatically loads the `.env` file from the current directory.
+
+## Getting Help
+
+Each command group and command has built-in help:
+
+```bash
+# General help
+automagik-spark --help
+
+# Help for a command group
+automagik-spark sources --help
+
+# Help for a specific command
+automagik-spark sources add --help
+```
+
+## Quick Examples
+
+### Check System Status
+
+```bash
+# List all workflow sources
+automagik-spark sources list
+
+# Check worker status
+automagik-spark worker status
+
+# View recent tasks
+automagik-spark tasks list --limit 10
+```
+
+### Basic Workflow
+
+```bash
+# 1. Add a workflow source
+automagik-spark sources add \
+  --name my-langflow \
+  --type langflow \
+  --url http://localhost:7860 \
+  --api-key sk-abc123
+
+# 2. Sync workflows from source
+automagik-spark workflows sync
+
+# 3. Create a schedule
+automagik-spark schedules create
+
+# 4. Start the worker
+automagik-spark worker start
+```
+
+## Next Steps
+
+- [View all CLI commands](/spark/cli/commands)
+- [See practical examples](/spark/cli/examples)
+- [Complete the quickstart guide](/spark/quickstart)

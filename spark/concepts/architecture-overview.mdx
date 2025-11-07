@@ -1,0 +1,391 @@
+---
+title: "Architecture Overview"
+description: "How Spark's components work together to automate workflows"
+icon: "diagram-project"
+---
+
+## System Architecture
+
+Spark is built on a distributed task queue architecture that separates concerns: scheduling, execution, and state management. This design enables reliable 24/7 automation with horizontal scalability.
+
+```mermaid
+graph TB
+    subgraph "External Sources"
+        LF[LangFlow<br/>Port 7860]
+        HV[Hive<br/>Port 8881]
+    end
+
+    subgraph "Spark Core"
+        API[FastAPI Server<br/>Port 8883]
+        PG[(PostgreSQL<br/>Port 5402)]
+        RD[(Redis<br/>Port 5412)]
+
+        API -->|Read/Write| PG
+        API -->|Queue Tasks| RD
+    end
+
+    subgraph "Task Execution"
+        CB[Celery Beat<br/>Scheduler]
+        CW[Celery Workers<br/>Executors]
+
+        CB -->|Monitor Schedules| PG
+        CB -->|Create Tasks| RD
+        CW -->|Pick Tasks| RD
+        CW -->|Update Status| PG
+    end
+
+    subgraph "Workflow Adapters"
+        LA[LangFlow Adapter]
+        HA[Hive Adapter]
+
+        CW -->|Invoke| LA
+        CW -->|Invoke| HA
+    end
+
+    LA -->|API Calls| LF
+    HA -->|API Calls| HV
+
+    style API fill:#00D9FF,stroke:#333,stroke-width:2px,color:#000
+    style CB fill:#FF00FF,stroke:#333,stroke-width:2px,color:#000
+    style CW fill:#FF00FF,stroke:#333,stroke-width:2px,color:#000
+    style PG fill:#336791,stroke:#333,stroke-width:2px,color:#fff
+    style RD fill:#DC382D,stroke:#333,stroke-width:2px,color:#fff
+```
+
+## Core Components
+
+<CardGroup cols={2}>
+  <Card title="FastAPI Server" icon="server">
+    **REST API (Port 8883)**
+
+    HTTP server that handles all user interactions: creating sources, syncing workflows, managing schedules, and viewing task history. Built with FastAPI for async performance and automatic OpenAPI documentation.
+  </Card>
+
+  <Card title="PostgreSQL Database" icon="database">
+    **State Storage (Port 5402)**
+
+    Primary data store for all workflow metadata: sources, workflows, schedules, tasks, and execution results. Uses SQLAlchemy ORM with async support (asyncpg driver) for efficient database operations.
+  </Card>
+
+  <Card title="Redis" icon="memory">
+    **Task Queue (Port 5412)**
+
+    In-memory broker for Celery's task queue and result backend. Holds pending tasks waiting for workers and stores task results temporarily. Redis persistence enabled via appendonly mode.
+  </Card>
+
+  <Card title="Celery Beat" icon="clock">
+    **Schedule Monitor**
+
+    Dedicated process that continuously checks PostgreSQL for active schedules. When a schedule's time arrives (cron expression or interval), Beat creates a task and pushes it to Redis queue.
+  </Card>
+
+  <Card title="Celery Workers" icon="gears">
+    **Task Executors**
+
+    Worker processes that pull tasks from Redis queue, load the appropriate adapter, call the external source API, and save results to PostgreSQL. Scale horizontally by running multiple workers.
+  </Card>
+
+  <Card title="Workflow Adapters" icon="plug">
+    **Source Abstraction**
+
+    Adapter classes that translate Spark's generic task format into source-specific API calls. Each source (LangFlow, Hive) has its own adapter handling authentication, input/output mapping, and error normalization.
+  </Card>
+</CardGroup>
+
+## Data Flow: Schedule to Execution
+
+Here's exactly what happens when a schedule triggers a workflow execution:
+
+<Steps>
+  <Step title="Schedule Creation">
+    User creates a schedule via API/CLI:
+    ```bash
+    automagik-spark schedules create --workflow-id <uuid> \
+      --expression "0 9 * * *" --input '{"message": "Hello"}'
+    ```
+    Schedule stored in PostgreSQL with `status="active"` and calculated `next_run_at` timestamp.
+  </Step>
+
+  <Step title="Schedule Monitoring">
+    Celery Beat runs a loop every 5 seconds (configurable via `beat_max_loop_interval`):
+    - Queries PostgreSQL for schedules where `next_run_at <= NOW()`
+    - Uses custom `DatabaseScheduler` class (not file-based)
+    - Calculates next run time based on cron expression (via croniter library)
+  </Step>
+
+  <Step title="Task Creation">
+    When schedule time arrives, Beat:
+    - Creates Celery task: `execute_workflow_task.apply_async()`
+    - Pushes task to Redis queue with workflow ID and input data
+    - Updates schedule's `next_run_at` in PostgreSQL
+    - Creates Task record in PostgreSQL with `status="pending"`
+  </Step>
+
+  <Step title="Task Pickup">
+    Celery Worker (running in separate process):
+    - Polls Redis queue for pending tasks
+    - Picks up task using `worker_prefetch_multiplier=1` (one at a time)
+    - Updates Task record to `status="running"` in PostgreSQL
+  </Step>
+
+  <Step title="Adapter Invocation">
+    Worker loads workflow from PostgreSQL and:
+    - Identifies source type (langflow, automagik-hive)
+    - Instantiates appropriate adapter from registry
+    - Calls adapter's `run_flow_sync()` method with input data
+    - Adapter handles source-specific API authentication and request format
+  </Step>
+
+  <Step title="External API Call">
+    Adapter makes HTTP request to source:
+    - **LangFlow**: `POST /api/v1/run/{flow_id}` with tweaks mapping
+    - **Hive**: Different endpoints for agent/team/workflow types
+    - Includes API key in headers
+    - Handles session management and polling for results
+  </Step>
+
+  <Step title="Result Processing">
+    Adapter normalizes response into `WorkflowExecutionResult`:
+    ```python
+    WorkflowExecutionResult(
+        success=True,
+        result=response_data,
+        session_id=session_id,
+        run_id=run_id,
+        metadata={...}
+    )
+    ```
+    Worker saves result to Task record in PostgreSQL.
+  </Step>
+
+  <Step title="Status Update">
+    Worker updates Task record with:
+    - `status="completed"` or `status="failed"`
+    - `result` field with execution output
+    - `error` field if failed
+    - `completed_at` timestamp
+
+    User can view results via API: `GET /api/v1/tasks/{task_id}`
+  </Step>
+</Steps>
+
+## Port Configuration
+
+Spark uses non-standard ports to avoid conflicts with other services:
+
+| Component | Default Port | Environment Variable | Purpose |
+|-----------|--------------|---------------------|---------|
+| **API Server** | 8883 | `AUTOMAGIK_SPARK_API_PORT` | REST API endpoint |
+| **PostgreSQL** | 5402 | `AUTOMAGIK_SPARK_POSTGRES_PORT` | Database connections |
+| **Redis** | 5412 | `AUTOMAGIK_SPARK_REDIS_PORT` | Task queue broker |
+| **LangFlow** | 7860 | `LANGFLOW_PORT` | External workflow source |
+| **Hive** | 8881 | `AUTOMAGIK_API_PORT` | External agent source |
+
+<Note>
+All ports are configurable via environment variables. Default ports chosen to avoid conflicts with standard PostgreSQL (5432), Redis (6379), and other common services.
+</Note>
+
+## Connection Strings
+
+Spark uses these connection patterns:
+
+<Accordion title="PostgreSQL Connection">
+```bash
+# Format: postgresql+asyncpg://user:password@host:port/database
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://spark_user:spark_pass@localhost:5402/automagik_spark
+
+# Driver: asyncpg (async SQLAlchemy support)
+# Creates tables via Alembic migrations
+# Connection pooling via SQLAlchemy AsyncEngine
+```
+</Accordion>
+
+<Accordion title="Redis Connection">
+```bash
+# Broker (task queue)
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:5412/0
+
+# Result Backend (task results)
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:5412/0
+
+# Same Redis instance, database 0
+# Persistence: appendonly yes (for durability)
+```
+</Accordion>
+
+<Accordion title="API Authentication">
+```bash
+# API Key (X-API-Key header)
+AUTOMAGIK_SPARK_API_KEY=your-secret-key
+
+# Example request:
+curl -H "X-API-Key: your-secret-key" \
+  http://localhost:8883/api/v1/workflows
+```
+</Accordion>
+
+## How It All Works Together
+
+### Why PostgreSQL for Metadata?
+
+**Relational data needs relational storage.** Spark manages complex relationships:
+- Workflows belong to Sources
+- Schedules reference Workflows
+- Tasks track execution history
+- Components define workflow inputs/outputs
+
+PostgreSQL provides:
+- **ACID transactions** for schedule creation (ensure consistency)
+- **Foreign keys** to maintain referential integrity
+- **Indexes** for fast schedule lookups by `next_run_at`
+- **JSON columns** for flexible workflow data storage
+
+### Why Redis for Queuing?
+
+**Speed and simplicity.** Redis is optimized for the queue use case:
+- **In-memory performance** for sub-millisecond task pickup
+- **Pub/Sub support** for Celery's result backend
+- **Persistence** (appendonly) prevents task loss on restart
+- **Simple data structures** (lists, sets) match queue patterns
+
+Alternative (RabbitMQ) is overkill for Spark's workload. Redis handles thousands of tasks/second with minimal overhead.
+
+### Why Celery for Distributed Execution?
+
+**Proven, battle-tested architecture.** Celery provides:
+- **Horizontal scaling**: Add workers without code changes
+- **Reliability**: Task retry, result persistence, failure handling
+- **Scheduling**: Beat scheduler with database backend
+- **Monitoring**: Built-in task events and state tracking
+
+Celery separates scheduling (Beat) from execution (Workers), allowing:
+- Scale workers independently of scheduler
+- Multiple workers on different machines
+- Worker specialization (different queues)
+
+### Why Adapters for Source Abstraction?
+
+**Each source has unique APIs.** Adapters solve:
+
+**LangFlow specifics**:
+- Component-based I/O (tweaks mapping)
+- Session management for stateful flows
+- Different endpoints for running vs testing
+
+**Hive specifics**:
+- Three types: agent, team, workflow
+- Different endpoints per type
+- Different input/output formats
+
+**Common adapter interface** (`BaseWorkflowAdapter`) allows:
+- Add new sources without modifying core
+- Consistent error handling across sources
+- Unified result format (`WorkflowExecutionResult`)
+- Easy testing (mock adapters)
+
+### Design Principles
+
+<AccordionGroup>
+  <Accordion title="Separation of Concerns">
+    - **API layer**: HTTP interface only
+    - **Database layer**: State persistence only
+    - **Queue layer**: Task distribution only
+    - **Execution layer**: Workflow running only
+
+    Each component has one job. No circular dependencies.
+  </Accordion>
+
+  <Accordion title="Async by Default">
+    - FastAPI async handlers
+    - SQLAlchemy async engine (asyncpg)
+    - Celery async tasks
+
+    Maximizes throughput without blocking. API can handle concurrent requests while workers execute long-running workflows.
+  </Accordion>
+
+  <Accordion title="Database as Source of Truth">
+    - All schedules in PostgreSQL
+    - All task results in PostgreSQL
+    - Redis is ephemeral (queue only)
+
+    Restart any component without data loss. Redis can be flushed and rebuilt from PostgreSQL.
+  </Accordion>
+
+  <Accordion title="Idempotent Operations">
+    - Schedule sync doesn't duplicate workflows
+    - Task creation checks for existing tasks
+    - Adapter calls handle duplicate requests
+
+    Safe to retry operations. No side effects from re-runs.
+  </Accordion>
+</AccordionGroup>
+
+## Scalability & Reliability
+
+### Horizontal Scaling
+
+**Workers scale independently:**
+```bash
+# Run multiple workers
+automagik-spark workers start --concurrency 4  # Worker 1
+automagik-spark workers start --concurrency 4  # Worker 2
+automagik-spark workers start --concurrency 4  # Worker 3
+```
+
+Each worker pulls from the same Redis queue. No coordination needed.
+
+### Failure Handling
+
+**Tasks retry automatically:**
+- Celery default: 3 retries with exponential backoff
+- Task state persisted in PostgreSQL
+- Failed tasks can be manually retried via API
+
+**Worker crashes:**
+- Task remains in queue
+- Another worker picks it up
+- No data loss (state in PostgreSQL)
+
+**Database failures:**
+- Workers wait for database to recover
+- Beat pauses schedule checks
+- API returns 503 (service unavailable)
+
+### Monitoring
+
+**Track system health:**
+```bash
+# View active schedules
+automagik-spark schedules list
+
+# View recent tasks
+automagik-spark tasks list --limit 50
+
+# Worker status (check logs)
+automagik-spark workers start  # Shows active schedules on startup
+```
+
+**Task execution logs:**
+- Stored in PostgreSQL (`tasks` table)
+- Includes: start time, end time, status, result, error
+- Query via API: `GET /api/v1/tasks?status=failed`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="download" href="/spark/installation">
+    Set up PostgreSQL, Redis, and Spark components
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/spark/quickstart">
+    Create your first schedule in 5 minutes
+  </Card>
+
+  <Card title="API Reference" icon="code" href="/spark/api/rest-overview">
+    Explore all API endpoints and parameters
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/spark/cli/overview">
+    Learn command-line management tools
+  </Card>
+</CardGroup>

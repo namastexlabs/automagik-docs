@@ -1,0 +1,281 @@
+---
+title: "REST API Overview"
+description: "Complete reference for the Spark REST API"
+---
+
+## Base URL
+
+All API endpoints are available at:
+
+```
+http://localhost:8883/api/v1
+```
+
+The default port is **8883**. You can configure this via the `API_PORT` environment variable.
+
+## Authentication
+
+All API requests require authentication using an API key in the request header:
+
+```bash
+X-API-Key: your-api-key-here
+```
+
+### Generating an API Key
+
+Generate a secure API key using:
+
+```bash
+openssl rand -hex 32
+```
+
+Then set it in your `.env` file:
+
+```bash
+SPARK_API_KEY=your-generated-api-key
+```
+
+<Warning>
+**Security**: Never commit API keys to version control. Always use environment variables for sensitive configuration.
+</Warning>
+
+## Request Format
+
+### HTTP Methods
+
+The API uses standard HTTP methods:
+
+- **GET**: Retrieve resources
+- **POST**: Create resources or trigger actions
+- **PATCH**: Update existing resources (partial)
+- **PUT**: Replace existing resources (full)
+- **DELETE**: Remove resources
+
+### Content Type
+
+All POST, PATCH, and PUT requests should include:
+
+```bash
+Content-Type: application/json
+```
+
+### Request Body
+
+Request bodies must be valid JSON:
+
+```json
+{
+  "name": "example",
+  "source_type": "langflow",
+  "url": "http://localhost:7860"
+}
+```
+
+## Response Format
+
+### Success Responses
+
+Successful responses return the appropriate HTTP status code and JSON data:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "my-source",
+  "status": "active",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:00:00Z"
+}
+```
+
+### Paginated Responses
+
+List endpoints return paginated results:
+
+```json
+{
+  "items": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "example"
+    }
+  ],
+  "total": 42,
+  "limit": 50,
+  "offset": 0,
+  "has_more": false
+}
+```
+
+**Pagination Parameters**:
+- `limit`: Number of items per page (default: 50, max: 100)
+- `offset`: Number of items to skip (default: 0)
+
+### Error Responses
+
+Errors return appropriate HTTP status codes and a JSON error object:
+
+```json
+{
+  "detail": "Source not found"
+}
+```
+
+## HTTP Status Codes
+
+| Status Code | Meaning | When Used |
+|------------|---------|-----------|
+| **200** | OK | Successful GET, PATCH, PUT, or DELETE request |
+| **201** | Created | Successful POST request that creates a resource |
+| **400** | Bad Request | Invalid request data, validation error, or operation failed |
+| **401** | Unauthorized | Missing or invalid API key |
+| **404** | Not Found | Resource does not exist |
+| **500** | Internal Server Error | Unexpected server error |
+
+## Common Error Codes
+
+### 400 Bad Request
+
+Returned when:
+- Invalid JSON in request body
+- Missing required fields
+- Invalid field values or types
+- Source validation fails (e.g., cannot connect to workflow source)
+- Resource already exists (e.g., duplicate URL for sources)
+- Operation fails (e.g., failed to create schedule)
+
+**Example**:
+```json
+{
+  "detail": "Source with URL http://localhost:7860 already exists"
+}
+```
+
+### 401 Unauthorized
+
+Returned when:
+- No `X-API-Key` header provided
+- Invalid API key provided
+
+**Example**:
+```json
+{
+  "detail": "Invalid API key"
+}
+```
+
+### 404 Not Found
+
+Returned when:
+- Requested resource ID does not exist
+- Endpoint does not exist
+
+**Example**:
+```json
+{
+  "detail": "Workflow not found"
+}
+```
+
+## Rate Limiting
+
+<Tip>
+**No Rate Limiting**: Spark does not implement rate limiting. You can make as many requests as your system can handle.
+</Tip>
+
+This is intentional for local/private deployments. If deploying publicly, implement rate limiting at the reverse proxy level (e.g., nginx, Traefik).
+
+## API Versioning
+
+The current API version is **v1**, indicated in the URL path:
+
+```
+/api/v1/sources
+```
+
+Future breaking changes will increment the version number (v2, v3, etc.). Non-breaking changes will be added to the current version.
+
+## Cross-Origin Requests (CORS)
+
+CORS is **enabled** for all origins by default. Configure CORS settings via environment variables:
+
+```bash
+# Allow specific origins
+CORS_ORIGINS=http://localhost:3000,https://app.example.com
+
+# Or allow all origins (default)
+CORS_ORIGINS=*
+```
+
+## Example Request
+
+Here's a complete example of making an API request:
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:8883/api/v1/sources \
+  -H "X-API-Key: your-api-key-here" \
+  -H "Accept: application/json"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8883/api/v1/sources",
+    headers={
+        "X-API-Key": "your-api-key-here",
+        "Accept": "application/json"
+    }
+)
+
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8883/api/v1/sources', {
+  method: 'GET',
+  headers: {
+    'X-API-Key': 'your-api-key-here',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+## Available Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Sources API" icon="database" href="/spark/api/sources">
+    Manage workflow sources (LangFlow, Hive)
+  </Card>
+
+  <Card title="Workflows API" icon="diagram-project" href="/spark/api/workflows">
+    Sync and run workflows
+  </Card>
+
+  <Card title="Schedules API" icon="clock" href="/spark/api/schedules">
+    Create and manage cron schedules
+  </Card>
+
+  <Card title="Tasks API" icon="play" href="/spark/api/tasks">
+    Monitor task executions
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+<Tip>
+Use the `--help` flag with any CLI command to see available options:
+
+```bash
+automagik-spark --help
+automagik-spark sources --help
+```
+</Tip>
+
+For issues or questions, check the [troubleshooting guide](/spark/troubleshooting/common-errors).

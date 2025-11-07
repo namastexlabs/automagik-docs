@@ -1,0 +1,1140 @@
+---
+title: "Production Setup"
+description: "Complete production deployment guide - database setup, security, backups, logging, and troubleshooting for Automagik Spark"
+---
+
+This guide covers production deployment configuration for Automagik Spark. For a quick reference of environment variables, see [Environment Variables](/spark/config/environment-variables).
+
+## Database Configuration
+
+### PostgreSQL Setup
+
+Automagik Spark requires PostgreSQL 12 or higher for production use.
+
+#### Connection String Format
+
+```
+postgresql+asyncpg://username:password@host:port/database
+```
+
+**Components:**
+- `postgresql+asyncpg://` - Required protocol and driver
+- `username` - PostgreSQL username
+- `password` - PostgreSQL password (URL-encoded if contains special characters)
+- `host` - Database server hostname or IP
+- `port` - PostgreSQL port (default: 5432)
+- `database` - Database name
+
+#### Create Database
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE automagik_spark;
+
+# Create user (optional)
+CREATE USER spark_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE automagik_spark TO spark_user;
+```
+
+#### Run Migrations
+
+After configuring the database URL, initialize the database schema:
+
+```bash
+# Install Spark with CLI
+pip install automagik-spark
+
+# Run migrations
+automagik-spark db upgrade
+```
+
+<Tip>
+  **Migration Commands:**
+  - `automagik-spark db upgrade` - Apply all pending migrations
+  - `automagik-spark db downgrade` - Rollback last migration
+  - `automagik-spark db current` - Show current migration version
+</Tip>
+
+#### Connection Pooling
+
+For production deployments, configure PostgreSQL connection pooling:
+
+```bash
+# Database URL with pool settings
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db?pool_size=20&max_overflow=10
+```
+
+**Recommended pool settings:**
+- `pool_size=20` - Base connection pool size
+- `max_overflow=10` - Additional connections during peak load
+- Adjust based on worker concurrency and expected load
+
+#### Backup Strategy
+
+**Automated Backups:**
+
+Create a daily backup script:
+
+```bash
+#!/bin/bash
+# /usr/local/bin/backup-spark-db.sh
+
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/var/backups/automagik-spark"
+DB_HOST="localhost"
+DB_PORT="5402"
+DB_NAME="automagik_spark"
+DB_USER="spark_user"
+
+# Create backup directory if not exists
+mkdir -p "$BACKUP_DIR"
+
+# Run backup
+pg_dump -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" > "$BACKUP_DIR/backup_$DATE.sql"
+
+# Compress backup
+gzip "$BACKUP_DIR/backup_$DATE.sql"
+
+# Delete backups older than 30 days
+find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +30 -delete
+
+echo "Backup completed: backup_$DATE.sql.gz"
+```
+
+**Make script executable:**
+```bash
+chmod +x /usr/local/bin/backup-spark-db.sh
+```
+
+**Schedule with cron:**
+```bash
+# Run daily at 2 AM
+crontab -e
+
+# Add this line:
+0 2 * * * /usr/local/bin/backup-spark-db.sh >> /var/log/spark-backup.log 2>&1
+```
+
+**Restore from Backup:**
+
+```bash
+# Decompress backup
+gunzip backup_20250101_120000.sql.gz
+
+# Restore database
+psql -U spark_user -h localhost -p 5402 automagik_spark < backup_20250101_120000.sql
+```
+
+<Warning>
+  Always test your backup restoration process before you need it in production!
+</Warning>
+
+---
+
+## Redis Configuration
+
+### Redis Setup
+
+Redis is used for Celery task queue and result storage.
+
+#### Connection String Format
+
+```
+redis://[password@]host:port/database
+```
+
+**With password:**
+```bash
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:your_password@localhost:6379/0
+```
+
+**Without password:**
+```bash
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:6379/0
+```
+
+#### Redis Database Numbers
+
+Use different database numbers for organization:
+
+```bash
+# Broker on DB 0
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:6379/0
+
+# Results on DB 1
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:6379/1
+
+# Sessions on DB 2 (if needed for other components)
+# redis://localhost:6379/2
+```
+
+#### Memory Management
+
+Configure Redis memory limits in `redis.conf`:
+
+```conf
+# Maximum memory (adjust based on your needs)
+maxmemory 256mb
+
+# Eviction policy (remove least recently used keys)
+maxmemory-policy allkeys-lru
+
+# Save to disk periodically
+save 900 1      # Save if 1 key changed in 900 seconds
+save 300 10     # Save if 10 keys changed in 300 seconds
+save 60 10000   # Save if 10000 keys changed in 60 seconds
+```
+
+#### Persistence
+
+For production, enable Redis persistence:
+
+```conf
+# Append-only file for durability
+appendonly yes
+appendfsync everysec
+
+# AOF rewrite configuration
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+```
+
+#### Health Check
+
+Verify Redis connectivity:
+
+```bash
+# Test connection
+redis-cli ping
+# Expected output: PONG
+
+# With password
+redis-cli -a your_password ping
+
+# Check memory usage
+redis-cli info memory
+
+# Check key count per database
+redis-cli INFO keyspace
+```
+
+---
+
+## Celery Configuration
+
+### Worker Configuration
+
+#### Concurrency
+
+Set worker concurrency based on workload:
+
+```bash
+# CPU-bound tasks: number of CPU cores
+CELERY_WORKER_CONCURRENCY=4
+
+# I/O-bound tasks: 2-3x CPU cores
+CELERY_WORKER_CONCURRENCY=8
+```
+
+**Determining optimal concurrency:**
+
+```bash
+# Check CPU cores
+nproc
+
+# Monitor worker performance
+celery -A automagik_spark.core.celery.celery_app inspect active
+```
+
+#### Task Queues
+
+Spark uses three priority queues:
+
+| Queue | Priority | Use Case |
+|-------|----------|----------|
+| `high_priority` | High | Urgent tasks, manual runs |
+| `default` | Normal | Scheduled workflows |
+| `low_priority` | Low | Background jobs, cleanup |
+
+**Start workers for specific queues:**
+
+```bash
+# Worker for high priority only
+celery -A automagik_spark.core.celery.celery_app worker -Q high_priority -c 2
+
+# Worker for all queues
+celery -A automagik_spark.core.celery.celery_app worker -Q high_priority,default,low_priority -c 4
+```
+
+#### Retry Policies
+
+Built-in retry configuration (from `celery_app.py`):
+
+```python
+task_retry_max_retries=3          # Max 3 retries
+task_retry_backoff=True           # Exponential backoff
+task_retry_backoff_max=600        # Max 10 minutes between retries
+```
+
+**Customize for specific tasks:**
+
+Tasks automatically retry on failure with exponential backoff: 1 min → 2 min → 4 min → 8 min (up to 10 min max).
+
+#### Task Timeouts
+
+```python
+task_time_limit=3600              # Hard limit: 1 hour
+task_soft_time_limit=3300         # Soft limit: 55 minutes
+```
+
+<Warning>
+  Tasks exceeding `task_time_limit` are killed. Increase for long-running workflows by modifying `celery_app.py`.
+</Warning>
+
+#### Worker Memory Limits
+
+```python
+worker_max_tasks_per_child=100          # Restart after 100 tasks
+worker_max_memory_per_child=200000      # 200MB memory limit
+```
+
+**Monitor worker memory:**
+
+```bash
+# Check worker processes
+ps aux | grep celery | grep -v grep
+
+# Monitor memory usage
+watch -n 5 'ps aux | grep celery | grep -v grep | awk "{print \$2, \$4, \$11}"'
+```
+
+### Beat Scheduler Configuration
+
+Celery Beat monitors schedules and creates tasks.
+
+#### Database Scheduler
+
+Spark uses database-backed scheduler (no file-based schedule):
+
+```python
+beat_scheduler="automagik_spark.core.celery.scheduler:DatabaseScheduler"
+beat_max_loop_interval=60         # Check every minute for new schedules
+```
+
+#### Monitor Beat Logs
+
+```bash
+# Check Beat is detecting schedules
+tail -f logs/worker.log | grep "DatabaseScheduler"
+
+# Check Beat is running
+ps aux | grep "celery beat"
+```
+
+**Expected log output:**
+```
+DatabaseScheduler: Schedule changed
+DatabaseScheduler: Loading 5 schedules
+```
+
+---
+
+## Security Configuration
+
+### API Key Generation
+
+Generate secure API keys:
+
+```bash
+# Method 1: OpenSSL (32-byte random string)
+openssl rand -base64 32
+
+# Method 2: UUID-based key
+python -c "import uuid; print(f'spark-{uuid.uuid4()}')"
+
+# Method 3: Python secrets module
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Set in `.env`:
+```bash
+AUTOMAGIK_SPARK_API_KEY=your-generated-key-here
+```
+
+### Encryption Key Setup
+
+Generate Fernet encryption key for sensitive data:
+
+**Using Python:**
+
+```python
+# generate_key.py
+from cryptography.fernet import Fernet
+
+key = Fernet.generate_key()
+print(f"AUTOMAGIK_SPARK_ENCRYPTION_KEY={key.decode()}")
+```
+
+Run and copy to `.env`:
+```bash
+python generate_key.py
+```
+
+**Using command line:**
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(f'AUTOMAGIK_SPARK_ENCRYPTION_KEY={Fernet.generate_key().decode()}')"
+```
+
+<Warning>
+  **Encryption Key Best Practices:**
+  - Generate unique key per environment (dev, staging, production)
+  - Never commit keys to version control
+  - Store production keys in secrets manager (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
+  - Back up encryption keys securely (separate from database backups)
+  - Rotate keys periodically (requires data re-encryption)
+  - Document key recovery procedures
+</Warning>
+
+### CORS Configuration
+
+Restrict CORS origins in production:
+
+```bash
+# Development - allow localhost
+AUTOMAGIK_SPARK_API_CORS=http://localhost:3000,http://localhost:8883
+
+# Production - restrict to your domain
+AUTOMAGIK_SPARK_API_CORS=https://app.yourdomain.com,https://spark.yourdomain.com
+
+# Multiple production domains
+AUTOMAGIK_SPARK_API_CORS=https://app.yourdomain.com,https://admin.yourdomain.com,https://api.yourdomain.com
+```
+
+### Production Security Checklist
+
+<AccordionGroup>
+  <Accordion title="Pre-Deployment Security Checks" icon="shield-check">
+    **Essential Security Steps:**
+
+    - [ ] Generate unique `AUTOMAGIK_SPARK_API_KEY`
+    - [ ] Generate unique `AUTOMAGIK_SPARK_ENCRYPTION_KEY`
+    - [ ] Change default PostgreSQL password
+    - [ ] Enable Redis password authentication
+    - [ ] Configure restrictive CORS origins
+    - [ ] Set `ENVIRONMENT=production`
+    - [ ] Use HTTPS for `AUTOMAGIK_SPARK_REMOTE_URL`
+    - [ ] Enable PostgreSQL SSL connections
+    - [ ] Configure firewall rules (allow only necessary ports)
+    - [ ] Set up log rotation
+    - [ ] Enable Redis persistence (appendonly)
+    - [ ] Configure database backups
+    - [ ] Use environment-specific `.env` files (not committed to git)
+    - [ ] Audit file permissions on log directories
+    - [ ] Review worker concurrency and memory limits
+
+    **Verification Commands:**
+
+    ```bash
+    # Check environment is set
+    echo $ENVIRONMENT
+
+    # Verify HTTPS in remote URL
+    echo $AUTOMAGIK_SPARK_REMOTE_URL | grep "https://"
+
+    # Test database connection
+    automagik-spark db current
+
+    # Test Redis connection
+    redis-cli ping
+    ```
+  </Accordion>
+
+  <Accordion title="Network Security" icon="network-wired">
+    **Firewall Rules:**
+
+    | Service | Port | Access Level |
+    |---------|------|--------------|
+    | PostgreSQL | 5432 | Internal network only |
+    | Redis | 6379 | Internal network only |
+    | Spark API | 8883 | Public or internal (depends on use case) |
+    | LangFlow | 7860 | Internal network only |
+
+    **Configure UFW (Ubuntu firewall):**
+
+    ```bash
+    # Allow SSH
+    sudo ufw allow 22
+
+    # Allow Spark API (if public-facing)
+    sudo ufw allow 8883
+
+    # Block direct database access
+    sudo ufw deny 5432
+    sudo ufw deny 6379
+
+    # Enable firewall
+    sudo ufw enable
+    ```
+
+    **Reverse Proxy with Nginx:**
+
+    Use nginx to:
+    - Terminate SSL/TLS
+    - Add security headers
+    - Rate limiting
+    - Request filtering
+
+    ```nginx
+    # /etc/nginx/sites-available/spark
+    server {
+        listen 443 ssl http2;
+        server_name spark.yourdomain.com;
+
+        ssl_certificate /etc/letsencrypt/live/spark.yourdomain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/spark.yourdomain.com/privkey.pem;
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        # Rate limiting
+        limit_req_zone $binary_remote_addr zone=spark_limit:10m rate=10r/s;
+        limit_req zone=spark_limit burst=20 nodelay;
+
+        location / {
+            proxy_pass http://localhost:8883;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Access Control" icon="user-lock">
+    **Database Security:**
+
+    ```sql
+    -- Create dedicated user with limited privileges
+    CREATE USER spark_user WITH PASSWORD 'strong_password_here';
+
+    -- Grant only necessary privileges
+    GRANT CONNECT ON DATABASE automagik_spark TO spark_user;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO spark_user;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO spark_user;
+
+    -- Revoke dangerous privileges
+    REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+    ```
+
+    **Redis Security:**
+
+    ```conf
+    # /etc/redis/redis.conf
+
+    # Require password
+    requirepass your_strong_redis_password
+
+    # Bind to specific interface
+    bind 127.0.0.1
+
+    # Rename dangerous commands
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    rename-command CONFIG "CONFIG_SECRET_NAME"
+    ```
+
+    **Best Practices:**
+    - Use strong PostgreSQL passwords (20+ characters)
+    - Enable Redis `requirepass`
+    - Rotate API keys regularly (quarterly recommended)
+    - Implement API rate limiting (coming in future version)
+    - Monitor failed authentication attempts
+    - Use network segmentation (VPC/subnets)
+    - Implement least privilege principle
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Logging Configuration
+
+### Log Levels
+
+Choose appropriate log level for each environment:
+
+| Level | Use Case | Output Volume | Performance Impact |
+|-------|----------|---------------|-------------------|
+| `DEBUG` | Development, troubleshooting | Very High | Medium |
+| `INFO` | Production monitoring | Medium | Low |
+| `WARNING` | Production (quiet) | Low | Very Low |
+| `ERROR` | Critical issues only | Very Low | Minimal |
+
+### Log File Locations
+
+**Development:**
+```bash
+LOG_FOLDER=./logs
+AUTOMAGIK_SPARK_WORKER_LOG=logs/worker.log
+```
+
+**Production:**
+```bash
+LOG_FOLDER=/var/log/automagik
+AUTOMAGIK_SPARK_WORKER_LOG=/var/log/automagik/worker.log
+```
+
+**Create log directory:**
+```bash
+# Create directory
+sudo mkdir -p /var/log/automagik
+
+# Set ownership
+sudo chown sparkuser:sparkuser /var/log/automagik
+
+# Set permissions
+sudo chmod 755 /var/log/automagik
+```
+
+### Log Rotation
+
+Use `logrotate` for production log management:
+
+```bash
+# /etc/logrotate.d/automagik-spark
+/var/log/automagik/*.log {
+    daily                    # Rotate daily
+    rotate 30                # Keep 30 days of logs
+    compress                 # Compress old logs
+    delaycompress           # Delay compression by 1 rotation
+    notifempty              # Don't rotate if empty
+    missingok               # Don't error if log missing
+    create 0644 sparkuser sparkuser
+    sharedscripts
+    postrotate
+        # Reload worker to release old file handle
+        systemctl reload automagik-spark-worker || true
+    endscript
+}
+```
+
+Apply configuration:
+```bash
+# Test configuration
+sudo logrotate -d /etc/logrotate.d/automagik-spark
+
+# Force rotation (for testing)
+sudo logrotate -f /etc/logrotate.d/automagik-spark
+
+# Check rotation worked
+ls -lh /var/log/automagik/
+```
+
+### Centralized Logging
+
+For production, send logs to centralized system:
+
+**Using rsyslog:**
+
+```bash
+# /etc/rsyslog.d/30-automagik-spark.conf
+
+# Forward Spark logs to remote syslog server
+$ModLoad imfile
+$InputFileName /var/log/automagik/worker.log
+$InputFileTag spark-worker:
+$InputFileStateFile stat-spark-worker
+$InputFileSeverity info
+$InputFileFacility local3
+$InputRunFileMonitor
+
+# Send to remote server
+local3.* @logserver.example.com:514
+```
+
+```bash
+# Restart rsyslog
+sudo systemctl restart rsyslog
+```
+
+**Using Vector (modern alternative):**
+
+```toml
+# /etc/vector/vector.toml
+
+[sources.spark_logs]
+type = "file"
+include = ["/var/log/automagik/*.log"]
+read_from = "beginning"
+
+[transforms.parse_spark]
+type = "remap"
+inputs = ["spark_logs"]
+source = '''
+  .timestamp = parse_timestamp!(.message, "%Y-%m-%d %H:%M:%S")
+  .level = parse_regex!(.message, r'^(?P<level>\w+)').level
+'''
+
+[sinks.elasticsearch]
+type = "elasticsearch"
+inputs = ["parse_spark"]
+endpoint = "http://elasticsearch:9200"
+index = "spark-logs-%Y.%m.%d"
+
+[sinks.datadog]
+type = "datadog_logs"
+inputs = ["parse_spark"]
+default_api_key = "${DATADOG_API_KEY}"
+```
+
+---
+
+## Complete Configuration Examples
+
+### Development .env File
+
+```bash
+# =================================================================
+# 🚀 Automagik Spark - Development Configuration
+# =================================================================
+
+# Environment
+ENVIRONMENT=development
+PYTHONUNBUFFERED=1
+
+# Logging
+LOG_LEVEL=DEBUG
+LOG_FOLDER=./logs
+AUTOMAGIK_SPARK_WORKER_LOG=logs/worker.log
+
+# API Configuration
+AUTOMAGIK_SPARK_API_KEY=dev-test-key-change-in-production
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+AUTOMAGIK_SPARK_API_PORT=8883
+AUTOMAGIK_SPARK_API_CORS=http://localhost:3000,http://localhost:8883
+AUTOMAGIK_SPARK_REMOTE_URL=http://localhost:8883
+AUTOMAGIK_SPARK_HTTP_TIMEOUT=600
+
+# Database
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5402/automagik_spark
+
+# Celery (Redis)
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:5412/0
+CELERY_WORKER_CONCURRENCY=2
+
+# Security
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=eW91ci10ZXN0LWVuY3J5cHRpb24ta2V5LS0tLS0tLS0=
+AUTOMAGIK_ENCRYPTION_KEY=eW91ci10ZXN0LWVuY3J5cHRpb24ta2V5LS0tLS0tLS0=
+
+# Timezone
+AUTOMAGIK_TIMEZONE=UTC
+
+# Telemetry
+AUTOMAGIK_SPARK_DISABLE_TELEMETRY=false
+
+# LangFlow Integration
+LANGFLOW_API_URL=http://localhost:7860
+LANGFLOW_API_KEY=
+
+# AutoMagik Integration
+AUTOMAGIK_API_HOST=0.0.0.0
+AUTOMAGIK_API_PORT=8881
+AUTOMAGIK_API_URL=http://localhost:8881
+```
+
+### Production .env File
+
+```bash
+# =================================================================
+# 🚀 Automagik Spark - Production Configuration
+# =================================================================
+
+# Environment
+ENVIRONMENT=production
+PYTHONUNBUFFERED=1
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FOLDER=/var/log/automagik
+AUTOMAGIK_SPARK_WORKER_LOG=/var/log/automagik/worker.log
+
+# API Configuration
+AUTOMAGIK_SPARK_API_KEY=CHANGE-THIS-TO-SECURE-RANDOM-STRING
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+AUTOMAGIK_SPARK_API_PORT=8883
+AUTOMAGIK_SPARK_API_CORS=https://app.yourdomain.com
+AUTOMAGIK_SPARK_REMOTE_URL=https://spark.yourdomain.com
+AUTOMAGIK_SPARK_HTTP_TIMEOUT=600
+
+# Database - PostgreSQL with SSL
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://spark_user:SECURE_PASSWORD@db.internal:5432/automagik_spark?ssl=require&pool_size=20&max_overflow=10
+
+# Celery (Redis) - with password
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:REDIS_PASSWORD@redis.internal:6379/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://:REDIS_PASSWORD@redis.internal:6379/1
+CELERY_WORKER_CONCURRENCY=8
+
+# Security - GENERATE UNIQUE KEYS
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=GENERATE-WITH-Fernet.generate_key
+AUTOMAGIK_ENCRYPTION_KEY=GENERATE-WITH-Fernet.generate_key
+
+# Timezone
+AUTOMAGIK_TIMEZONE=UTC
+
+# Telemetry
+AUTOMAGIK_SPARK_DISABLE_TELEMETRY=false
+
+# LangFlow Integration
+LANGFLOW_API_URL=https://langflow.internal
+LANGFLOW_API_KEY=sk-langflow-production-key
+
+# AutoMagik Integration
+AUTOMAGIK_API_HOST=0.0.0.0
+AUTOMAGIK_API_PORT=8881
+AUTOMAGIK_API_URL=https://agents.internal
+```
+
+### Docker Compose .env File
+
+For Docker Compose deployments, add container-specific variables:
+
+```bash
+# =================================================================
+# 🚀 Automagik Spark - Docker Compose Configuration
+# =================================================================
+
+# PostgreSQL Container
+AUTOMAGIK_SPARK_POSTGRES_USER=spark_user
+AUTOMAGIK_SPARK_POSTGRES_PASSWORD=secure_password_here
+AUTOMAGIK_SPARK_POSTGRES_DB=automagik_spark
+AUTOMAGIK_SPARK_POSTGRES_PORT=5402
+
+# Redis Container
+AUTOMAGIK_SPARK_REDIS_PORT=5412
+AUTOMAGIK_SPARK_REDIS_PASSWORD=spark_redis_pass
+
+# LangFlow Container (optional)
+LANGFLOW_PORT=7860
+
+# Spark Configuration
+ENVIRONMENT=production
+PYTHONUNBUFFERED=1
+
+LOG_LEVEL=INFO
+LOG_FOLDER=/var/log/automagik
+AUTOMAGIK_SPARK_WORKER_LOG=/var/log/automagik/worker.log
+
+AUTOMAGIK_SPARK_API_KEY=your-secure-api-key
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+AUTOMAGIK_SPARK_API_PORT=8883
+AUTOMAGIK_SPARK_API_CORS=http://localhost:3000
+AUTOMAGIK_SPARK_REMOTE_URL=http://localhost:8883
+AUTOMAGIK_SPARK_HTTP_TIMEOUT=600
+
+# Use Docker service names as hostnames
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://spark_user:secure_password_here@automagik-spark-db:5402/automagik_spark
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:spark_redis_pass@redis:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://:spark_redis_pass@redis:5412/0
+CELERY_WORKER_CONCURRENCY=4
+
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=GENERATE-UNIQUE-KEY
+AUTOMAGIK_ENCRYPTION_KEY=GENERATE-UNIQUE-KEY
+
+AUTOMAGIK_TIMEZONE=UTC
+AUTOMAGIK_SPARK_DISABLE_TELEMETRY=false
+
+LANGFLOW_API_URL=http://langflow:7860
+LANGFLOW_API_KEY=
+
+AUTOMAGIK_API_HOST=0.0.0.0
+AUTOMAGIK_API_PORT=8881
+AUTOMAGIK_API_URL=http://agents:8881
+```
+
+---
+
+## Configuration Validation
+
+### Verify Configuration
+
+After setting up your `.env` file, verify configuration:
+
+```bash
+# Test database connection
+automagik-spark db current
+
+# Test Redis connection
+redis-cli -h localhost -p 5412 -a spark_redis_pass ping
+
+# Test API starts correctly
+automagik-spark api start --host localhost --port 8883
+
+# Test worker starts correctly
+automagik-spark worker start
+```
+
+### Health Check Commands
+
+```bash
+# Database health
+psql -U spark_user -h localhost -p 5402 -d automagik_spark -c "SELECT 1;"
+
+# Redis health
+redis-cli -h localhost -p 5412 -a spark_redis_pass ping
+
+# API health
+curl -H "X-API-Key: your-api-key" http://localhost:8883/health
+
+# Worker health (check running processes)
+ps aux | grep "celery worker"
+ps aux | grep "celery beat"
+
+# Check task queue length
+redis-cli -h localhost -p 5412 -a spark_redis_pass LLEN celery
+
+# Check recent tasks
+automagik-spark tasks list --limit 10
+
+# Full system health check
+automagik-spark health
+```
+
+---
+
+## Troubleshooting Configuration Issues
+
+<AccordionGroup>
+  <Accordion title="Database Connection Failed" icon="database">
+    **Error:** `Connection refused` or `Could not connect to database`
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Verify PostgreSQL is running
+    pg_isready -h localhost -p 5402
+    sudo systemctl status postgresql
+
+    # 2. Check database exists
+    psql -U postgres -l | grep automagik_spark
+
+    # 3. Test connection with psql
+    psql -U spark_user -h localhost -p 5402 -d automagik_spark
+
+    # 4. Check firewall
+    sudo ufw status | grep 5402
+    sudo netstat -tuln | grep 5402
+    ```
+
+    **Solutions:**
+
+    1. Verify PostgreSQL is running: `sudo systemctl start postgresql`
+    2. Check database exists: `psql -U postgres -l`
+    3. Verify connection string format: `postgresql+asyncpg://user:pass@host:port/db`
+    4. Check firewall rules allow port 5432/5402
+    5. Ensure user has correct permissions:
+       ```sql
+       GRANT ALL PRIVILEGES ON DATABASE automagik_spark TO spark_user;
+       ```
+    6. Check PostgreSQL logs: `sudo tail -f /var/log/postgresql/postgresql-*.log`
+  </Accordion>
+
+  <Accordion title="Redis Connection Failed" icon="server">
+    **Error:** `Error connecting to Redis` or `Connection refused`
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Verify Redis is running
+    redis-cli ping
+    sudo systemctl status redis
+
+    # 2. Check Redis port
+    netstat -tuln | grep 6379
+    sudo lsof -i :6379
+
+    # 3. Test with password
+    redis-cli -h localhost -p 5412 -a your_password ping
+
+    # 4. Check Redis configuration
+    redis-cli CONFIG GET bind
+    redis-cli CONFIG GET requirepass
+    ```
+
+    **Solutions:**
+
+    1. Verify Redis is running: `sudo systemctl start redis`
+    2. Check Redis port: `netstat -tuln | grep 6379`
+    3. Verify password if set: `redis-cli -a your_password ping`
+    4. Check broker URL format: `redis://:password@host:port/db`
+    5. Ensure Redis accepts connections: check `bind` in `/etc/redis/redis.conf`
+    6. Check Redis logs: `sudo tail -f /var/log/redis/redis-server.log`
+  </Accordion>
+
+  <Accordion title="Worker Not Processing Tasks" icon="gears">
+    **Error:** Tasks stuck in queue, not executing
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Check worker is running
+    ps aux | grep "celery worker"
+
+    # 2. Check worker logs
+    tail -f logs/worker.log
+
+    # 3. Check queue length
+    redis-cli -h localhost -p 5412 LLEN celery
+
+    # 4. Check active tasks
+    celery -A automagik_spark.core.celery.celery_app inspect active
+
+    # 5. Check broker connectivity
+    redis-cli -h localhost -p 5412 ping
+    ```
+
+    **Solutions:**
+
+    1. Check worker is running: `ps aux | grep celery`
+    2. Verify broker connectivity: `redis-cli -h localhost -p 5412 ping`
+    3. Check worker logs: `tail -f logs/worker.log`
+    4. Ensure queue names match: default queue is `default`
+    5. Restart worker:
+       ```bash
+       automagik-spark worker stop
+       automagik-spark worker start
+       ```
+    6. Check worker concurrency: `CELERY_WORKER_CONCURRENCY=4`
+    7. Monitor worker memory: `ps aux | grep celery | awk '{print $2, $4}'`
+  </Accordion>
+
+  <Accordion title="Schedules Not Triggering" icon="clock">
+    **Error:** Scheduled tasks not executing at expected time
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Check Beat is running
+    ps aux | grep "celery beat"
+
+    # 2. Check Beat logs
+    grep "DatabaseScheduler" logs/worker.log
+
+    # 3. List active schedules
+    automagik-spark schedules list
+
+    # 4. Check timezone
+    echo $AUTOMAGIK_TIMEZONE
+
+    # 5. Check system time
+    timedatectl
+    ```
+
+    **Solutions:**
+
+    1. Verify Beat scheduler is running: `ps aux | grep celery | grep beat`
+    2. Check timezone configuration: `AUTOMAGIK_TIMEZONE=UTC`
+    3. Verify schedule is enabled: `automagik-spark schedules list`
+    4. Check Beat logs: `grep "DatabaseScheduler" logs/worker.log`
+    5. Ensure schedule expression is valid: cron or interval format
+    6. Restart Beat:
+       ```bash
+       automagik-spark worker stop
+       automagik-spark worker start
+       ```
+    7. Check system clock: `timedatectl` (ensure NTP is synchronized)
+  </Accordion>
+
+  <Accordion title="Encryption Errors" icon="lock">
+    **Error:** `Fernet key must be 32 url-safe base64-encoded bytes`
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Check key is set
+    echo $AUTOMAGIK_SPARK_ENCRYPTION_KEY
+
+    # 2. Check key length
+    echo -n $AUTOMAGIK_SPARK_ENCRYPTION_KEY | wc -c
+
+    # 3. Verify base64 encoding
+    echo $AUTOMAGIK_SPARK_ENCRYPTION_KEY | base64 -d 2>&1
+    ```
+
+    **Solutions:**
+
+    1. Generate proper key:
+       ```python
+       python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+       ```
+    2. Set in .env: `AUTOMAGIK_SPARK_ENCRYPTION_KEY=<generated-key>`
+    3. Ensure key is base64-encoded (often ending with `=`)
+    4. Don't use spaces or newlines in key
+    5. Verify key format: Should be exactly 44 characters (32 bytes base64-encoded)
+    6. If changing keys, backup database first (encrypted data will be lost)
+  </Accordion>
+
+  <Accordion title="Permission Errors" icon="file-lock">
+    **Error:** `Permission denied` when accessing logs or database
+
+    **Diagnostic Steps:**
+
+    ```bash
+    # 1. Check log directory permissions
+    ls -ld /var/log/automagik
+    ls -l /var/log/automagik/
+
+    # 2. Check current user
+    whoami
+    id
+
+    # 3. Check file ownership
+    stat /var/log/automagik/worker.log
+    ```
+
+    **Solutions:**
+
+    1. Create log directory:
+       ```bash
+       sudo mkdir -p /var/log/automagik
+       ```
+    2. Set ownership:
+       ```bash
+       sudo chown -R sparkuser:sparkuser /var/log/automagik
+       ```
+    3. Set permissions:
+       ```bash
+       sudo chmod 755 /var/log/automagik
+       sudo chmod 644 /var/log/automagik/*.log
+       ```
+    4. Run services as correct user in systemd service files
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="list" href="/spark/config/environment-variables">
+    Quick reference for all configuration variables
+  </Card>
+
+  <Card title="Installation" icon="download" href="/spark/installation">
+    Install Automagik Spark
+  </Card>
+
+  <Card title="Production Deployment" icon="cloud" href="/spark/examples/production-deployment">
+    Complete deployment guide with Docker Compose
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="/spark/troubleshooting/common-errors">
+    Solve common issues
+  </Card>
+</CardGroup>

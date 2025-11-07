@@ -1,0 +1,1157 @@
+---
+title: CLI Commands Reference
+description: Complete reference for all Automagik Spark CLI commands
+---
+
+## Sources Commands
+
+Manage workflow sources (LangFlow, Automagik Hive) that provide workflows to Spark.
+
+### automagik-spark sources add
+
+Add a new workflow source to Spark.
+
+**Usage**:
+```bash
+automagik-spark sources add --name NAME --type TYPE --url URL --api-key KEY [--status STATUS]
+```
+
+**Options**:
+- `--name, -n` (required): Human-readable name for the source
+- `--type, -t` (required): Source type (`langflow` or `automagik-agents`)
+- `--url, -u` (required): Base URL of the source (e.g., `http://localhost:7860`)
+- `--api-key, -k` (required): API key for authentication
+- `--status, -s` (optional): Initial status (`active` or `inactive`, default: `active`)
+
+**Example**:
+```bash
+automagik-spark sources add \
+  --name my-langflow \
+  --type langflow \
+  --url http://localhost:7860 \
+  --api-key sk-abc123
+```
+
+**Output**:
+```
+Health check passed: status ok
+Version check passed: 1.0.24
+Successfully added source: http://localhost:7860
+```
+
+**Notes**:
+- The command validates the source by checking its health and version endpoints
+- If a source with the same URL exists, it will be updated instead
+- API keys are encrypted before storage
+
+---
+
+### automagik-spark sources list
+
+List all configured workflow sources.
+
+**Usage**:
+```bash
+automagik-spark sources list [--status STATUS]
+```
+
+**Options**:
+- `--status, -s` (optional): Filter by status (`active` or `inactive`)
+
+**Example**:
+```bash
+automagik-spark sources list
+automagik-spark sources list --status active
+```
+
+**Output**:
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━┓
+┃ ID                                 ┃ URL                  ┃ Type           ┃ Status ┃ Version ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━┩
+│ 550e8400-e29b-41d4-a716-44665544   │ http://localhost:786 │ langflow       │ active │ 1.0.24  │
+│ 0000                               │ 0                    │                │        │         │
+└────────────────────────────────────┴──────────────────────┴────────────────┴────────┴─────────┘
+```
+
+---
+
+### automagik-spark sources update
+
+Update an existing workflow source.
+
+**Usage**:
+```bash
+automagik-spark sources update URL [--status STATUS] [--api-key KEY]
+```
+
+**Arguments**:
+- `URL`: Source URL to update
+
+**Options**:
+- `--status, -s` (optional): New status (`active` or `inactive`)
+- `--api-key, -k` (optional): New API key
+
+**Example**:
+```bash
+automagik-spark sources update http://localhost:7860 --status inactive
+automagik-spark sources update http://localhost:7860 --api-key sk-new-key-456
+```
+
+**Output**:
+```
+Successfully updated source: http://localhost:7860
+```
+
+---
+
+### automagik-spark sources delete
+
+Delete a workflow source by ID or URL.
+
+**Usage**:
+```bash
+automagik-spark sources delete ID_OR_URL [--force]
+```
+
+**Arguments**:
+- `ID_OR_URL`: Source UUID or URL
+
+**Options**:
+- `--force, -f`: Force deletion even if workflows exist
+
+**Example**:
+```bash
+automagik-spark sources delete http://localhost:7860
+automagik-spark sources delete 550e8400-e29b-41d4-a716-446655440000 --force
+```
+
+**Output**:
+```
+Successfully deleted source: http://localhost:7860 (ID: 550e8400-e29b-41d4-a716-446655440000)
+```
+
+**Common Issues**:
+- **Cannot delete source with workflows**: Use `--force` flag or delete workflows first
+- **Source not found**: Verify the URL or ID is correct
+
+---
+
+### automagik-spark sources run-agent
+
+Run an agent from an automagik-agents source.
+
+**Usage**:
+```bash
+automagik-spark sources run-agent SOURCE_ID AGENT_NAME --input INPUT [--session-id SESSION_ID]
+```
+
+**Arguments**:
+- `SOURCE_ID`: Source UUID
+- `AGENT_NAME`: Name of the agent to run
+
+**Options**:
+- `--input, -i` (required): Input message for the agent
+- `--session-id, -s` (optional): Session ID for conversation history
+
+**Example**:
+```bash
+automagik-spark sources run-agent \
+  550e8400-e29b-41d4-a716-446655440000 \
+  my-agent \
+  --input "Hello, agent!" \
+  --session-id session-123
+```
+
+**Output**:
+```
+Agent response: {"result": "Agent processed your message successfully"}
+```
+
+---
+
+## Workflows Commands
+
+Manage workflows synced from sources.
+
+### automagik-spark workflows list
+
+List all synced workflows.
+
+**Usage**:
+```bash
+automagik-spark workflows list [--folder FOLDER]
+```
+
+**Options**:
+- `--folder` (optional): Filter by folder name
+
+**Example**:
+```bash
+automagik-spark workflows list
+automagik-spark workflows list --folder production
+```
+
+**Output**:
+```
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID               ┃ Name           ┃ Latest Run ┃ Tasks (Failed) ┃ Schedules ┃ Instance ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━┩
+│ 550e8400-e29b-41 │ My Workflow    │ ✓ SUCCESS  │ 5 (0)          │ 2         │ langflow │
+└──────────────────┴────────────────┴────────────┴────────────────┴───────────┴──────────┘
+```
+
+---
+
+### automagik-spark workflows sync
+
+Sync workflows from remote sources.
+
+**Usage**:
+```bash
+automagik-spark workflows sync [FLOW_ID] [--source SOURCE] [--page PAGE] [--page-size SIZE]
+```
+
+**Arguments**:
+- `FLOW_ID` (optional): Specific flow ID to sync
+
+**Options**:
+- `--source` (optional): Source URL or ID to sync from (syncs all sources if not specified)
+- `--page` (optional): Page number for listing flows (default: 1)
+- `--page-size` (optional): Number of flows per page (default: 20)
+
+**Examples**:
+
+Sync a specific flow:
+```bash
+automagik-spark workflows sync abc-123-def-456
+```
+
+List all available flows:
+```bash
+automagik-spark workflows sync
+automagik-spark workflows sync --page 2 --page-size 50
+```
+
+Sync from a specific source:
+```bash
+automagik-spark workflows sync --source http://localhost:7860
+automagik-spark workflows sync --source 550e8400-e29b-41d4-a716-446655440000
+```
+
+**Output** (when listing flows):
+```
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID             ┃ Name           ┃ Description         ┃ Source   ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ abc-123-def-45 │ Chat Bot       │ AI chat assistant   │ langflow │
+│ 6              │                │                     │          │
+└────────────────┴────────────────┴─────────────────────┴──────────┘
+
+Command: sync <flow_id> • Sources: langflow
+```
+
+**Output** (when syncing specific flow):
+```
+Successfully synced flow abc-123-def-456
+```
+
+---
+
+### automagik-spark workflows run
+
+Run a workflow directly (ad-hoc execution).
+
+**Usage**:
+```bash
+automagik-spark workflows run WORKFLOW_ID [--input INPUT]
+```
+
+**Arguments**:
+- `WORKFLOW_ID`: Local workflow ID or remote flow ID
+
+**Options**:
+- `--input, -i` (optional): Input data for the workflow (string or JSON)
+
+**Example**:
+```bash
+automagik-spark workflows run 550e8400-e29b-41d4-a716-446655440000
+automagik-spark workflows run 550e8400-e29b-41d4-a716-446655440000 --input "Hello World"
+automagik-spark workflows run abc-123 --input '{"message": "Process this"}'
+```
+
+**Output**:
+```
+Task 770e8400-e29b-41d4-a716-446655440001 completed successfully
+Input: Hello World
+Output: {"result": "Processed successfully", "data": "..."}
+```
+
+---
+
+### automagik-spark workflows delete
+
+Delete a workflow from Spark.
+
+**Usage**:
+```bash
+automagik-spark workflows delete WORKFLOW_ID
+```
+
+**Arguments**:
+- `WORKFLOW_ID`: Workflow UUID
+
+**Example**:
+```bash
+automagik-spark workflows delete 550e8400-e29b-41d4-a716-446655440000
+```
+
+**Output**:
+```
+Successfully deleted workflow 550e8400-e29b-41d4-a716-446655440000
+```
+
+**Common Issues**:
+- **Cannot delete workflow with active schedules**: Stop or delete schedules first
+
+---
+
+## Schedules Commands
+
+Create and manage workflow schedules.
+
+### automagik-spark schedules create
+
+Create a new schedule (interactive command).
+
+**Usage**:
+```bash
+automagik-spark schedules create
+```
+
+This is an interactive command that prompts you for:
+1. Workflow selection
+2. Schedule type (interval, cron, or one-time)
+3. Schedule expression
+4. Input data
+
+**Example Session**:
+```bash
+automagik-spark schedules create
+
+Available Workflows:
+0: My Workflow (1 schedules)
+1: Another Workflow (0 schedules)
+
+Select a workflow: 0
+
+Schedule Type:
+  0: Interval (e.g., every 30 minutes)
+  1: Cron (e.g., every day at 8 AM)
+  2: One-time (run once at a specific time)
+
+Select schedule type: 0
+
+Interval Examples:
+  5m  - Every 5 minutes
+  30m - Every 30 minutes
+  1h  - Every hour
+  4h  - Every 4 hours
+  1d  - Every day
+
+Enter interval: 5m
+
+Enter input value: Hello
+
+Schedule created successfully with ID: 990e8400-e29b-41d4-a716-446655440000
+```
+
+**Schedule Types**:
+
+**Interval**: Run at regular intervals
+- `5m` - Every 5 minutes
+- `30m` - Every 30 minutes
+- `1h` - Every hour
+- `4h` - Every 4 hours
+- `1d` - Every day
+
+**Cron**: Run based on cron expression
+- `* * * * *` - Every minute
+- `*/5 * * * *` - Every 5 minutes
+- `0 * * * *` - Every hour
+- `0 0 * * *` - Every day at midnight
+- `0 8 * * *` - Every day at 8 AM
+- `0 8 * * 1-5` - Every weekday at 8 AM
+
+**One-time**: Run once
+- `now` - Run immediately
+- `2025-02-15 08:00` - Run at specific time
+- `2025-02-15T08:00:00` - ISO format
+
+---
+
+### automagik-spark schedules list
+
+List all workflow schedules.
+
+**Usage**:
+```bash
+automagik-spark schedules list
+```
+
+**Example**:
+```bash
+automagik-spark schedules list
+```
+
+**Output**:
+```
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃ ID             ┃ Workflow    ┃ Type     ┃ Expression ┃ Next Run    ┃ Tasks        ┃
+┃                ┃             ┃          ┃            ┃             ┃ (Failed)     ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━┩
+│ 990e8400-e29b- │ My Workflow │ interval │ every 5m   │ 2025-11-04  │ 15 (0)       │
+│ 41d4-a716-4466 │             │          │            │ 16:05       │              │
+│ 55440000       │             │          │            │             │              │
+├────────────────┼─────────────┼──────────┼────────────┼─────────────┼──────────────┤
+┃ Input Params   ┃ Status      ┃          ┃            ┃             ┃              ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩          ┃            ┃             ┃              ┃
+│ Hello          │ ● ACTIVE    │          │            │             │              │
+└────────────────┴─────────────┴──────────┴────────────┴─────────────┴──────────────┘
+```
+
+---
+
+### automagik-spark schedules update
+
+Update schedule status (pause, resume, or stop).
+
+**Usage**:
+```bash
+automagik-spark schedules update SCHEDULE_ID ACTION
+```
+
+**Arguments**:
+- `SCHEDULE_ID`: Schedule UUID
+- `ACTION`: One of `pause`, `resume`, or `stop`
+
+**Examples**:
+```bash
+automagik-spark schedules update 990e8400-e29b-41d4-a716-446655440000 pause
+automagik-spark schedules update 990e8400-e29b-41d4-a716-446655440000 resume
+automagik-spark schedules update 990e8400-e29b-41d4-a716-446655440000 stop
+```
+
+**Output**:
+```
+Schedule 990e8400-e29b-41d4-a716-446655440000 paused successfully
+```
+
+**Actions**:
+- `pause`: Temporarily stop schedule execution (can be resumed)
+- `resume`: Resume a paused schedule
+- `stop`: Permanently stop schedule (cannot be resumed)
+
+---
+
+### automagik-spark schedules set-expression
+
+Update the schedule expression.
+
+**Usage**:
+```bash
+automagik-spark schedules set-expression SCHEDULE_ID EXPRESSION
+```
+
+**Arguments**:
+- `SCHEDULE_ID`: Schedule UUID
+- `EXPRESSION`: New schedule expression (interval, cron, or datetime)
+
+**Examples**:
+```bash
+automagik-spark schedules set-expression 990e8400-e29b-41d4-a716-446655440000 "10m"
+automagik-spark schedules set-expression 990e8400-e29b-41d4-a716-446655440000 "0 8 * * *"
+```
+
+**Output**:
+```
+Schedule 990e8400-e29b-41d4-a716-446655440000 expression updated to '10m'
+```
+
+---
+
+### automagik-spark schedules set-input
+
+Update the input data for a schedule.
+
+**Usage**:
+```bash
+automagik-spark schedules set-input SCHEDULE_ID INPUT_DATA
+```
+
+**Arguments**:
+- `SCHEDULE_ID`: Schedule UUID
+- `INPUT_DATA`: New input data (string or JSON)
+
+**Examples**:
+```bash
+automagik-spark schedules set-input 990e8400-e29b-41d4-a716-446655440000 "New input"
+automagik-spark schedules set-input 990e8400-e29b-41d4-a716-446655440000 '{"key": "value"}'
+```
+
+**Output**:
+```
+Updated input data for schedule 990e8400-e29b-41d4-a716-446655440000
+```
+
+---
+
+### automagik-spark schedules delete
+
+Delete a schedule.
+
+**Usage**:
+```bash
+automagik-spark schedules delete SCHEDULE_ID
+```
+
+**Arguments**:
+- `SCHEDULE_ID`: Schedule UUID
+
+**Example**:
+```bash
+automagik-spark schedules delete 990e8400-e29b-41d4-a716-446655440000
+```
+
+**Output**:
+```
+Schedule 990e8400-e29b-41d4-a716-446655440000 deleted successfully
+```
+
+---
+
+## Tasks Commands
+
+View and manage workflow execution tasks.
+
+### automagik-spark tasks list
+
+List workflow execution tasks.
+
+**Usage**:
+```bash
+automagik-spark tasks list [--workflow-id ID] [--status STATUS] [--limit N] [--show-logs]
+```
+
+**Options**:
+- `--workflow-id` (optional): Filter by workflow ID
+- `--status` (optional): Filter by status (`pending`, `running`, `completed`, `failed`, `error`)
+- `--limit` (optional): Limit number of results (default: 50)
+- `--show-logs` (optional): Display task logs
+
+**Examples**:
+```bash
+automagik-spark tasks list
+automagik-spark tasks list --limit 10
+automagik-spark tasks list --status failed
+automagik-spark tasks list --workflow-id 550e8400-e29b-41d4-a716-446655440000
+automagik-spark tasks list --show-logs
+```
+
+**Output**:
+```
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃ ID             ┃ Workflow     ┃ Status      ┃ Created          ┃ Updated          ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│ 770e8400-e29b- │ My Workflow  │ ✓ COMPLETED │ 2025-11-04 15:30 │ 2025-11-04 15:31 │
+│ 41d4-a716-4466 │              │             │                  │                  │
+│ 55440001       │              │             │                  │                  │
+├────────────────┼──────────────┼─────────────┼──────────────────┼──────────────────┤
+│ 770e8400-e29b- │ My Workflow  │ ✗ FAILED    │ 2025-11-04 15:32 │ 2025-11-04 15:33 │
+│ 41d4-a716-4466 │              │             │                  │                  │
+│ 55440002       │              │             │                  │                  │
+└────────────────┴──────────────┴─────────────┴──────────────────┴──────────────────┘
+```
+
+---
+
+### automagik-spark tasks view
+
+View detailed information about a specific task.
+
+**Usage**:
+```bash
+automagik-spark tasks view TASK_ID
+```
+
+**Arguments**:
+- `TASK_ID`: Task UUID or prefix
+
+**Example**:
+```bash
+automagik-spark tasks view 770e8400-e29b-41d4-a716-446655440001
+automagik-spark tasks view 770e8400  # Prefix matching works
+```
+
+**Output**:
+```
+Task Details:
+ID: 770e8400-e29b-41d4-a716-446655440001
+Workflow: My Workflow
+Status: completed
+Created: 2025-11-04 15:30:45
+Updated: 2025-11-04 15:31:12
+Started: 2025-11-04 15:30:46
+Finished: 2025-11-04 15:31:12
+
+Input:
+"Hello World"
+
+Output:
+{
+  "result": "success",
+  "data": "Processed successfully"
+}
+```
+
+---
+
+### automagik-spark tasks retry
+
+Retry a failed task.
+
+**Usage**:
+```bash
+automagik-spark tasks retry TASK_ID
+```
+
+**Arguments**:
+- `TASK_ID`: Task UUID or prefix
+
+**Example**:
+```bash
+automagik-spark tasks retry 770e8400-e29b-41d4-a716-446655440002
+```
+
+**Output**:
+```
+Task 770e8400 queued for retry
+```
+
+**Notes**:
+- Only failed tasks can be retried
+- A new task will be created with the same input data
+- Retry count limits still apply
+
+---
+
+### automagik-spark tasks create
+
+Create a new task for a workflow.
+
+**Usage**:
+```bash
+automagik-spark tasks create WORKFLOW_ID [--input-data DATA] [--max-retries N] [--run]
+```
+
+**Arguments**:
+- `WORKFLOW_ID`: Workflow UUID or prefix
+
+**Options**:
+- `--input-data` (optional): Input data for the task (JSON)
+- `--max-retries` (optional): Maximum retry attempts (default: 3)
+- `--run` (optional): Run the task immediately (synchronous)
+
+**Examples**:
+```bash
+automagik-spark tasks create 550e8400-e29b-41d4-a716-446655440000
+automagik-spark tasks create 550e8400 --input-data "Process this"
+automagik-spark tasks create 550e8400 --input-data '{"key": "value"}' --max-retries 5
+automagik-spark tasks create 550e8400 --run  # Run synchronously
+```
+
+**Output**:
+```
+Created task 880e8400 for workflow My Workflow
+```
+
+With `--run` flag:
+```
+Created task 880e8400 for workflow My Workflow
+Running task...
+Task completed with status: completed
+```
+
+---
+
+## Worker Commands
+
+Manage Celery workers that execute scheduled tasks.
+
+### automagik-spark worker start
+
+Start the Celery worker and beat scheduler.
+
+**Usage**:
+```bash
+automagik-spark worker start [--threads N] [--daemon]
+```
+
+**Options**:
+- `--threads` (optional): Number of worker threads (default: 2)
+- `--daemon` (optional): Run in background mode
+
+**Examples**:
+
+Foreground mode (default):
+```bash
+automagik-spark worker start
+automagik-spark worker start --threads 4
+```
+
+Background/daemon mode:
+```bash
+automagik-spark worker start --daemon
+automagik-spark worker start --threads 8 --daemon
+```
+
+**Output** (foreground):
+```
+Starting worker and beat scheduler in foreground mode...
+[2025-11-04 15:30:00] - Worker initialized
+[2025-11-04 15:30:00] - Beat scheduler started
+[2025-11-04 15:30:05] - Task 770e8400 received
+...
+```
+
+**Output** (daemon):
+```
+Worker and beat scheduler started successfully
+```
+
+**Notes**:
+- **Foreground mode**: Shows logs directly in terminal, blocks until stopped (Ctrl+C)
+- **Daemon mode**: Runs in background, logs to file, can be stopped with `worker stop`
+- Both worker and beat scheduler start together
+- Worker processes tasks from the Celery queue
+- Beat scheduler monitors schedules and creates tasks
+
+**Log Location**:
+- Default: `/var/log/automagik/worker.log` and `/var/log/automagik/beat.log`
+- Configurable via `AUTOMAGIK_SPARK_WORKER_LOG` environment variable
+
+---
+
+### automagik-spark worker stop
+
+Stop the running worker and beat scheduler.
+
+**Usage**:
+```bash
+automagik-spark worker stop
+```
+
+**Example**:
+```bash
+automagik-spark worker stop
+```
+
+**Output**:
+```
+Worker stopped successfully
+Beat scheduler stopped successfully
+```
+
+**Notes**:
+- Sends graceful SIGTERM first, then SIGKILL if needed
+- Only works for daemon mode workers
+- Foreground workers are stopped with Ctrl+C
+
+---
+
+### automagik-spark worker status
+
+Show worker and scheduler status.
+
+**Usage**:
+```bash
+automagik-spark worker status
+```
+
+**Example**:
+```bash
+automagik-spark worker status
+```
+
+**Output**:
+```
+Worker is running (PID: 12345)
+
+Active tasks:
+celery@automagik: 2 tasks
+  - execute_workflow (id: abc-123-def-456)
+  - execute_workflow (id: ghi-789-jkl-012)
+
+Beat scheduler is running (PID: 12346)
+```
+
+**Notes**:
+- Shows process IDs for both worker and beat scheduler
+- Displays active, scheduled, and reserved tasks
+- Uses Celery's inspection API
+
+---
+
+### automagik-spark worker logs
+
+View worker logs.
+
+**Usage**:
+```bash
+automagik-spark worker logs [--tail] [--lines N] [--follow]
+```
+
+**Options**:
+- `--tail, -t`: Show last N lines (default: 50)
+- `--lines, -n`: Number of lines to show with --tail (default: 50)
+- `--follow, -f`: Follow log output in real-time (like `tail -f`)
+
+**Examples**:
+```bash
+automagik-spark worker logs                    # View full log file
+automagik-spark worker logs --tail             # Show last 50 lines
+automagik-spark worker logs --tail --lines 100 # Show last 100 lines
+automagik-spark worker logs --follow           # Follow in real-time
+```
+
+**Notes**:
+- Log location: `/var/log/automagik/worker.log` (or configured path)
+- Use `--follow` for debugging active workers
+- Press Ctrl+C to stop following
+
+---
+
+## API Commands
+
+Manage the FastAPI REST server.
+
+### automagik-spark api start
+
+Start the REST API server.
+
+**Usage**:
+```bash
+automagik-spark api start [--host HOST] [--port PORT] [--reload]
+```
+
+**Options**:
+- `--host` (optional): Host to bind to (default: `0.0.0.0`, overrides `AUTOMAGIK_HOST`)
+- `--port` (optional): Port to bind to (default: `8883`, overrides `AUTOMAGIK_PORT`)
+- `--reload` (optional): Enable auto-reload on code changes (development only)
+
+**Examples**:
+```bash
+automagik-spark api start
+automagik-spark api start --host 127.0.0.1 --port 8000
+automagik-spark api start --reload  # Development mode
+```
+
+**Output**:
+```
+INFO:     Started server process [12347]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8883 (Press CTRL+C to quit)
+```
+
+**Notes**:
+- The API server must be running for REST API requests to work
+- Use `--reload` only in development (slower performance)
+- API key authentication required (set via `AUTOMAGIK_API_KEY`)
+
+---
+
+## Database Commands
+
+Manage database schema and migrations.
+
+### automagik-spark db init
+
+Initialize database and migration system.
+
+**Usage**:
+```bash
+automagik-spark db init
+```
+
+**Example**:
+```bash
+automagik-spark db init
+```
+
+**Output**:
+```
+Initializing alembic...
+Updating configuration...
+Database initialization complete!
+
+Next steps:
+1. Run 'automagik-spark db migrate' to create initial migration
+2. Run 'automagik-spark db upgrade' to apply migrations
+```
+
+**Notes**:
+- Only needs to be run once per project
+- Creates `migrations/` directory and `alembic.ini` file
+- Skips if already initialized
+
+---
+
+### automagik-spark db migrate
+
+Generate a new database migration.
+
+**Usage**:
+```bash
+automagik-spark db migrate [--message MESSAGE]
+```
+
+**Options**:
+- `--message, -m` (optional): Description of the migration
+
+**Examples**:
+```bash
+automagik-spark db migrate --message "Add telemetry tables"
+automagik-spark db migrate -m "Update schedule schema"
+```
+
+**Output**:
+```
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.autogenerate.compare] Detected added table 'telemetry_events'
+  Generating /path/to/migrations/versions/20251104_1530_abc123_add_telemetry_tables.py ...  done
+Migration created successfully!
+```
+
+**Notes**:
+- Auto-generates migration by comparing models to database schema
+- Review generated migration before applying
+- Use descriptive messages for easier tracking
+
+---
+
+### automagik-spark db upgrade
+
+Apply all pending database migrations.
+
+**Usage**:
+```bash
+automagik-spark db upgrade
+```
+
+**Example**:
+```bash
+automagik-spark db upgrade
+```
+
+**Output**:
+```
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade abc123 -> def456, Add telemetry tables
+Database upgraded successfully!
+```
+
+**Notes**:
+- Applies all unapplied migrations
+- Idempotent - safe to run multiple times
+- Always backup before upgrading in production
+
+---
+
+### automagik-spark db downgrade
+
+Revert the last database migration.
+
+**Usage**:
+```bash
+automagik-spark db downgrade
+```
+
+**Example**:
+```bash
+automagik-spark db downgrade
+```
+
+**Output**:
+```
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade def456 -> abc123, Add telemetry tables
+Database downgraded successfully!
+```
+
+**Caution**:
+- Only reverts ONE migration
+- May result in data loss
+- Test downgrade scripts thoroughly
+
+---
+
+### automagik-spark db clear
+
+Clear all data from database (preserves schema).
+
+**Usage**:
+```bash
+automagik-spark db clear
+```
+
+**Example**:
+```bash
+automagik-spark db clear
+```
+
+**Output**:
+```
+Database data cleared successfully (schema preserved)
+```
+
+**Caution**:
+- **DESTRUCTIVE**: Deletes ALL data from all tables
+- Schema and migrations remain intact
+- Use for development/testing only
+- No confirmation prompt - use carefully
+
+---
+
+## Telemetry Commands
+
+Manage anonymous usage analytics.
+
+### automagik-spark telemetry status
+
+Show current telemetry status.
+
+**Usage**:
+```bash
+automagik-spark telemetry status
+```
+
+**Example**:
+```bash
+automagik-spark telemetry status
+```
+
+**Output**:
+```
+✅ Telemetry is ENABLED
+   User ID: 550e8400-e29b-41d4-a716-446655440000
+   Session ID: 770e8400-e29b-41d4-a716-446655440001
+   Endpoint: https://telemetry.automagik.ai
+
+How to disable:
+  • Set environment variable: AUTOMAGIK_SPARK_DISABLE_TELEMETRY=true
+  • Create opt-out file: ~/.automagik-no-telemetry
+  • Use CLI flag: --no-telemetry
+  • Run command: automagik-spark telemetry disable
+```
+
+---
+
+### automagik-spark telemetry disable
+
+Permanently disable telemetry.
+
+**Usage**:
+```bash
+automagik-spark telemetry disable
+```
+
+**Example**:
+```bash
+automagik-spark telemetry disable
+```
+
+**Output**:
+```
+Telemetry disabled. Opt-out file created at ~/.automagik-no-telemetry
+```
+
+---
+
+### automagik-spark telemetry enable
+
+Re-enable telemetry.
+
+**Usage**:
+```bash
+automagik-spark telemetry enable
+```
+
+**Example**:
+```bash
+automagik-spark telemetry enable
+```
+
+**Output**:
+```
+Telemetry enabled. Opt-out file removed.
+```
+
+---
+
+### automagik-spark telemetry info
+
+Show detailed information about telemetry data collection.
+
+**Usage**:
+```bash
+automagik-spark telemetry info
+```
+
+**Example**:
+```bash
+automagik-spark telemetry info
+```
+
+**Output**:
+```
+📊 Automagik Spark Telemetry Information
+========================================
+
+🔍 Data We Collect:
+  • Command usage (which CLI commands you run)
+  • API endpoint usage
+  • Workflow execution metrics
+  • Feature usage patterns
+  • Error rates and types
+  • Performance metrics (response times)
+  • System information (OS, Python version)
+
+🚫 Data We DON'T Collect:
+  • Your actual data or workflow content
+  • Personal information
+  • File paths or names
+  • Environment variables
+  • Database connection strings
+
+🎯 Why We Collect This:
+  • Understand which features are most useful
+  • Identify performance bottlenecks
+  • Prioritize development efforts
+  • Improve documentation and user experience
+
+🔒 Privacy:
+  • All data is anonymous (random user ID)
+  • No personal information is collected
+  • Data is used only for product improvement
+  • You can opt-out at any time
+
+💡 How to Opt-Out:
+  • Run: automagik-spark telemetry disable
+  • Set: AUTOMAGIK_SPARK_DISABLE_TELEMETRY=true
+  • Create: ~/.automagik-no-telemetry file
+  • Use: --no-telemetry flag
+```

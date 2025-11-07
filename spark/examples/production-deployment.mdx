@@ -1,0 +1,826 @@
+---
+title: "Production Deployment"
+description: "Complete guide for deploying Spark to production with Docker Compose"
+---
+
+## Prerequisites
+
+Before deploying Spark to production, ensure you have:
+
+- **Server Requirements**
+  - Linux server (Ubuntu 20.04+ or Debian 11+ recommended)
+  - Minimum 2GB RAM (4GB+ recommended for production workloads)
+  - 20GB available disk space
+  - Docker 20.10+ and Docker Compose 2.0+
+
+- **Network Requirements**
+  - Port 8883 available for Spark API
+  - Internal ports for PostgreSQL (5402) and Redis (5412)
+  - Domain name (optional, for SSL/HTTPS access)
+
+- **Optional**
+  - SSL certificates (Let's Encrypt recommended)
+  - Nginx or Traefik for reverse proxy
+  - Monitoring tools (Prometheus, Grafana)
+
+## Docker Compose Setup
+
+### Complete Production Configuration
+
+Create a `docker-compose.yml` file with the following production-ready configuration:
+
+```yaml docker-compose.yml
+services:
+  # Redis for Celery task queue
+  redis:
+    image: redis:7.4.2-alpine
+    container_name: automagik-spark-redis
+    ports:
+      - "${AUTOMAGIK_SPARK_REDIS_PORT:-5412}:${AUTOMAGIK_SPARK_REDIS_PORT:-5412}"
+    command: redis-server --port ${AUTOMAGIK_SPARK_REDIS_PORT:-5412} --appendonly yes --requirepass "${AUTOMAGIK_SPARK_REDIS_PASSWORD:-spark_redis_pass}"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${AUTOMAGIK_SPARK_REDIS_PORT:-5412}", "-a", "${AUTOMAGIK_SPARK_REDIS_PASSWORD:-spark_redis_pass}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - automagik-spark-network
+
+  # PostgreSQL database
+  automagik-spark-db:
+    image: postgres:15
+    container_name: automagik-spark-db
+    environment:
+      POSTGRES_USER: ${AUTOMAGIK_SPARK_POSTGRES_USER:-spark_user}
+      POSTGRES_PASSWORD: ${AUTOMAGIK_SPARK_POSTGRES_PASSWORD:-spark_pass}
+      POSTGRES_DB: automagik_spark
+    volumes:
+      - automagik-spark-db-data:/var/lib/postgresql/data
+    command: postgres -p ${AUTOMAGIK_SPARK_POSTGRES_PORT:-5402}
+    ports:
+      - "${AUTOMAGIK_SPARK_POSTGRES_PORT:-5402}:${AUTOMAGIK_SPARK_POSTGRES_PORT:-5402}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTOMAGIK_SPARK_POSTGRES_USER:-spark_user} -p ${AUTOMAGIK_SPARK_POSTGRES_PORT:-5402}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - automagik-spark-network
+
+  # Spark API service
+  automagik-spark-api:
+    image: namastexlabs/automagik_spark-spark-api:latest
+    container_name: automagik-spark-api
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8883:8883"
+    depends_on:
+      automagik-spark-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8883/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - automagik-spark-network
+
+  # Spark Worker service (scales horizontally)
+  automagik-spark-worker:
+    image: namastexlabs/automagik_spark-spark-worker:latest
+    container_name: automagik-spark-worker
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      automagik-spark-db:
+        condition: service_healthy
+      automagik-spark-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - automagik-spark-network
+
+  # Celery Beat scheduler (singleton - do not scale)
+  automagik-spark-beat:
+    image: namastexlabs/automagik_spark-spark-worker:latest
+    container_name: automagik-spark-beat
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: production
+      PYTHONUNBUFFERED: 1
+    command: celery -A automagik_spark.core.celery.celery_app beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule --max-interval=1
+    depends_on:
+      automagik-spark-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - automagik-spark-network
+
+volumes:
+  automagik-spark-db-data:
+  redis-data:
+
+networks:
+  automagik-spark-network:
+    name: automagik-spark-network
+```
+
+<Note>
+**Important:** The Celery Beat scheduler (`automagik-spark-beat`) must run as a **singleton**. Never scale this service to multiple instances, as it will cause duplicate task scheduling.
+</Note>
+
+## Environment Configuration
+
+### Production Environment Variables
+
+Create a `.env` file in the same directory as your `docker-compose.yml`:
+
+```bash .env
+# =================================================================
+# 🌍 Global Environment Configuration
+# =================================================================
+ENVIRONMENT=production
+
+# Global Logging Configuration
+LOG_LEVEL=INFO
+LOG_FOLDER=./logs
+
+# Global Timezone (Critical for scheduling)
+AUTOMAGIK_TIMEZONE=UTC
+
+# Global Encryption and Security
+AUTOMAGIK_ENCRYPTION_KEY=<GENERATE_SECURE_KEY>
+
+# =================================================================
+# 🔧 Core Application Settings (REQUIRED)
+# =================================================================
+AUTOMAGIK_SPARK_API_KEY=<GENERATE_SECURE_API_KEY>
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+AUTOMAGIK_SPARK_API_PORT=8883
+
+# CORS origins (comma-separated list)
+AUTOMAGIK_SPARK_API_CORS=https://yourdomain.com,https://app.yourdomain.com
+
+# Public URL where Spark API is accessible
+AUTOMAGIK_SPARK_REMOTE_URL=https://yourdomain.com
+
+# =================================================================
+# 🗄️ Database Configuration
+# =================================================================
+# PostgreSQL connection for production
+AUTOMAGIK_SPARK_POSTGRES_USER=spark_user
+AUTOMAGIK_SPARK_POSTGRES_PASSWORD=<GENERATE_SECURE_DB_PASSWORD>
+AUTOMAGIK_SPARK_POSTGRES_PORT=5402
+
+# Database URL for application
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://spark_user:<GENERATE_SECURE_DB_PASSWORD>@automagik-spark-db:5402/automagik_spark
+
+# =================================================================
+# 📬 Celery Configuration (Task Queue & Scheduling)
+# =================================================================
+# Redis configuration
+AUTOMAGIK_SPARK_REDIS_PORT=5412
+AUTOMAGIK_SPARK_REDIS_PASSWORD=<GENERATE_SECURE_REDIS_PASSWORD>
+
+# Celery broker and result backend
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:< GENERATE_SECURE_REDIS_PASSWORD>@redis:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://:<GENERATE_SECURE_REDIS_PASSWORD>@redis:5412/0
+
+# Worker log file
+AUTOMAGIK_SPARK_WORKER_LOG=/var/log/automagik/worker.log
+
+# Spark-Specific Encryption Key
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=<GENERATE_SECURE_KEY>
+
+# =================================================================
+# 🔌 Optional: Integration Settings
+# =================================================================
+# LangFlow Integration (if using)
+# LANGFLOW_API_URL=http://your-langflow-instance:7860
+# LANGFLOW_API_KEY=
+
+# AutoMagik Hive Integration (if using)
+# AUTOMAGIK_API_URL=http://your-hive-instance:8881
+```
+
+### Generate Secure Keys
+
+<Warning>
+**Security Critical:** Never use the example keys in production. Generate strong, random keys for all security-sensitive values.
+</Warning>
+
+Generate secure keys using these commands:
+
+```bash
+# Generate API Key (32 characters)
+openssl rand -hex 32
+
+# Generate Encryption Key (base64 encoded, 32 bytes)
+openssl rand -base64 32
+
+# Generate Database Password (32 characters)
+openssl rand -hex 32
+
+# Generate Redis Password (32 characters)
+openssl rand -hex 32
+```
+
+Replace `<GENERATE_SECURE_KEY>`, `<GENERATE_SECURE_API_KEY>`, `<GENERATE_SECURE_DB_PASSWORD>`, and `<GENERATE_SECURE_REDIS_PASSWORD>` in the `.env` file with the generated values.
+
+## Initial Setup Steps
+
+### 1. Clone or Copy Files
+
+```bash
+# Create deployment directory
+mkdir -p /opt/automagik-spark
+cd /opt/automagik-spark
+
+# Create docker-compose.yml and .env files
+# (Copy the configurations from above)
+```
+
+### 2. Configure Environment
+
+```bash
+# Edit .env file with your secure values
+nano .env
+
+# Verify configuration
+cat .env | grep -v "PASSWORD\|KEY" | grep -v "^#"
+```
+
+### 3. Start Services
+
+```bash
+# Pull latest images
+docker-compose pull
+
+# Start all services
+docker-compose up -d
+
+# Verify all containers are running
+docker-compose ps
+```
+
+Expected output:
+```
+NAME                      STATUS              PORTS
+automagik-spark-api       Up 30 seconds       0.0.0.0:8883->8883/tcp
+automagik-spark-beat      Up 30 seconds
+automagik-spark-db        Up 45 seconds       0.0.0.0:5402->5402/tcp
+automagik-spark-worker    Up 30 seconds
+redis                     Up 45 seconds       0.0.0.0:5412->5412/tcp
+```
+
+### 4. Run Database Migrations
+
+```bash
+# Run migrations inside the API container
+docker-compose exec automagik-spark-api alembic upgrade head
+```
+
+### 5. Verify Health
+
+```bash
+# Check API health endpoint
+curl http://localhost:8883/health
+
+# Expected response:
+# {"status":"healthy","api":"running","worker":"running","beat":"running","database":"connected","redis":"connected"}
+```
+
+### 6. View Logs
+
+```bash
+# Follow all logs
+docker-compose logs -f
+
+# Follow specific service logs
+docker-compose logs -f automagik-spark-api
+docker-compose logs -f automagik-spark-worker
+docker-compose logs -f automagik-spark-beat
+```
+
+### 7. Add First Source
+
+```bash
+# Add a LangFlow source
+curl -X POST http://localhost:8883/api/v1/sources \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "production-langflow",
+    "source_type": "langflow",
+    "base_url": "http://langflow:7860",
+    "api_key": "your-langflow-api-key"
+  }'
+```
+
+### 8. Test Workflow
+
+```bash
+# Sync workflows from source
+curl -X POST http://localhost:8883/api/v1/workflows/sync/YOUR_SOURCE_ID \
+  -H "X-API-Key: YOUR_API_KEY"
+
+# Create a schedule
+curl -X POST http://localhost:8883/api/v1/schedules \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workflow_id": "YOUR_WORKFLOW_ID",
+    "cron_expression": "*/5 * * * *",
+    "enabled": true
+  }'
+
+# Verify task execution
+docker-compose logs -f automagik-spark-worker
+```
+
+## Monitoring Setup
+
+### Health Check Endpoints
+
+Spark provides a comprehensive health check endpoint:
+
+```bash
+# Check overall health
+curl http://localhost:8883/health
+
+# Response includes:
+# - API status
+# - Worker status
+# - Beat scheduler status
+# - Database connectivity
+# - Redis connectivity
+```
+
+### Log Locations
+
+Logs are available through Docker Compose:
+
+```bash
+# API logs
+docker-compose logs automagik-spark-api
+
+# Worker logs
+docker-compose logs automagik-spark-worker
+
+# Beat scheduler logs
+docker-compose logs automagik-spark-beat
+
+# Database logs
+docker-compose logs automagik-spark-db
+
+# Redis logs
+docker-compose logs redis
+```
+
+### Task Monitoring
+
+Monitor active and scheduled tasks:
+
+```bash
+# List all tasks
+curl http://localhost:8883/api/v1/tasks \
+  -H "X-API-Key: YOUR_API_KEY"
+
+# Get task details
+curl http://localhost:8883/api/v1/tasks/TASK_ID \
+  -H "X-API-Key: YOUR_API_KEY"
+
+# Check worker status
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect active
+```
+
+### Worker Status Checks
+
+```bash
+# Check if workers are processing tasks
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect active
+
+# Check scheduled tasks
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect scheduled
+
+# Check worker statistics
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect stats
+```
+
+## Backup Strategy
+
+### PostgreSQL Database Backup
+
+Create automated backups of your PostgreSQL database:
+
+```bash
+# Manual backup
+docker-compose exec automagik-spark-db pg_dump -U spark_user automagik_spark > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Automated daily backup script
+cat > /opt/automagik-spark/backup.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/opt/automagik-spark/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
+
+# Backup database
+docker-compose exec -T automagik-spark-db pg_dump -U spark_user automagik_spark | gzip > $BACKUP_DIR/spark_db_$DATE.sql.gz
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "spark_db_*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: spark_db_$DATE.sql.gz"
+EOF
+
+chmod +x /opt/automagik-spark/backup.sh
+```
+
+### Schedule Automated Backups
+
+Add to crontab for daily backups:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily backup at 2 AM
+0 2 * * * /opt/automagik-spark/backup.sh >> /var/log/spark-backup.log 2>&1
+```
+
+### Restore Procedure
+
+Restore from a backup file:
+
+```bash
+# Stop services
+docker-compose stop automagik-spark-api automagik-spark-worker automagik-spark-beat
+
+# Restore database
+gunzip < backups/spark_db_20250104_020000.sql.gz | docker-compose exec -T automagik-spark-db psql -U spark_user automagik_spark
+
+# Start services
+docker-compose start automagik-spark-api automagik-spark-worker automagik-spark-beat
+
+# Verify health
+curl http://localhost:8883/health
+```
+
+## Scaling Workers
+
+Spark workers can be scaled horizontally to handle increased load:
+
+```bash
+# Scale to 3 worker instances
+docker-compose up -d --scale automagik-spark-worker=3
+
+# Verify scaled workers
+docker-compose ps automagik-spark-worker
+
+# Check worker stats
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect stats
+```
+
+<Warning>
+**Never scale the Beat scheduler:** The `automagik-spark-beat` service must always run as a single instance. Scaling it will cause duplicate task scheduling.
+</Warning>
+
+### Automatic Scaling with Resource Limits
+
+Add resource limits to your docker-compose.yml:
+
+```yaml
+automagik-spark-worker:
+  # ... existing configuration ...
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.5'
+        memory: 512M
+  restart: unless-stopped
+```
+
+## Security Checklist
+
+Before going to production, verify these security measures:
+
+- [ ] **Strong API Key**: Generated with `openssl rand -hex 32`
+- [ ] **Strong Encryption Key**: Generated with `openssl rand -base64 32`
+- [ ] **Database Password**: Strong random password set
+- [ ] **Redis Password**: Strong random password configured
+- [ ] **Ports Not Exposed**: Only port 8883 exposed publicly (if needed)
+- [ ] **HTTPS Enabled**: SSL/TLS configured via reverse proxy
+- [ ] **CORS Configured**: Only trusted domains in `AUTOMAGIK_SPARK_API_CORS`
+- [ ] **Logs Sanitized**: No secrets logged in application logs
+- [ ] **Environment Variables**: Sensitive values not committed to Git
+- [ ] **Docker Image Security**: Using official images from trusted sources
+- [ ] **Regular Updates**: Docker images updated regularly for security patches
+- [ ] **Firewall Rules**: Only necessary ports open on server
+- [ ] **Database Backups**: Automated backup strategy implemented
+
+## Update Procedure
+
+Update Spark to a new version without downtime:
+
+### Rolling Update (Recommended)
+
+```bash
+# Pull latest images
+docker-compose pull
+
+# Update API first (brief downtime)
+docker-compose up -d automagik-spark-api
+
+# Wait for API to be healthy
+sleep 10
+curl http://localhost:8883/health
+
+# Update workers one by one (zero downtime)
+docker-compose up -d --no-deps --scale automagik-spark-worker=2 automagik-spark-worker
+sleep 5
+docker-compose up -d --no-deps --scale automagik-spark-worker=1 automagik-spark-worker
+
+# Update beat scheduler (brief schedule processing delay)
+docker-compose up -d automagik-spark-beat
+
+# Verify all services
+docker-compose ps
+curl http://localhost:8883/health
+```
+
+### Full Update (With Brief Downtime)
+
+```bash
+# Pull latest images
+docker-compose pull
+
+# Stop all services
+docker-compose down
+
+# Start with new images
+docker-compose up -d
+
+# Run any pending migrations
+docker-compose exec automagik-spark-api alembic upgrade head
+
+# Verify health
+curl http://localhost:8883/health
+```
+
+## Common Production Issues
+
+### Out of Memory
+
+**Symptoms:** Worker containers restarting, tasks failing with memory errors
+
+**Solution:**
+```bash
+# Check memory usage
+docker stats
+
+# Increase worker memory limits
+# Edit docker-compose.yml:
+automagik-spark-worker:
+  deploy:
+    resources:
+      limits:
+        memory: 2G  # Increase from 1G
+```
+
+### Database Connection Pool Exhaustion
+
+**Symptoms:** "Too many connections" errors in API logs
+
+**Solution:**
+```bash
+# Increase PostgreSQL max connections
+# Edit docker-compose.yml:
+automagik-spark-db:
+  command: postgres -p 5402 -c max_connections=200
+
+# Restart database
+docker-compose restart automagik-spark-db
+```
+
+### Redis Memory Limits
+
+**Symptoms:** Redis evicting keys, tasks not being processed
+
+**Solution:**
+```bash
+# Set Redis max memory policy
+# Edit docker-compose.yml:
+redis:
+  command: redis-server --port 5412 --appendonly yes --requirepass "${REDIS_PASSWORD}" --maxmemory 2gb --maxmemory-policy allkeys-lru
+
+# Restart Redis
+docker-compose restart redis
+```
+
+### Worker Crashes
+
+**Symptoms:** Tasks stuck in "pending" state, worker containers restarting
+
+**Diagnosis:**
+```bash
+# Check worker logs
+docker-compose logs --tail=100 automagik-spark-worker
+
+# Check for resource issues
+docker stats automagik-spark-worker
+
+# Check Celery worker health
+docker-compose exec automagik-spark-worker celery -A automagik_spark.core.celery.celery_app inspect ping
+```
+
+**Solution:**
+- Increase worker memory limits
+- Reduce worker concurrency
+- Check for task timeout issues
+- Review task code for errors
+
+### Beat Scheduler Not Running
+
+**Symptoms:** Schedules not firing, no tasks being created
+
+**Diagnosis:**
+```bash
+# Check beat scheduler logs
+docker-compose logs automagik-spark-beat
+
+# Verify beat is running
+docker-compose ps automagik-spark-beat
+```
+
+**Solution:**
+```bash
+# Restart beat scheduler
+docker-compose restart automagik-spark-beat
+
+# Check schedule file permissions
+docker-compose exec automagik-spark-beat ls -la /tmp/celerybeat-schedule
+```
+
+### Database Migration Failures
+
+**Symptoms:** API container failing to start, migration errors in logs
+
+**Solution:**
+```bash
+# Check migration status
+docker-compose exec automagik-spark-api alembic current
+
+# View pending migrations
+docker-compose exec automagik-spark-api alembic history
+
+# Manually run migrations
+docker-compose exec automagik-spark-api alembic upgrade head
+
+# If migration fails, check database logs
+docker-compose logs automagik-spark-db
+```
+
+## Advanced Configuration
+
+<AccordionGroup>
+  <Accordion title="HTTPS with Nginx Reverse Proxy">
+    Configure Nginx as a reverse proxy with SSL:
+
+    ```nginx
+    server {
+        listen 443 ssl http2;
+        server_name yourdomain.com;
+
+        ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+        location / {
+            proxy_pass http://localhost:8883;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+    server {
+        listen 80;
+        server_name yourdomain.com;
+        return 301 https://$server_name$request_uri;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Docker Compose with External Services">
+    Use external PostgreSQL and Redis instances:
+
+    ```yaml
+    services:
+      automagik-spark-api:
+        image: namastexlabs/automagik_spark-spark-api:latest
+        environment:
+          AUTOMAGIK_SPARK_DATABASE_URL: postgresql+asyncpg://user:pass@external-db:5432/spark
+          AUTOMAGIK_SPARK_CELERY_BROKER_URL: redis://:pass@external-redis:6379/0
+          AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND: redis://:pass@external-redis:6379/0
+        # Remove depends_on for external services
+    ```
+  </Accordion>
+
+  <Accordion title="Multi-Region Deployment">
+    For distributed deployments across regions:
+
+    1. **Primary Region:** API + Beat + Workers + Database
+    2. **Secondary Regions:** Workers only (connect to primary database/redis)
+
+    Secondary region configuration:
+    ```yaml
+    services:
+      automagik-spark-worker:
+        image: namastexlabs/automagik_spark-spark-worker:latest
+        environment:
+          AUTOMAGIK_SPARK_DATABASE_URL: postgresql+asyncpg://user:pass@primary-db:5432/spark
+          AUTOMAGIK_SPARK_CELERY_BROKER_URL: redis://:pass@primary-redis:6379/0
+    ```
+  </Accordion>
+
+  <Accordion title="Monitoring with Prometheus">
+    Add Celery Prometheus exporter:
+
+    ```yaml
+    services:
+      celery-exporter:
+        image: danihodovic/celery-exporter
+        environment:
+          CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:5412/0
+        ports:
+          - "9540:9540"
+    ```
+
+    Prometheus configuration:
+    ```yaml
+    scrape_configs:
+      - job_name: 'celery'
+        static_configs:
+          - targets: ['celery-exporter:9540']
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Production Best Practices
+
+1. **Use Specific Image Tags:** Pin to specific versions instead of `:latest`
+   ```yaml
+   image: namastexlabs/automagik_spark-spark-api:v0.3.8
+   ```
+
+2. **Set Resource Limits:** Always define memory and CPU limits
+
+3. **Enable Monitoring:** Set up health checks and alerting
+
+4. **Regular Backups:** Automate database backups and test restores
+
+5. **Log Rotation:** Configure log rotation to prevent disk space issues
+   ```bash
+   docker-compose logs --tail=1000 > /dev/null  # Truncate old logs
+   ```
+
+6. **Security Updates:** Regularly update Docker images and dependencies
+
+7. **Environment Segregation:** Use separate `.env` files for staging and production
+
+8. **Network Isolation:** Use Docker networks to isolate services
+
+9. **Secrets Management:** Consider using Docker secrets or external vaults
+
+10. **Disaster Recovery Plan:** Document and test recovery procedures
+
+## Next Steps
+
+- [Configure Schedules](/spark/api/schedules) - Set up automated workflow execution
+- [Monitor Tasks](/spark/api/tasks) - Track task execution and troubleshoot issues
+- [Scale Workers](/spark/advanced/scaling-production) - Advanced scaling strategies
+- [Custom Adapters](/spark/advanced/custom-adapters) - Integrate with custom workflow engines
+

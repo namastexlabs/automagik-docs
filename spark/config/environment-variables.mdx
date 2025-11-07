@@ -1,0 +1,308 @@
+---
+title: "Environment Variables"
+description: "Quick reference for all Automagik Spark environment variables - configuration values, types, defaults, and examples"
+---
+
+This is your quick reference guide for all environment variables used by Automagik Spark. For detailed setup procedures, production configuration, and security best practices, see [Production Setup](/spark/config/production-setup).
+
+## Environment Variable Categories
+
+All configuration is managed through environment variables. Set these in your `.env` file or export them in your shell.
+
+### API Configuration
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `AUTOMAGIK_SPARK_API_KEY` | string | **Yes** | - | API authentication key. Generate with: `openssl rand -base64 32` |
+| `AUTOMAGIK_SPARK_API_HOST` | string | No | `0.0.0.0` | Host address where API server listens |
+| `AUTOMAGIK_SPARK_API_PORT` | integer | No | `8883` | Port number for API server (1-65535) |
+| `AUTOMAGIK_SPARK_API_CORS` | string | No | `http://localhost:3000,http://localhost:8883` | Comma-separated list of allowed CORS origins |
+| `AUTOMAGIK_SPARK_REMOTE_URL` | string | No | `http://localhost:8883` | Public URL for webhooks and callbacks |
+| `AUTOMAGIK_SPARK_HTTP_TIMEOUT` | float | No | `600` | HTTP client timeout in seconds (30-3600) |
+
+**Example:**
+```bash
+AUTOMAGIK_SPARK_API_KEY=your-secure-api-key-here
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+AUTOMAGIK_SPARK_API_PORT=8883
+AUTOMAGIK_SPARK_API_CORS=http://localhost:3000,https://app.example.com
+AUTOMAGIK_SPARK_REMOTE_URL=https://spark.example.com
+AUTOMAGIK_SPARK_HTTP_TIMEOUT=600
+```
+
+---
+
+### Database Configuration
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `AUTOMAGIK_SPARK_DATABASE_URL` | string | **Yes** | - | PostgreSQL connection string with asyncpg driver |
+
+**Format:** `postgresql+asyncpg://username:password@host:port/database`
+
+**Examples:**
+```bash
+# Development
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5402/automagik_spark
+
+# Production with SSL
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://spark_user:secure_pass@db.internal:5432/automagik_spark?ssl=require
+
+# With connection pooling
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db?pool_size=20&max_overflow=10
+```
+
+<Note>
+  Spark requires PostgreSQL 12+ with the `asyncpg` driver. SQLite is only supported for testing.
+</Note>
+
+---
+
+### Celery Task Queue
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `AUTOMAGIK_SPARK_CELERY_BROKER_URL` | string | **Yes** | `redis://localhost:6379/0` | Redis URL for Celery task queue broker |
+| `AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND` | string | **Yes** | `redis://localhost:6379/0` | Redis URL for storing task results |
+| `CELERY_WORKER_CONCURRENCY` | integer | No | `2` | Number of concurrent worker processes/threads |
+
+**Format:** `redis://[password@]host:port/database`
+
+**Examples:**
+```bash
+# Without password
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:5412/0
+
+# With password
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:spark_redis_pass@localhost:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://:spark_redis_pass@localhost:5412/1
+
+# Worker concurrency (CPU cores recommended)
+CELERY_WORKER_CONCURRENCY=4
+```
+
+<Tip>Use different Redis database numbers (0, 1, 2) for better organization.</Tip>
+
+---
+
+### Logging Configuration
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `LOG_LEVEL` | string | No | `INFO` | Global logging level |
+| `LOG_FOLDER` | string | No | `./logs` | Directory path for storing log files |
+| `AUTOMAGIK_SPARK_WORKER_LOG` | string | No | `logs/worker.log` | Specific log file path for Celery workers |
+| `AUTOMAGIK_SPARK_LOG_LEVEL` | string | No | Uses `LOG_LEVEL` | Spark-specific log level (overrides global) |
+
+**Valid log levels:** `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
+**Examples:**
+```bash
+# Development
+LOG_LEVEL=DEBUG
+LOG_FOLDER=./logs
+AUTOMAGIK_SPARK_WORKER_LOG=logs/worker.log
+
+# Production
+LOG_LEVEL=INFO
+LOG_FOLDER=/var/log/automagik
+AUTOMAGIK_SPARK_WORKER_LOG=/var/log/automagik/worker.log
+```
+
+| Level | Use Case | Output Volume |
+|-------|----------|---------------|
+| `DEBUG` | Development, troubleshooting | Very High |
+| `INFO` | Production monitoring | Medium |
+| `WARNING` | Production (quiet) | Low |
+| `ERROR` | Critical issues only | Very Low |
+
+---
+
+### Security & Encryption
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `AUTOMAGIK_SPARK_ENCRYPTION_KEY` | string | No | - | Base64-encoded Fernet encryption key for sensitive data |
+| `AUTOMAGIK_ENCRYPTION_KEY` | string | No | - | Global encryption key (fallback if Spark key not set) |
+
+**Generate encryption key:**
+```python
+from cryptography.fernet import Fernet
+print(Fernet.generate_key().decode())
+```
+
+**Example:**
+```bash
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=eW91ci10ZXN0LWVuY3J5cHRpb24ta2V5LS0tLS0tLS0=
+```
+
+<Warning>
+  **Never use default keys in production!** Generate unique keys per environment and store them securely. Changing this key will invalidate all encrypted data.
+</Warning>
+
+---
+
+### Environment & System
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `ENVIRONMENT` | string | No | `development` | Deployment environment identifier |
+| `AUTOMAGIK_TIMEZONE` | string | No | `UTC` | Timezone for scheduling and timestamps (IANA format) |
+| `AUTOMAGIK_SPARK_DISABLE_TELEMETRY` | boolean | No | `false` | Disable anonymous usage analytics |
+| `PYTHONUNBUFFERED` | boolean | No | - | Force unbuffered Python output (useful for Docker) |
+
+**Examples:**
+```bash
+ENVIRONMENT=production
+AUTOMAGIK_TIMEZONE=UTC
+AUTOMAGIK_SPARK_DISABLE_TELEMETRY=true
+PYTHONUNBUFFERED=1
+```
+
+**Valid timezone examples:**
+- `UTC` (recommended)
+- `America/New_York`
+- `Europe/London`
+- `Asia/Tokyo`
+
+<Tip>Using UTC is recommended for consistency. Celery Beat uses this timezone for scheduling.</Tip>
+
+---
+
+### Workflow Source Integration
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `LANGFLOW_API_URL` | string | No | `http://localhost:7860` | LangFlow API endpoint for workflow integration |
+| `LANGFLOW_API_KEY` | string | No | - | API key for LangFlow authentication (if required) |
+| `AUTOMAGIK_API_URL` | string | No | `http://localhost:8881` | AutoMagik Agents API endpoint |
+| `AUTOMAGIK_API_HOST` | string | No | `0.0.0.0` | AutoMagik Agents API host |
+| `AUTOMAGIK_API_PORT` | integer | No | `8881` | AutoMagik Agents API port |
+
+**Examples:**
+```bash
+# Development
+LANGFLOW_API_URL=http://localhost:7860
+AUTOMAGIK_API_URL=http://localhost:8881
+
+# Production
+LANGFLOW_API_URL=https://langflow.internal
+LANGFLOW_API_KEY=sk-langflow-production-key
+AUTOMAGIK_API_URL=https://agents.internal
+```
+
+---
+
+## Complete Reference Table
+
+Quick lookup table for all environment variables:
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `AUTOMAGIK_SPARK_API_KEY` | string | **Yes** | - | API authentication key |
+| `AUTOMAGIK_SPARK_API_HOST` | string | No | `0.0.0.0` | API server host |
+| `AUTOMAGIK_SPARK_API_PORT` | integer | No | `8883` | API server port |
+| `AUTOMAGIK_SPARK_API_CORS` | string | No | `http://localhost:3000,http://localhost:8883` | CORS allowed origins |
+| `AUTOMAGIK_SPARK_REMOTE_URL` | string | No | `http://localhost:8883` | Public API URL |
+| `AUTOMAGIK_SPARK_HTTP_TIMEOUT` | float | No | `600` | HTTP request timeout (seconds) |
+| `AUTOMAGIK_SPARK_DATABASE_URL` | string | **Yes** | - | PostgreSQL connection string |
+| `AUTOMAGIK_SPARK_CELERY_BROKER_URL` | string | **Yes** | `redis://localhost:6379/0` | Redis broker URL |
+| `AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND` | string | **Yes** | `redis://localhost:6379/0` | Redis result backend URL |
+| `CELERY_WORKER_CONCURRENCY` | integer | No | `2` | Worker concurrency level |
+| `LOG_LEVEL` | string | No | `INFO` | Global log level |
+| `LOG_FOLDER` | string | No | `./logs` | Log directory path |
+| `AUTOMAGIK_SPARK_WORKER_LOG` | string | No | `logs/worker.log` | Worker log file path |
+| `AUTOMAGIK_SPARK_LOG_LEVEL` | string | No | Uses `LOG_LEVEL` | Spark-specific log level |
+| `AUTOMAGIK_SPARK_ENCRYPTION_KEY` | string | No | - | Encryption key (base64) |
+| `AUTOMAGIK_ENCRYPTION_KEY` | string | No | - | Global encryption key |
+| `ENVIRONMENT` | string | No | `development` | Deployment environment |
+| `AUTOMAGIK_TIMEZONE` | string | No | `UTC` | System timezone |
+| `AUTOMAGIK_SPARK_DISABLE_TELEMETRY` | boolean | No | `false` | Disable telemetry |
+| `PYTHONUNBUFFERED` | boolean | No | - | Unbuffered Python output |
+| `LANGFLOW_API_URL` | string | No | `http://localhost:7860` | LangFlow endpoint |
+| `LANGFLOW_API_KEY` | string | No | - | LangFlow API key |
+| `AUTOMAGIK_API_URL` | string | No | `http://localhost:8881` | AutoMagik API URL |
+| `AUTOMAGIK_API_HOST` | string | No | `0.0.0.0` | AutoMagik API host |
+| `AUTOMAGIK_API_PORT` | integer | No | `8881` | AutoMagik API port |
+
+---
+
+## Quick Start Templates
+
+### Minimal Development Configuration
+
+Bare minimum for local development:
+
+```bash
+# Required variables only
+AUTOMAGIK_SPARK_API_KEY=dev-test-key
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5402/automagik_spark
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:5412/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:5412/0
+```
+
+### Minimal Production Configuration
+
+Essential production variables (see [Production Setup](/spark/config/production-setup) for complete guide):
+
+```bash
+# Environment
+ENVIRONMENT=production
+
+# Required security
+AUTOMAGIK_SPARK_API_KEY=CHANGE-THIS-SECURE-KEY
+AUTOMAGIK_SPARK_ENCRYPTION_KEY=GENERATE-WITH-Fernet
+
+# Database with SSL
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql+asyncpg://user:pass@db.internal:5432/automagik_spark?ssl=require
+
+# Redis with password
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://:PASSWORD@redis.internal:6379/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://:PASSWORD@redis.internal:6379/1
+
+# Production URLs
+AUTOMAGIK_SPARK_REMOTE_URL=https://spark.yourdomain.com
+AUTOMAGIK_SPARK_API_CORS=https://app.yourdomain.com
+```
+
+---
+
+## Configuration Precedence
+
+Environment variables are loaded in this order (later overrides earlier):
+
+1. System environment variables
+2. `.env` file in project root
+3. Runtime overrides (command-line flags)
+
+**Example:**
+```bash
+# .env file
+AUTOMAGIK_SPARK_API_PORT=8883
+
+# Override at runtime
+AUTOMAGIK_SPARK_API_PORT=9000 automagik-spark api start
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Production Setup" icon="server" href="/spark/config/production-setup">
+    Complete production configuration guide with security, backups, and troubleshooting
+  </Card>
+
+  <Card title="Installation" icon="download" href="/spark/installation">
+    Install Automagik Spark and set up your environment
+  </Card>
+
+  <Card title="Quickstart" icon="rocket" href="/spark/quickstart">
+    Get your first workflow running
+  </Card>
+
+  <Card title="Production Deployment" icon="cloud" href="/spark/examples/production-deployment">
+    Deploy to production environments
+  </Card>
+</CardGroup>

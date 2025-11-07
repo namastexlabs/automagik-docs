@@ -13,147 +13,154 @@ icon: "book"
   </h1>
 </div>
 
+<Warning>
+**Version Notice**: This documentation is for Spark v0.3.8+. If you're using an older version, some commands and API endpoints may differ. Check the [changelog](https://github.com/namastexlabs/automagik-spark/releases) for version-specific details.
+</Warning>
+
 ## What is Spark?
 
-Spark is a **temporal automation system** that transforms reactive AI agents into proactive, autonomous workers. The "smart alarm clock" for your AI agents - scheduling workflows, orchestrating executions, and making your repositories work 24/7.
+Spark is the **automation engine that gives your AI workflows a sense of time**. While LangFlow and Hive create powerful workflows and agents, Spark makes them proactive by scheduling automatic execution on intervals, cron expressions, or one-time triggers.
 
-## The Problem
+Think of it as the alarm clock for your entire AI infrastructure.
 
-AI agents are typically reactive - they only work when you ask:
-- **Always On-Demand**: Agents wait for human input
-- **No Autonomy**: Can't run tasks on schedules
-- **Manual Triggers**: You have to remember to run things
-- **Wasted Time**: Repetitive tasks done manually
-- **No Continuous Work**: Development stops when you stop
+## The Real Problem
 
-## The Solution
+Your AI workflows are brilliant—but they sit idle until you manually trigger them:
 
-Spark gives AI agents **autonomous temporal life**:
+- Daily reports you have to remember to generate
+- Monitoring tasks requiring constant attention
+- Routine automations needing manual execution
+- Agents that only respond when directly invoked
+
+## How Spark Works
+
+Spark connects to your workflow sources (LangFlow, Hive), syncs available workflows, and executes them automatically based on schedules you define.
+
+### The Flow
+
+```mermaid
+graph LR
+    A[Workflow Sources] -->|1. Add & Sync| B[Spark Engine]
+    B -->|2. Schedule| C[Celery Beat]
+    C -->|3. Queue Tasks| D[Redis]
+    D -->|4. Execute| E[Workers]
+    E -->|5. Trigger| A
+    B -.->|State| F[(PostgreSQL)]
+    E -.->|Results| F
+```
+
+**The four-step process:**
+
+1. **Add Sources**: Connect your LangFlow or Hive instances
+2. **Sync Workflows**: Discover available workflows from your sources
+3. **Create Schedules**: Define when workflows should run (cron, interval, one-time)
+4. **Execute Automatically**: Workers trigger workflows and store results
+
+## Real Features (No Fluff)
 
 <CardGroup cols={2}>
   <Card title="Cron-Based Scheduling" icon="clock">
-    Define workflows that run on any schedule. Every hour, daily, weekly, or custom intervals.
+    Standard cron expressions, intervals (5m, 1h, 1d), or one-time execution.
   </Card>
-  <Card title="Workflow Orchestration" icon="diagram-project">
-    Chain multiple tasks together. Run complex multi-step processes automatically.
+  <Card title="Multi-Source Management" icon="server">
+    Connect multiple LangFlow and Hive instances. Track them all from one place.
   </Card>
-  <Card title="24/7 Autonomous Execution" icon="moon">
-    Your AI agents work around the clock, even when you're asleep or on vacation.
+  <Card title="Distributed Workers" icon="users">
+    Celery-powered workers execute workflows. Scale horizontally as needed.
   </Card>
-  <Card title="Monitoring & Logging" icon="chart-line">
-    Track every execution, see what worked, debug what didn't, measure productivity.
+  <Card title="Execution History" icon="list">
+    Every task execution stored with input, output, status, and timestamps.
   </Card>
 </CardGroup>
 
-## Key Features
+## Architecture Overview
 
-### ⏰ Flexible Scheduling
-- **Cron Expressions**: Industry-standard scheduling
-- **Timezone Support**: Run tasks in any timezone
-- **One-Time or Recurring**: Single executions or ongoing automation
-- **Smart Retries**: Automatic retry on failures
+Spark is built on battle-tested components:
 
-### 🔄 Workflow Automation
-- **Multi-Step Tasks**: Chain operations together
-- **Conditional Logic**: Run tasks based on conditions
-- **Parallel Execution**: Run multiple workflows simultaneously
-- **State Management**: Maintain context between runs
-
-### 📊 Monitoring & Observability
-- **Execution History**: See every run and its results
-- **Error Tracking**: Catch and analyze failures
-- **Performance Metrics**: Measure execution times
-- **Alerts**: Get notified when things go wrong
-
-### 🎯 Repository Automation
-- **Code Analysis**: Run linters and tests automatically
-- **Documentation Updates**: Keep docs in sync with code
-- **Dependency Updates**: Check for updates on schedule
-- **Build & Deploy**: Automate CI/CD workflows
-
-## Who is Spark For?
-
-<AccordionGroup>
-  <Accordion title="Solo Developers">
-    Automate repetitive tasks and let your AI agents maintain your projects while you focus on building.
-  </Accordion>
-  <Accordion title="DevOps Teams">
-    Schedule maintenance tasks, monitoring, and automated responses to common issues.
-  </Accordion>
-  <Accordion title="AI Researchers">
-    Run long-running experiments and data collection tasks on autopilot.
-  </Accordion>
-  <Accordion title="Product Teams">
-    Automate report generation, metric collection, and stakeholder updates.
-  </Accordion>
-</AccordionGroup>
-
-## Why "Spark"?
-
-A **spark** ignites action - and that's exactly what this tool does. It **sparks your repositories into autonomous life**, transforming passive codebases into active, self-maintaining systems.
-
-## Architecture
+- **FastAPI** (REST API server)
+- **PostgreSQL** (persistent state and task history)
+- **Redis** (task queue and message broker)
+- **Celery Beat** (cron scheduler)
+- **Celery Workers** (distributed task execution)
 
 ```mermaid
 graph TB
-    A[Cron Scheduler] --> B[Spark Orchestrator]
-    B --> C[Workflow Engine]
-    C --> D[AI Agents]
-    C --> E[Repository Tasks]
-    C --> F[External Integrations]
+    subgraph "Your Workflow Sources"
+        LF[LangFlow]
+        HV[Automagik Hive]
+    end
 
-    D --> G[Execution Results]
-    E --> G
-    F --> G
+    subgraph "Spark Engine"
+        API[FastAPI<br/>Port 8883]
+        DB[(PostgreSQL<br/>State)]
+        RD[(Redis<br/>Queue)]
+        BT[Celery Beat<br/>Scheduler]
+        WK[Workers<br/>Executors]
+    end
 
-    G --> H[Monitoring]
-    G --> I[Logging]
-    G --> J[Alerts]
+    subgraph "Interfaces"
+        CLI[CLI Tool]
+        REST[REST API]
+    end
+
+    LF <-->|Sync| API
+    HV <-->|Sync| API
+    API <-->|Store| DB
+    API -->|Queue| RD
+    BT -->|Schedule| RD
+    RD -->|Dequeue| WK
+    WK -->|Trigger| LF
+    WK -->|Trigger| HV
+    WK -->|Results| DB
+    CLI -->|Commands| API
+    REST -->|HTTP| API
 ```
 
-## Use Cases
+## What Spark is NOT
 
-<CardGroup cols={2}>
-  <Card title="Daily Reports" icon="file-chart-line">
-    Generate and send reports every morning automatically.
-  </Card>
-  <Card title="Dependency Updates" icon="arrows-rotate">
-    Check for security updates and create PRs weekly.
-  </Card>
-  <Card title="Code Quality Checks" icon="magnifying-glass">
-    Run linters and tests on a schedule, catch issues early.
-  </Card>
-  <Card title="Content Generation" icon="pen">
-    Create and publish content based on data analysis daily.
-  </Card>
-</CardGroup>
+<Warning>
+Spark does **not** create workflows or define agent logic. It schedules and executes workflows that already exist in your LangFlow or Hive instances.
+</Warning>
 
-## Philosophy
+## Spark's Role in Automagik
 
-Spark embodies our core philosophy:
+Spark is part of the broader Automagik ecosystem:
 
-<Card title="AI that elevates human potential, not replaces it" icon="users">
-  - **You define schedules** - Spark executes
-  - **You create workflows** - Spark orchestrates
-  - **You monitor** - Spark reports
-  - **You control** - Spark automates
-</Card>
+- **[LangFlow](https://github.com/langflow-ai/langflow)**: Visual workflow builder
+- **[Automagik Hive](https://github.com/namastexlabs/automagik-hive)**: Multi-agent orchestration
+- **[Automagik Omni](https://github.com/namastexlabs/automagik-omni)**: Messaging integration
+- **Spark**: Temporal scheduling for all workflows
 
----
+## Real Use Cases
+
+<AccordionGroup>
+  <Accordion title="Daily Reports">
+    Schedule a LangFlow workflow to generate and send reports every morning at 8 AM.
+  </Accordion>
+  <Accordion title="Continuous Monitoring">
+    Run a Hive agent every 15 minutes to check system health and alert on issues.
+  </Accordion>
+  <Accordion title="Weekly Maintenance">
+    Schedule dependency checks, backups, or cleanup tasks every Sunday at 2 AM.
+  </Accordion>
+  <Accordion title="One-Time Triggers">
+    Queue a workflow to run once at a specific future time.
+  </Accordion>
+</AccordionGroup>
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Installation" icon="download" href="/spark/installation">
-    Get Spark installed and configured
+    Get Spark installed with PostgreSQL and Redis
   </Card>
   <Card title="Quick Start" icon="rocket" href="/spark/quickstart">
-    Create your first automated workflow
+    Schedule your first workflow in under 30 minutes
   </Card>
   <Card title="GitHub Repository" icon="github" href="https://github.com/namastexlabs/automagik-spark">
     View source code and contribute
   </Card>
   <Card title="PyPI Package" icon="python" href="https://pypi.org/project/automagik-spark">
-    Install via PyPI
+    Install via pip
   </Card>
 </CardGroup>

@@ -1,0 +1,726 @@
+---
+title: "Simple Schedule Example"
+description: "Get from zero to a workflow running every 5 minutes in under 10 minutes"
+icon: "clock"
+---
+
+## Goal
+
+By the end of this guide, you'll have a workflow running automatically every 5 minutes in Spark. Total time: **under 10 minutes**.
+
+This is your "hello world" for Spark scheduling—the simplest possible path from installation to automated workflow execution.
+
+---
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+<Steps>
+  <Step title="Spark installed and running">
+    Complete the [installation guide](/spark/installation) first.
+
+    **Required services**:
+    - PostgreSQL (running on port 5432)
+    - Redis (running on port 6379)
+    - Spark API (running on port 8883)
+  </Step>
+
+  <Step title="A workflow source available">
+    You need either:
+    - **LangFlow** running on `http://localhost:7860`, OR
+    - **Automagik Hive** running on `http://localhost:8000`
+
+    <Tip>
+    **Don't have one?** Quickly install LangFlow:
+    ```bash
+    pip install langflow
+    langflow run
+    ```
+    Then create a simple flow (any flow works for this example).
+    </Tip>
+  </Step>
+
+  <Step title="API key from your source">
+    Get an API key from your LangFlow or Hive instance. You'll need this to connect Spark to your workflow source.
+  </Step>
+</Steps>
+
+### Quick Prerequisites Check
+
+Run these commands to verify everything is ready:
+
+```bash
+# Check PostgreSQL
+psql -h localhost -U postgres -c "SELECT version();"
+
+# Check Redis
+redis-cli ping
+# Should output: PONG
+
+# Check Spark API
+curl http://localhost:8883/health
+# Should output: {"status":"ok"}
+
+# Check LangFlow (if using)
+curl http://localhost:7860/health
+```
+
+<Warning>
+**All checks must pass** before proceeding. If any fail, see [common errors](/spark/troubleshooting/common-errors) for fixes.
+</Warning>
+
+---
+
+## Step-by-Step: Schedule in 10 Minutes
+
+<Steps>
+  <Step title="Add Your Workflow Source">
+    Connect Spark to your LangFlow or Hive instance.
+
+    **For LangFlow**:
+    ```bash
+    automagik-spark sources add \
+      --name "my-langflow" \
+      --type "langflow" \
+      --url "http://localhost:7860" \
+      --api-key "your-langflow-api-key"
+    ```
+
+    **For Hive**:
+    ```bash
+    automagik-spark sources add \
+      --name "my-hive" \
+      --type "automagik-agents" \
+      --url "http://localhost:8000" \
+      --api-key "your-hive-api-key"
+    ```
+
+    **Expected output**:
+    ```
+    Health check passed: status ok
+    Version check passed: 1.0.65
+    Successfully added source: http://localhost:7860
+    ```
+
+    <Tip>
+    **What this does**: Registers your workflow source with Spark so it can discover and sync workflows.
+    </Tip>
+  </Step>
+
+  <Step title="List Available Workflows">
+    Discover what workflows are available to schedule.
+
+    ```bash
+    automagik-spark workflows sync
+    ```
+
+    **Expected output**:
+    ```
+    ┌────────────────────┬─────────────────────┬──────────────────────┬──────────┐
+    │ ID                 │ Name                │ Description          │ Source   │
+    ├────────────────────┼─────────────────────┼──────────────────────┼──────────┤
+    │ flow-abc-123       │ daily-report        │ Generate daily stats │ langflow │
+    │ flow-def-456       │ data-processor      │ Process CSV data     │ langflow │
+    └────────────────────┴─────────────────────┴──────────────────────┴──────────┘
+
+    Command: sync <flow_id> • Sources: my-langflow
+    ```
+
+    **Note the workflow ID** you want to schedule (e.g., `flow-abc-123`).
+
+    <Tip>
+    **What this does**: Queries your source for all available workflows without syncing them yet. This is your discovery phase.
+    </Tip>
+  </Step>
+
+  <Step title="Sync the Workflow">
+    Bring your chosen workflow into Spark's database.
+
+    ```bash
+    # Replace flow-abc-123 with your workflow ID
+    automagik-spark workflows sync flow-abc-123
+    ```
+
+    **Expected output**:
+    ```
+    Successfully synced flow flow-abc-123
+    ```
+
+    **Verify it was synced**:
+    ```bash
+    automagik-spark workflows list
+    ```
+
+    **Expected output**:
+    ```
+    ┌────────────┬──────────────┬────────────┬───────────┬──────────┐
+    │ ID         │ Name         │ Latest Run │ Schedules │ Source   │
+    ├────────────┼──────────────┼────────────┼───────────┼──────────┤
+    │ workflow-1 │ daily-report │ NEW        │ 0         │ langflow │
+    └────────────┴──────────────┴────────────┴───────────┴──────────┘
+    ```
+
+    <Tip>
+    **What this does**: Copies the workflow metadata into Spark's database so it can be scheduled and executed locally.
+    </Tip>
+  </Step>
+
+  <Step title="Create a Schedule (Every 5 Minutes)">
+    Set up the workflow to run automatically every 5 minutes.
+
+    ```bash
+    automagik-spark schedules create
+    ```
+
+    **Interactive prompts and responses**:
+    ```
+    Available Workflows:
+    0: daily-report (0 schedules)
+
+    Select a workflow: 0
+
+    Schedule Type:
+      0: Interval (e.g., every 30 minutes)
+      1: Cron (e.g., every day at 8 AM)
+      2: One-time (run once at a specific time)
+
+    Select schedule type: 1
+
+    Cron Examples:
+      * * * * *     - Every minute
+      */5 * * * *   - Every 5 minutes
+      0 * * * *     - Every hour
+      0 0 * * *     - Every day at midnight
+
+    Enter cron expression: */5 * * * *
+
+    Enter input value (or press Enter to skip): {"message": "hello"}
+
+    Schedule created successfully with ID: schedule-abc-123
+    ```
+
+    <Info>
+    **Cron expression breakdown**: `*/5 * * * *`
+    - `*/5` = Every 5 minutes
+    - `*` = Every hour
+    - `*` = Every day of month
+    - `*` = Every month
+    - `*` = Every day of week
+
+    Translation: "Run every 5 minutes, always."
+    </Info>
+
+    <Tip>
+    **What this does**: Creates a database entry that Celery Beat monitors. Every 5 minutes, Beat creates a task that workers execute.
+    </Tip>
+  </Step>
+
+  <Step title="Verify the Schedule">
+    Confirm your schedule was created and is active.
+
+    ```bash
+    automagik-spark schedules list
+    ```
+
+    **Expected output**:
+    ```
+    ┌──────────────┬──────────────┬──────┬─────────────┬────────────┬────────┐
+    │ ID           │ Workflow     │ Type │ Expression  │ Next Run   │ Status │
+    ├──────────────┼──────────────┼──────┼─────────────┼────────────┼────────┤
+    │ schedule-123 │ daily-report │ cron │ */5 * * * * │ In 5 mins  │ ACTIVE │
+    └──────────────┴──────────────┴──────┴─────────────┴────────────┴────────┘
+    ```
+
+    **Key things to check**:
+    - ✅ Status is **ACTIVE** (not PAUSED or STOPPED)
+    - ✅ Next Run shows a future time
+    - ✅ Expression matches what you entered
+
+    <Tip>
+    **What this does**: Shows you all configured schedules and when they'll next execute. The "Next Run" time counts down to the next execution.
+    </Tip>
+  </Step>
+
+  <Step title="Check Workers Are Running">
+    Verify Spark workers and scheduler are running.
+
+    ```bash
+    automagik-spark worker status
+    ```
+
+    **Expected output**:
+    ```
+    Worker is running (PID: 12345)
+    Beat scheduler is running (PID: 12346)
+    ```
+
+    **If workers are NOT running**:
+    ```bash
+    # Start workers and beat scheduler
+    automagik-spark worker start
+
+    # Verify they started
+    automagik-spark worker status
+    ```
+
+    <Warning>
+    **Critical**: Without workers running, schedules will NOT execute. Always ensure workers are running.
+    </Warning>
+
+    <Tip>
+    **What this does**: Workers execute tasks. Beat creates tasks from schedules. Both must run for automation to work.
+    </Tip>
+  </Step>
+
+  <Step title="Wait for First Execution (Up to 5 Minutes)">
+    Your schedule will fire within 5 minutes. Meanwhile, check the task list.
+
+    ```bash
+    # Check tasks list (should be empty initially)
+    automagik-spark tasks list
+
+    # Wait 5 minutes, then check again
+    # You should see a new task
+    ```
+
+    **After 5 minutes, expected output**:
+    ```
+    ┌──────────────┬──────────────┬─────────────┬────────┬────────────┬──────────┐
+    │ ID           │ Workflow     │ Schedule    │ Status │ Created    │ Duration │
+    ├──────────────┼──────────────┼─────────────┼────────┼────────────┼──────────┤
+    │ task-001     │ daily-report │ schedule-12 │ ✓ OK   │ Just now   │ 1.2s     │
+    └──────────────┴──────────────┴─────────────┴────────┴────────────┴──────────┘
+    ```
+
+    <Info>
+    **Timeline**:
+    - **0:00** - Schedule created
+    - **0:00-5:00** - Waiting for first cron trigger
+    - **5:00** - First task created and executed
+    - **10:00** - Second task executed
+    - **Every 5 minutes** - New task executed
+    </Info>
+
+    <Tip>
+    **What this does**: Confirms your schedule is working. Each execution creates a task record with status, logs, and output.
+    </Tip>
+  </Step>
+
+  <Step title="View Execution Logs">
+    Check the output from your workflow execution.
+
+    ```bash
+    # Get the task ID from the list above (e.g., task-001)
+    automagik-spark tasks view task-001
+    ```
+
+    **Expected output**:
+    ```
+    Task ID: task-001
+    Workflow: daily-report
+    Schedule: schedule-abc-123
+    Status: SUCCESS
+    Created: 2025-11-04 15:30:00
+    Started: 2025-11-04 15:30:01
+    Completed: 2025-11-04 15:30:02
+    Duration: 1.2s
+
+    Input:
+    {"message": "hello"}
+
+    Output:
+    {"result": "Report generated successfully", "timestamp": "2025-11-04T15:30:02Z"}
+
+    Logs:
+    [2025-11-04 15:30:01] Task started
+    [2025-11-04 15:30:01] Executing workflow daily-report
+    [2025-11-04 15:30:02] Workflow completed successfully
+    ```
+
+    <Tip>
+    **What this does**: Shows you everything that happened during execution—input sent, output received, logs, timing.
+    </Tip>
+  </Step>
+
+  <Step title="Control the Schedule">
+    Pause, resume, or modify your schedule.
+
+    **Pause the schedule**:
+    ```bash
+    automagik-spark schedules update schedule-abc-123 pause
+    ```
+
+    **Resume the schedule**:
+    ```bash
+    automagik-spark schedules update schedule-abc-123 resume
+    ```
+
+    **Change the frequency**:
+    ```bash
+    # Run every 10 minutes instead of 5
+    automagik-spark schedules set-expression schedule-abc-123 "*/10 * * * *"
+    ```
+
+    **Delete the schedule**:
+    ```bash
+    automagik-spark schedules delete schedule-abc-123
+    ```
+
+    <Tip>
+    **What this does**: Gives you full control over your automation. Pause during maintenance, adjust frequency based on needs, or clean up when done.
+    </Tip>
+  </Step>
+
+  <Step title="Clean Up (Optional)">
+    When you're done testing, remove the schedule and workflow.
+
+    ```bash
+    # Delete the schedule
+    automagik-spark schedules delete schedule-abc-123
+
+    # Delete the workflow (also removes all associated tasks)
+    automagik-spark workflows delete workflow-1
+
+    # Optionally remove the source
+    automagik-spark sources delete my-langflow
+    ```
+
+    <Tip>
+    **What this does**: Cleans up test resources. In production, you'd keep these running indefinitely.
+    </Tip>
+  </Step>
+</Steps>
+
+---
+
+## Expected Timeline
+
+Here's what to expect when following this guide:
+
+| Time      | Action                              | What's Happening                          |
+|-----------|-------------------------------------|-------------------------------------------|
+| **0:00**  | Start guide                         | Prerequisites ready                       |
+| **2:00**  | Source added, workflow synced       | Workflow now in Spark database            |
+| **3:00**  | Schedule created                    | Automation configured                     |
+| **4:00**  | Workers verified, waiting           | Beat monitoring schedule                  |
+| **5:00**  | First execution                     | Task created and executed                 |
+| **10:00** | Second execution                    | Automation running on schedule            |
+| **Total** | **Under 10 minutes** ✅             | Fully automated workflow                  |
+
+<Info>
+**Most time is waiting**: Setup takes 3-4 minutes. The rest is waiting for the 5-minute schedule to fire.
+</Info>
+
+---
+
+## Verification Commands
+
+Use these commands to verify each step worked:
+
+```bash
+# After adding source
+automagik-spark sources list
+
+# After syncing workflow
+automagik-spark workflows list
+
+# After creating schedule
+automagik-spark schedules list
+
+# After first execution
+automagik-spark tasks list
+
+# To view specific task
+automagik-spark tasks view <task-id>
+
+# To check workers
+automagik-spark worker status
+
+# To follow worker logs in real-time
+automagik-spark worker logs --follow
+```
+
+---
+
+## Common Mistakes
+
+<AccordionGroup>
+  <Accordion title="Schedule created but tasks never appear" icon="calendar-xmark">
+    **Problem**: Workers not running or Beat scheduler not started.
+
+    **Solution**:
+    ```bash
+    # Check worker status
+    automagik-spark worker status
+
+    # If not running, start workers
+    automagik-spark worker start
+
+    # Verify both worker and beat are running
+    automagik-spark worker status
+    ```
+
+    **What to look for**: Both "Worker is running" AND "Beat scheduler is running" must show.
+  </Accordion>
+
+  <Accordion title="Wrong cron syntax causes error" icon="exclamation-triangle">
+    **Problem**: Invalid cron expression entered.
+
+    **Common mistakes**:
+    - ❌ `5 * * * *` (runs at minute 5 of every hour, not every 5 minutes)
+    - ❌ `* * * * * *` (6 fields—cron uses 5 fields only)
+    - ❌ `*/5` (incomplete expression)
+
+    **Correct for every 5 minutes**: `*/5 * * * *`
+
+    **Solution**: Use [crontab.guru](https://crontab.guru) to validate expressions before entering.
+  </Accordion>
+
+  <Accordion title="Schedule shows PAUSED status" icon="pause">
+    **Problem**: Schedule was manually paused or created in paused state.
+
+    **Solution**:
+    ```bash
+    # Resume the schedule
+    automagik-spark schedules update schedule-abc-123 resume
+
+    # Verify it's now ACTIVE
+    automagik-spark schedules list
+    ```
+  </Accordion>
+
+  <Accordion title="Task shows FAILED status" icon="xmark">
+    **Problem**: Workflow execution failed (source unreachable, bad input, etc.).
+
+    **Solution**:
+    ```bash
+    # View task details to see error
+    automagik-spark tasks view task-abc-123
+
+    # Common causes:
+    # 1. LangFlow/Hive not running - check with curl
+    # 2. Invalid input data format - check input in task view
+    # 3. Workflow deleted from source - resync workflow
+
+    # Test workflow manually first
+    automagik-spark workflows run workflow-1 --input '{"test": "data"}'
+    ```
+  </Accordion>
+
+  <Accordion title="Workers start but immediately stop" icon="rotate">
+    **Problem**: Redis or PostgreSQL connection failure.
+
+    **Solution**:
+    ```bash
+    # Check Redis
+    redis-cli ping
+
+    # Check PostgreSQL
+    psql -h localhost -U postgres -d automagik_spark -c "SELECT 1;"
+
+    # Check worker logs for specific error
+    automagik-spark worker logs
+
+    # Verify environment variables
+    echo $AUTOMAGIK_SPARK_DATABASE_URL
+    echo $AUTOMAGIK_SPARK_CELERY_BROKER_URL
+    ```
+
+    See [common errors](/spark/troubleshooting/common-errors) for detailed connection troubleshooting.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+If something doesn't work, check these in order:
+
+<Steps>
+  <Step title="Verify prerequisites">
+    ```bash
+    # All must return success
+    psql -h localhost -U postgres -c "SELECT 1;"
+    redis-cli ping
+    curl http://localhost:8883/health
+    curl http://localhost:7860/health
+    ```
+  </Step>
+
+  <Step title="Check workers are running">
+    ```bash
+    automagik-spark worker status
+
+    # Both must show as running
+    # If not, start them:
+    automagik-spark worker start
+    ```
+  </Step>
+
+  <Step title="Verify schedule is ACTIVE">
+    ```bash
+    automagik-spark schedules list
+
+    # Status should be ACTIVE, not PAUSED
+    # If paused, resume:
+    automagik-spark schedules update <schedule-id> resume
+    ```
+  </Step>
+
+  <Step title="Check worker logs">
+    ```bash
+    automagik-spark worker logs --follow
+
+    # Look for error messages
+    # Common: connection errors, invalid input, source unavailable
+    ```
+  </Step>
+
+  <Step title="Test workflow manually">
+    ```bash
+    # Try running the workflow directly (bypasses schedule)
+    automagik-spark workflows run workflow-1 --input '{"test": "data"}'
+
+    # If this fails, the problem is with the workflow, not the schedule
+    ```
+  </Step>
+</Steps>
+
+**Still stuck?** See the comprehensive [common errors guide](/spark/troubleshooting/common-errors) for detailed solutions.
+
+---
+
+## What You've Accomplished
+
+<Check>
+**Congratulations!** You've successfully:
+- Connected Spark to a workflow source
+- Synced a workflow into Spark
+- Created a schedule that runs every 5 minutes
+- Verified execution and viewed logs
+- Learned how to control and manage schedules
+</Check>
+
+Your workflow is now running on autopilot. Every 5 minutes, Spark:
+1. ⏰ Beat scheduler triggers the schedule
+2. 📋 Creates a new task in the queue
+3. 👷 Worker picks up the task
+4. 🚀 Executes the workflow via adapter
+5. ✅ Logs results and completion
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="LangFlow Integration" icon="diagram-project" href="/spark/examples/langflow-integration">
+    Deep dive into LangFlow workflows with detailed input/output mapping
+  </Card>
+
+  <Card title="Hive Integration" icon="users" href="/spark/examples/hive-integration">
+    Learn how to schedule Hive agents, teams, and workflows
+  </Card>
+
+  <Card title="Production Deployment" icon="server" href="/spark/examples/production-deployment">
+    Deploy Spark to production with Docker Compose and scaling
+  </Card>
+
+  <Card title="CLI Commands" icon="terminal" href="/spark/cli/commands">
+    Complete reference for all Spark CLI commands
+  </Card>
+</CardGroup>
+
+---
+
+## Quick Reference: Common Schedules
+
+Copy-paste these cron expressions for common scheduling patterns:
+
+| Schedule Pattern            | Cron Expression   | Description                        |
+|-----------------------------|-------------------|------------------------------------|
+| Every minute                | `* * * * *`       | Testing only (creates many tasks)  |
+| Every 5 minutes             | `*/5 * * * *`     | Frequent monitoring                |
+| Every 15 minutes            | `*/15 * * * *`    | Regular polling                    |
+| Every 30 minutes            | `*/30 * * * *`    | Moderate frequency                 |
+| Every hour                  | `0 * * * *`       | Hourly reports                     |
+| Every 2 hours               | `0 */2 * * *`     | Periodic checks                    |
+| Every day at 8 AM           | `0 8 * * *`       | Daily morning reports              |
+| Every day at midnight       | `0 0 * * *`       | Daily batch processing             |
+| Every weekday at 9 AM       | `0 9 * * 1-5`     | Business day automation            |
+| Every Monday at 10 AM       | `0 10 * * 1`      | Weekly reports                     |
+| First day of month at 9 AM  | `0 9 1 * *`       | Monthly reports                    |
+
+<Tip>
+Use [crontab.guru](https://crontab.guru) to build and validate complex cron expressions.
+</Tip>
+
+---
+
+## Complete Example Script
+
+Here's the entire guide as a single script you can copy and run:
+
+```bash
+#!/bin/bash
+# Simple Spark Schedule - Complete Example
+
+# Prerequisites check
+echo "Checking prerequisites..."
+redis-cli ping || { echo "Redis not running!"; exit 1; }
+psql -h localhost -U postgres -c "SELECT 1;" || { echo "PostgreSQL not running!"; exit 1; }
+curl -s http://localhost:8883/health || { echo "Spark API not running!"; exit 1; }
+
+# Step 1: Add source
+echo "Adding workflow source..."
+automagik-spark sources add \
+  --name "my-langflow" \
+  --type "langflow" \
+  --url "http://localhost:7860" \
+  --api-key "your-api-key-here"
+
+# Step 2: List workflows
+echo "Listing available workflows..."
+automagik-spark workflows sync
+
+# Step 3: Sync workflow (replace flow-abc-123 with your workflow ID)
+echo "Syncing workflow..."
+read -p "Enter workflow ID to sync: " WORKFLOW_ID
+automagik-spark workflows sync "$WORKFLOW_ID"
+
+# Step 4: Get synced workflow ID
+SYNCED_ID=$(automagik-spark workflows list | grep -o "workflow-[0-9]*" | head -1)
+echo "Synced workflow ID: $SYNCED_ID"
+
+# Step 5: Start workers if not running
+echo "Checking workers..."
+automagik-spark worker status || automagik-spark worker start
+
+# Step 6: Create schedule (every 5 minutes)
+echo "Creating schedule (every 5 minutes)..."
+# Note: Use the interactive CLI for simplicity
+automagik-spark schedules create
+
+# Step 7: Verify schedule
+echo "Schedule created. Verifying..."
+automagik-spark schedules list
+
+# Step 8: Monitor tasks
+echo "Waiting for first execution (up to 5 minutes)..."
+echo "Monitor with: automagik-spark tasks list"
+echo "View logs with: automagik-spark worker logs --follow"
+
+echo ""
+echo "Setup complete! Your workflow will execute every 5 minutes."
+echo "Check status with: automagik-spark tasks list"
+```
+
+**To use this script**:
+1. Save as `setup-schedule.sh`
+2. Make executable: `chmod +x setup-schedule.sh`
+3. Update API key in Step 1
+4. Run: `./setup-schedule.sh`
+
+---
+
+You've now mastered the basics of Spark scheduling. From here, you can build complex automation workflows, integrate multiple sources, and scale to production deployments.

@@ -1,549 +1,496 @@
 ---
 title: "Quick Start"
-description: "Create your first automated workflow in 5 minutes"
+description: "Schedule your first workflow in under 30 minutes"
 icon: "rocket"
 ---
 
-## Create Your First Automated Workflow in 5 Minutes
+## Schedule Your First Workflow in Under 30 Minutes
 
-This guide will walk you through setting up Spark and creating a workflow that runs automatically on a schedule.
+This guide walks you through the complete Spark workflow: connecting a source, syncing a workflow, creating a schedule, and verifying execution.
+
+<Info>
+**Prerequisites**: Complete the [installation](/spark/installation) first. You need Spark running with PostgreSQL and Redis.
+</Info>
 
 ---
 
-## Step 1: Initialize Spark
+## The Real Workflow
+
+Spark follows a four-step process:
+
+1. **Add a workflow source** (LangFlow or Hive instance)
+2. **Sync workflows** from that source
+3. **Create a schedule** for a workflow
+4. **Verify execution** and check results
+
+Let's walk through each step.
+
+---
+
+## Step 1: Add a Workflow Source
+
+First, connect Spark to a LangFlow or Hive instance where your workflows live.
+
+### If you have LangFlow running:
 
 ```bash
-# Initialize Spark workspace
-spark init
-
-# This creates:
-# - .spark/ directory
-# - workflows/ directory
-# - config.json
+# Add LangFlow as a source
+automagik-spark sources add \
+  --name "my-langflow" \
+  --type "langflow" \
+  --url "http://localhost:7860" \
+  --api-key "your-langflow-api-key"
 ```
 
----
-
-## Step 2: Configure Spark
-
-Edit `config.json`:
-
-```json
-{
-  "scheduler": {
-    "timezone": "America/New_York",
-    "maxConcurrent": 5
-  },
-  "monitoring": {
-    "enabled": true,
-    "logLevel": "info"
-  },
-  "notifications": {
-    "enabled": true,
-    "onFailure": true
-  }
-}
+**Expected output:**
+```
+Health check passed: status ok
+Version check passed: 1.0.65
+Successfully added source: http://localhost:7860
 ```
 
----
+### If you have Automagik Hive running:
 
-## Step 3: Create Your First Workflow
+```bash
+# Add Hive as a source
+automagik-spark sources add \
+  --name "my-hive" \
+  --type "automagik-agents" \
+  --url "http://localhost:8000" \
+  --api-key "your-hive-api-key"
+```
 
-Create `workflows/daily-standup.yaml`:
+### Verify the source was added:
 
-```yaml
-name: daily-standup
-description: Daily standup report generation
-schedule: "0 9 * * 1-5"  # Monday-Friday at 9 AM
-timezone: America/New_York
+```bash
+automagik-spark sources list
+```
 
-tasks:
-  - name: get-commits
-    type: git
-    action: log
-    args:
-      since: "24 hours ago"
-      format: "- %s by %an"
-
-  - name: get-prs
-    type: github
-    action: list-prs
-    args:
-      state: open
-      repo: "owner/repo"
-
-  - name: format-report
-    type: script
-    script: |
-      echo "# Daily Standup - $(date +%Y-%m-%d)"
-      echo ""
-      echo "## Yesterday's Commits"
-      echo "$TASK_get_commits_OUTPUT"
-      echo ""
-      echo "## Open PRs"
-      echo "$TASK_get_prs_OUTPUT"
-
-  - name: send-to-slack
-    type: slack
-    channel: "#daily-standup"
-    message: "{{ tasks.format-report.output }}"
-
-notifications:
-  onSuccess: true
-  onFailure: true
+**Expected output:**
+```
+┌──────────────────────────────────────┬─────────────────────┬──────────┬────────┬─────────┐
+│ ID                                   │ URL                 │ Type     │ Status │ Version │
+├──────────────────────────────────────┼─────────────────────┼──────────┼────────┼─────────┤
+│ abc123-def456-ghi789                 │ http://localhost... │ langflow │ active │ 1.0.65  │
+└──────────────────────────────────────┴─────────────────────┴──────────┴────────┴─────────┘
 ```
 
 <Tip>
-Use [crontab.guru](https://crontab.guru) to build cron expressions easily!
+**Don't have LangFlow or Hive?** Install LangFlow with: `pip install langflow && langflow run`
 </Tip>
 
 ---
 
-## Step 4: Test Your Workflow
+## Step 2: Sync Workflows
 
-Before scheduling, test it:
-
-```bash
-# Dry run (doesn't execute, just validates)
-spark workflow validate daily-standup
-
-# Test run (executes once)
-spark workflow run daily-standup --test
-
-# Check output
-spark workflow logs daily-standup --last
-```
-
----
-
-## Step 5: Start the Scheduler
+Discover all available workflows from your sources:
 
 ```bash
-# Start Spark
-spark start
+# List all available workflows from all sources
+automagik-spark workflows sync
+```
 
-# You should see:
-# ⚡ Spark v1.0.0
-# ✓ Workflows loaded: 1
-# ✓ Scheduler started
-# ✓ Next execution: daily-standup at 2025-10-31 09:00:00
+**Expected output:**
+```
+┌────────────────────┬─────────────────────┬──────────────────────┬──────────┐
+│ ID                 │ Name                │ Description          │ Source   │
+├────────────────────┼─────────────────────┼──────────────────────┼──────────┤
+│ flow-abc-123       │ daily-report        │ Generate daily stats │ langflow │
+│ flow-def-456       │ data-processor      │ Process CSV data     │ langflow │
+└────────────────────┴─────────────────────┴──────────────────────┴──────────┘
+
+Command: sync <flow_id> • Sources: my-langflow
+```
+
+### Sync a specific workflow:
+
+```bash
+# Sync the workflow you want to schedule
+automagik-spark workflows sync flow-abc-123
+```
+
+**Expected output:**
+```
+Successfully synced flow flow-abc-123
+```
+
+### Verify synced workflows:
+
+```bash
+automagik-spark workflows list
+```
+
+**Expected output:**
+```
+┌────────────┬──────────────┬────────────┬─────────────┬───────────┬──────────┬──────┬──────────────┐
+│ ID         │ Name         │ Latest Run │ Tasks       │ Schedules │ Instance │ Type │ Last Updated │
+├────────────┼──────────────┼────────────┼─────────────┼───────────┼──────────┼──────┼──────────────┤
+│ workflow-1 │ daily-report │ NEW        │ 0 (0)       │ 0         │ langflow │ ...  │ 2 mins ago   │
+└────────────┴──────────────┴────────────┴─────────────┴───────────┴──────────┴──────┴──────────────┘
 ```
 
 ---
 
-## Real-World Example: Automated Dependency Updates
+## Step 3: Create a Schedule
 
-Create a workflow that checks for dependency updates weekly:
+Now schedule the synced workflow to run automatically.
 
-```yaml
-name: dependency-updates
-description: Weekly dependency update check
-schedule: "0 10 * * 1"  # Every Monday at 10 AM
+### Interactive schedule creation:
 
-tasks:
-  - name: check-npm-updates
-    type: script
-    script: |
-      npm outdated --json > outdated.json
-
-  - name: check-python-updates
-    type: script
-    script: |
-      pip list --outdated --format=json > pip-outdated.json
-
-  - name: create-pr-if-updates
-    type: script
-    script: |
-      if [ -s outdated.json ] || [ -s pip-outdated.json ]; then
-        # Create branch
-        git checkout -b deps/weekly-updates-$(date +%Y%m%d)
-
-        # Update dependencies
-        npm update
-        pip install --upgrade -r requirements.txt
-
-        # Commit and push
-        git add package*.json requirements.txt
-        git commit -m "chore: weekly dependency updates"
-        git push origin deps/weekly-updates-$(date +%Y%m%d)
-
-        # Create PR
-        gh pr create \
-          --title "Weekly Dependency Updates" \
-          --body "Automated dependency updates from Spark"
-      fi
-
-retryOn:
-  - network-error
-
-notifications:
-  onSuccess: true
-  channels: ["slack", "email"]
+```bash
+automagik-spark schedules create
 ```
 
----
+This starts an interactive wizard:
 
-## Common Workflow Patterns
+```
+Available Workflows:
+0: daily-report (0 schedules)
+
+Select a workflow: 0
+
+Schedule Type:
+  0: Interval (e.g., every 30 minutes)
+  1: Cron (e.g., every day at 8 AM)
+  2: One-time (run once at a specific time)
+
+Select schedule type: 1
+
+Cron Examples:
+  * * * * *     - Every minute
+  */5 * * * *   - Every 5 minutes
+  0 * * * *     - Every hour
+  0 0 * * *     - Every day at midnight
+  0 8 * * *     - Every day at 8 AM
+  0 8 * * 1-5   - Every weekday at 8 AM
+
+Enter cron expression: 0 9 * * *
+
+Enter input value: {"message": "Generate daily report"}
+
+Schedule created successfully with ID: schedule-abc-123
+```
+
+### Common schedule patterns:
 
 <Tabs>
-  <Tab title="Daily Reports">
-    ```yaml
-    name: daily-metrics
-    schedule: "0 8 * * *"  # Every day at 8 AM
+  <Tab title="Every 5 minutes">
+    **Interval**: `5m`
 
-    tasks:
-      - name: query-database
-        type: sql
-        query: "SELECT COUNT(*) as users FROM users WHERE created_at >= NOW() - INTERVAL 1 DAY"
-
-      - name: generate-chart
-        type: python
-        script: |
-          import matplotlib.pyplot as plt
-          # Generate chart from query results
-
-      - name: send-report
-        type: email
-        to: "team@example.com"
-        subject: "Daily Metrics Report"
-        attachments:
-          - "metrics.png"
+    ```bash
+    # When prompted for schedule type, select "0" (Interval)
+    # Then enter: 5m
     ```
   </Tab>
 
-  <Tab title="Continuous Monitoring">
-    ```yaml
-    name: health-check
-    schedule: "*/15 * * * *"  # Every 15 minutes
+  <Tab title="Every day at 8 AM">
+    **Cron**: `0 8 * * *`
 
-    tasks:
-      - name: check-api
-        type: http
-        url: "https://api.example.com/health"
-        expect: 200
-
-      - name: check-database
-        type: sql
-        query: "SELECT 1"
-
-      - name: alert-on-failure
-        type: slack
-        channel: "#alerts"
-        message: "🚨 Health check failed!"
-        onlyIf: "{{ tasks.check-api.failed or tasks.check-database.failed }}"
+    ```bash
+    # When prompted for schedule type, select "1" (Cron)
+    # Then enter: 0 8 * * *
     ```
   </Tab>
 
-  <Tab title="Backup Automation">
-    ```yaml
-    name: database-backup
-    schedule: "0 2 * * *"  # Every day at 2 AM
+  <Tab title="Every weekday at 9 AM">
+    **Cron**: `0 9 * * 1-5`
 
-    tasks:
-      - name: create-backup
-        type: script
-        script: |
-          pg_dump mydb > backup-$(date +%Y%m%d).sql
+    ```bash
+    # When prompted for schedule type, select "1" (Cron)
+    # Then enter: 0 9 * * 1-5
+    ```
+  </Tab>
 
-      - name: compress
-        type: script
-        script: |
-          gzip backup-*.sql
+  <Tab title="Run once now">
+    **One-time**: `now`
 
-      - name: upload-to-s3
-        type: aws
-        action: s3-upload
-        bucket: "my-backups"
-        file: "backup-*.sql.gz"
-
-      - name: cleanup-old
-        type: script
-        script: |
-          find . -name "backup-*.sql.gz" -mtime +30 -delete
-
-    retryAttempts: 3
-    notifications:
-      onFailure: true
-      channels: ["email", "slack"]
+    ```bash
+    # When prompted for schedule type, select "2" (One-time)
+    # When prompted for option, select "1" (Run now)
     ```
   </Tab>
 </Tabs>
 
----
-
-## Workflow Features
-
-### Conditional Execution
-
-```yaml
-tasks:
-  - name: check-condition
-    type: script
-    script: |
-      # Exit 0 for true, 1 for false
-      [ "$(date +%u)" -lt 6 ] && exit 0 || exit 1
-
-  - name: weekday-only-task
-    type: script
-    runIf: "{{ tasks.check-condition.success }}"
-    script: |
-      echo "This runs on weekdays only"
-```
-
-### Parallel Tasks
-
-```yaml
-tasks:
-  - name: task-group-1
-    parallel:
-      - name: build-frontend
-        type: script
-        script: npm run build
-
-      - name: build-backend
-        type: script
-        script: go build
-
-      - name: run-tests
-        type: script
-        script: npm test
-```
-
-### Error Handling
-
-```yaml
-tasks:
-  - name: risky-task
-    type: script
-    script: ./might-fail.sh
-    retryAttempts: 3
-    retryDelay: 60  # seconds
-    continueOnError: false
-
-onError:
-  - name: cleanup
-    type: script
-    script: ./cleanup.sh
-
-  - name: notify
-    type: slack
-    channel: "#alerts"
-    message: "Workflow failed: {{ error.message }}"
-```
-
----
-
-## Monitoring & Debugging
+### Verify the schedule:
 
 ```bash
-# View all workflows
-spark workflow list
+automagik-spark schedules list
+```
 
-# Check execution history
-spark history --workflow daily-standup --limit 10
+**Expected output:**
+```
+┌──────────────┬──────────────┬──────────┬────────────┬────────────┬─────────────┬──────────┬────────┐
+│ ID           │ Workflow     │ Type     │ Expression │ Next Run   │ Tasks       │ Input    │ Status │
+├──────────────┼──────────────┼──────────┼────────────┼────────────┼─────────────┼──────────┼────────┤
+│ schedule-123 │ daily-report │ cron     │ 0 9 * * *  │ Tomorrow   │ 0 (0)       │ {...}    │ ACTIVE │
+│              │              │          │            │ 09:00 AM   │             │          │        │
+└──────────────┴──────────────┴──────────┴────────────┴────────────┴─────────────┴──────────┴────────┘
+```
 
-# View logs
-spark logs --workflow daily-standup --tail 50
+<Info>
+**Schedule Status Icons**:
+- ● ACTIVE: Schedule is running
+- ⏸ PAUSED: Schedule is paused (won't execute)
+- ■ STOPPED: Schedule is stopped permanently
+</Info>
 
-# Real-time monitoring
-spark monitor
+---
 
-# Check next scheduled runs
-spark schedule --upcoming 24h
+## Step 4: Verify Execution
+
+### Test run immediately:
+
+Don't wait for the schedule—run it now to test:
+
+```bash
+automagik-spark workflows run workflow-123 --input "test message"
+```
+
+**Expected output:**
+```
+Task abc-def-123 completed successfully
+Input: test message
+Output: {"result": "Report generated successfully"}
+```
+
+### Check task history:
+
+```bash
+automagik-spark tasks list
+```
+
+**Expected output:**
+```
+┌──────────────┬──────────────┬─────────────┬────────┬────────────┬───────────────┐
+│ ID           │ Workflow     │ Schedule    │ Status │ Created    │ Duration      │
+├──────────────┼──────────────┼─────────────┼────────┼────────────┼───────────────┤
+│ task-abc-123 │ daily-report │ schedule-12 │ ✓ OK   │ 2 mins ago │ 1.2s          │
+└──────────────┴──────────────┴─────────────┴────────┴────────────┴───────────────┘
+```
+
+### View detailed task output:
+
+```bash
+automagik-spark tasks view task-abc-123
 ```
 
 ---
 
-## Common Use Cases
-
-<CardGroup cols={2}>
-  <Card title="Code Quality Checks" icon="magnifying-glass">
-    ```yaml
-    schedule: "0 */4 * * *"  # Every 4 hours
-    tasks:
-      - run linters
-      - run tests
-      - check coverage
-      - update status badge
-    ```
-  </Card>
-
-  <Card title="Data Pipelines" icon="database">
-    ```yaml
-    schedule: "0 1 * * *"  # Daily at 1 AM
-    tasks:
-      - extract data from APIs
-      - transform and clean
-      - load to warehouse
-      - update dashboards
-    ```
-  </Card>
-
-  <Card title="Security Scans" icon="shield">
-    ```yaml
-    schedule: "0 0 * * 0"  # Weekly on Sunday
-    tasks:
-      - scan dependencies
-      - check for CVEs
-      - audit Docker images
-      - create security report
-    ```
-  </Card>
-
-  <Card title="Content Publishing" icon="newspaper">
-    ```yaml
-    schedule: "0 10 * * 1,3,5"  # Mon/Wed/Fri
-    tasks:
-      - generate content
-      - create images
-      - publish to blog
-      - share on social media
-    ```
-  </Card>
-</CardGroup>
-
----
-
-## Pro Tips
+## What to Do When It Fails
 
 <AccordionGroup>
-  <Accordion title="Use Environment Variables">
-    Keep secrets out of workflows:
+  <Accordion title="Schedule created but tasks never execute">
+    **Problem**: Workers may not be running.
 
-    ```yaml
-    tasks:
-      - name: deploy
-        type: script
-        env:
-          API_KEY: "${DEPLOY_API_KEY}"
-          DB_PASSWORD: "${DB_PASS}"
-        script: |
-          ./deploy.sh
-    ```
-
-    Set in `.env`:
+    **Solution**:
     ```bash
-    DEPLOY_API_KEY=secret-key
-    DB_PASS=secret-pass
+    # Check worker status
+    automagik-spark worker status
+
+    # Start workers if not running
+    automagik-spark worker start
+
+    # Check worker logs
+    automagik-spark worker logs
     ```
   </Accordion>
 
-  <Accordion title="Test Before Scheduling">
-    Always test workflows before letting them run automatically:
+  <Accordion title="Task shows 'FAILED' status">
+    **Problem**: Workflow execution failed.
 
+    **Solution**:
     ```bash
-    # Validate syntax
-    spark workflow validate my-workflow
+    # View task details to see error
+    automagik-spark tasks view task-abc-123
 
-    # Dry run
-    spark workflow run my-workflow --dry-run
-
-    # Test run
-    spark workflow run my-workflow --test
-
-    # Only then, schedule it
-    spark start
+    # Common issues:
+    # - Invalid input data format
+    # - Source unreachable (check LangFlow/Hive is running)
+    # - Workflow deleted from source
     ```
   </Accordion>
 
-  <Accordion title="Monitor Execution Times">
-    Track how long tasks take:
+  <Accordion title="Source shows 'inactive' status">
+    **Problem**: Spark can't connect to the workflow source.
 
+    **Solution**:
     ```bash
-    # View execution stats
-    spark stats --workflow daily-standup
+    # Check if LangFlow/Hive is running
+    curl http://localhost:7860/health  # for LangFlow
+    curl http://localhost:8000/health  # for Hive
 
-    # Optimize slow tasks
-    spark analyze --workflow daily-standup
+    # Update source with correct URL/API key
+    automagik-spark sources update \
+      --url "http://localhost:7860" \
+      --api-key "new-api-key"
+    ```
+  </Accordion>
+
+  <Accordion title="'No workflows found' after sync">
+    **Problem**: The source has no workflows or sync failed.
+
+    **Solution**:
+    ```bash
+    # Check if source has workflows
+    automagik-spark workflows sync  # Lists remote workflows
+
+    # Create a simple workflow in LangFlow/Hive first
+    # Then sync again
+    automagik-spark workflows sync flow-id
     ```
   </Accordion>
 </AccordionGroup>
+
+---
+
+## Complete Example: End-to-End
+
+Here's a complete example you can copy-paste (assuming LangFlow is running):
+
+```bash
+# 1. Add LangFlow source
+automagik-spark sources add \
+  --name "local-langflow" \
+  --type "langflow" \
+  --url "http://localhost:7860" \
+  --api-key "sk-your-api-key"
+
+# 2. List available workflows
+automagik-spark workflows sync
+
+# 3. Sync a specific workflow (replace with your flow ID)
+automagik-spark workflows sync flow-abc-123
+
+# 4. Create schedule (interactive)
+automagik-spark schedules create
+# Select workflow: 0
+# Select type: 1 (Cron)
+# Enter expression: */15 * * * *  (every 15 minutes)
+# Enter input: {"param": "value"}
+
+# 5. Verify schedule
+automagik-spark schedules list
+
+# 6. Test immediately
+automagik-spark workflows run workflow-123 --input "test"
+
+# 7. Check execution
+automagik-spark tasks list
+```
+
+---
+
+## Understanding Schedule Timing
+
+<Info>
+**Important**: Schedules use **UTC timezone** by default unless specified otherwise in the workflow source configuration.
+</Info>
+
+### Cron expression helper:
+
+- `*/5 * * * *` = Every 5 minutes
+- `0 * * * *` = Every hour (at minute 0)
+- `0 0 * * *` = Every day at midnight
+- `0 9 * * 1-5` = Weekdays at 9 AM
+- `0 0 1 * *` = First day of every month
+
+Use [crontab.guru](https://crontab.guru) to build complex expressions.
+
+### Interval examples:
+
+- `1m` = Every 1 minute
+- `5m` = Every 5 minutes
+- `30m` = Every 30 minutes
+- `1h` = Every hour
+- `6h` = Every 6 hours
+- `1d` = Every day
+
+---
+
+## Managing Schedules
+
+### Pause a schedule:
+
+```bash
+automagik-spark schedules update schedule-abc-123 pause
+```
+
+### Resume a schedule:
+
+```bash
+automagik-spark schedules update schedule-abc-123 resume
+```
+
+### Delete a schedule:
+
+```bash
+automagik-spark schedules delete schedule-abc-123
+```
+
+### Update schedule expression:
+
+```bash
+automagik-spark schedules set-expression schedule-abc-123 "0 */2 * * *"
+```
+
+### Update schedule input:
+
+```bash
+automagik-spark schedules set-input schedule-abc-123 '{"new": "data"}'
+```
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Advanced Workflows" icon="diagram-project">
-    Learn:
-    - Multi-stage workflows
-    - Dynamic task generation
-    - Workflow templates
+  <Card title="API Reference" icon="code" href="/spark/api/rest-overview">
+    Explore the REST API endpoints
   </Card>
-
-  <Card title="Integrations" icon="plug">
-    Connect to:
-    - GitHub Actions
-    - Jenkins
-    - AWS Lambda
-    - Custom webhooks
+  <Card title="CLI Commands" icon="terminal" href="/spark/cli/overview">
+    Complete CLI command reference
   </Card>
-
-  <Card title="Notifications" icon="bell">
-    Configure:
-    - Slack alerts
-    - Email reports
-    - Discord notifications
-    - Custom webhooks
+  <Card title="LangFlow Integration" icon="diagram-project" href="/spark/examples/langflow-integration">
+    Deep dive into LangFlow workflows
   </Card>
-
-  <Card title="Production Deployment" icon="server">
-    Deploy:
-    - As systemd service
-    - In Docker
-    - On Kubernetes
+  <Card title="Troubleshooting" icon="wrench" href="/spark/troubleshooting/common-errors">
+    Common issues and solutions
   </Card>
 </CardGroup>
 
 ---
 
-## Troubleshooting
+## Quick Reference
 
-<AccordionGroup>
-  <Accordion title="Workflow not executing">
-    Check scheduler and cron expression:
-    ```bash
-    spark status
-    spark workflow validate my-workflow
+### Essential Commands
 
-    # Verify cron expression at crontab.guru
-    # Test manually first
-    spark workflow run my-workflow --test
-    ```
-  </Accordion>
+```bash
+# Sources
+automagik-spark sources list
+automagik-spark sources add --name NAME --type TYPE --url URL --api-key KEY
 
-  <Accordion title="Tasks failing silently">
-    Enable debug logging:
-    ```bash
-    # In config.json
-    {
-      "monitoring": {
-        "logLevel": "debug"
-      }
-    }
+# Workflows
+automagik-spark workflows sync
+automagik-spark workflows sync FLOW_ID
+automagik-spark workflows list
+automagik-spark workflows run WORKFLOW_ID --input "data"
 
-    # Restart Spark
-    spark restart --debug
-    ```
-  </Accordion>
+# Schedules
+automagik-spark schedules create
+automagik-spark schedules list
+automagik-spark schedules update SCHEDULE_ID pause|resume|stop
+automagik-spark schedules delete SCHEDULE_ID
 
-  <Accordion title="Timezone issues">
-    Verify timezone settings:
-    ```bash
-    # Check current timezone
-    spark config get scheduler.timezone
+# Tasks
+automagik-spark tasks list
+automagik-spark tasks view TASK_ID
 
-    # Set explicitly in workflow
-    # In workflow YAML:
-    # timezone: "America/Los_Angeles"
-    ```
-  </Accordion>
-</AccordionGroup>
+# Workers
+automagik-spark worker start
+automagik-spark worker status
+automagik-spark worker logs
+```
 
 ---
 
-**Congratulations!** 🎉 You've created your first automated workflow with Spark. Your AI agents now work 24/7!
-
-<Card title="Join the Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
-  Share your workflows and automation ideas
-</Card>
+**Congratulations!** You've scheduled your first workflow with Spark. Your AI workflows now run on autopilot.

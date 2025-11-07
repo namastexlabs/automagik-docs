@@ -6,103 +6,120 @@ icon: "download"
 
 ## Prerequisites
 
-Before installing Spark, make sure you have:
+Spark requires the following components to run:
 
 <AccordionGroup>
-  <Accordion title="Python (v3.10 or higher)">
+  <Accordion title="Python 3.12 or higher (Required)">
     ```bash
     # Check your Python version
     python --version
-
-    # Should output Python 3.10.0 or higher
+    # Should output: Python 3.12.0 or higher
     ```
 
-    If you need to install or upgrade Python:
-    - **macOS**: `brew install python@3.11`
-    - **Ubuntu/Debian**: `sudo apt install python3.11 python3-pip`
+    Spark uses Python 3.12+ features. Install if needed:
+    - **macOS**: `brew install python@3.12`
+    - **Ubuntu/Debian**: `sudo apt install python3.12 python3-pip`
     - **Windows**: Download from [python.org](https://www.python.org)
   </Accordion>
 
-  <Accordion title="Git (for repository tasks)">
+  <Accordion title="PostgreSQL 12+ (Required)">
     ```bash
-    # Check if Git is installed
-    git --version
+    # Check PostgreSQL version
+    psql --version
+    # Should output: psql (PostgreSQL) 12.0 or higher
     ```
 
-    Spark can automate Git operations, so Git is recommended.
+    Spark stores all state in PostgreSQL:
+    - **macOS**: `brew install postgresql@15`
+    - **Ubuntu/Debian**: `sudo apt install postgresql-15`
+    - **Docker**: Use the Docker Compose setup below
   </Accordion>
 
-  <Accordion title="System Permissions">
-    Spark runs scheduled tasks, so you may need:
-    - **Linux/macOS**: Access to cron or systemd
-    - **Windows**: Task Scheduler access
-    - **Docker**: For containerized deployments
+  <Accordion title="Redis 6+ (Required)">
+    ```bash
+    # Check Redis version
+    redis-cli --version
+    # Should output: redis-cli 6.0.0 or higher
+    ```
+
+    Redis powers the task queue:
+    - **macOS**: `brew install redis`
+    - **Ubuntu/Debian**: `sudo apt install redis-server`
+    - **Docker**: Use the Docker Compose setup below
   </Accordion>
 </AccordionGroup>
+
+<Warning>
+All three components (Python, PostgreSQL, Redis) are **required**. Spark will not function without them.
+</Warning>
 
 ---
 
 ## Installation Methods
 
 <Tabs>
-  <Tab title="pip (Recommended)">
+  <Tab title="pip (For Development)">
     Install Spark via pip:
 
     ```bash
+    # Install from PyPI
     pip install automagik-spark
     ```
 
     Verify installation:
 
     ```bash
-    spark --version
+    # Check version (command is automagik-spark, not spark)
+    automagik-spark --help
+    ```
+
+    <Info>
+    The CLI command is `automagik-spark`, not just `spark`.
+    </Info>
+  </Tab>
+
+  <Tab title="Docker Compose (Recommended)">
+    The easiest way to get everything running:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/namastexlabs/automagik-spark.git
+    cd automagik-spark
+
+    # Run setup script
+    ./scripts/setup_local.sh
+    ```
+
+    This creates:
+    - PostgreSQL (port 5402)
+    - Redis (port 5412)
+    - Spark API (port 8883)
+    - Spark Workers (background)
+
+    Verify it's running:
+    ```bash
+    curl http://localhost:8883/health
+    # Should return: {"status":"ok"}
     ```
   </Tab>
 
-  <Tab title="pipx (Isolated)">
-    Install Spark in an isolated environment:
+  <Tab title="From Source">
+    For development work:
 
     ```bash
-    # Install pipx if you don't have it
-    pip install pipx
-    pipx ensurepath
+    # Clone repository
+    git clone https://github.com/namastexlabs/automagik-spark.git
+    cd automagik-spark
 
-    # Install Spark
-    pipx install automagik-spark
+    # Run development setup
+    ./scripts/setup_dev.sh
+
+    # Activate virtual environment
+    source .venv/bin/activate
+
+    # Verify installation
+    automagik-spark --help
     ```
-
-    Avoids dependency conflicts!
-  </Tab>
-
-  <Tab title="uvx (Instant)">
-    Run Spark without installing:
-
-    ```bash
-    # Install uv first
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-
-    # Run Spark
-    uvx automagik-spark
-    ```
-
-    Perfect for testing workflows!
-  </Tab>
-
-  <Tab title="Docker (Recommended for Production)">
-    Run Spark in a container:
-
-    ```bash
-    # Pull Spark image
-    docker pull namastexlabs/automagik-spark
-
-    # Run Spark
-    docker run -d \
-      -v $(pwd)/workflows:/app/workflows \
-      -v $(pwd)/.spark:/app/.spark \
-      namastexlabs/automagik-spark
-    ```
-
-    Best for 24/7 operation!
   </Tab>
 </Tabs>
 
@@ -110,130 +127,187 @@ Before installing Spark, make sure you have:
 
 ## Configuration
 
-After installation, initialize Spark:
+Spark uses environment variables for configuration. Create a `.env` file:
 
 ```bash
-# Initialize Spark workspace
-spark init
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://spark_user:spark_pass@localhost:5402/automagik_spark
 
-# This creates:
-# - .spark/ directory
-# - workflows/ directory for your workflow definitions
-# - config.json (Spark configuration)
+# Redis (Task Queue)
+REDIS_URL=redis://:spark_redis_pass@localhost:5412/0
+CELERY_BROKER_URL=redis://:spark_redis_pass@localhost:5412/0
+CELERY_RESULT_BACKEND=redis://:spark_redis_pass@localhost:5412/1
+
+# API Server
+API_HOST=0.0.0.0
+API_PORT=8883
+
+# Encryption (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+ENCRYPTION_KEY=your-generated-key-here
+
+# Telemetry (optional)
+AUTOMAGIK_SPARK_DISABLE_TELEMETRY=false
 ```
 
-Configure Spark in `config.json`:
-
-```json
-{
-  "scheduler": {
-    "timezone": "America/New_York",
-    "maxConcurrent": 5,
-    "retryAttempts": 3
-  },
-  "monitoring": {
-    "enabled": true,
-    "logLevel": "info",
-    "retentionDays": 90
-  },
-  "notifications": {
-    "enabled": true,
-    "onFailure": true,
-    "onSuccess": false,
-    "channels": ["email", "slack"]
-  }
-}
-```
+<Tip>
+If using Docker Compose, these values are already configured in the provided `.env.example` file.
+</Tip>
 
 ---
 
-## Create Your First Workflow
+## Database Setup
 
-Create a workflow file in `workflows/daily-report.yaml`:
-
-```yaml
-name: daily-report
-description: Generate and send daily project report
-schedule: "0 9 * * *"  # Every day at 9 AM
-timezone: America/New_York
-
-tasks:
-  - name: analyze-commits
-    type: git
-    action: log
-    args:
-      since: "24 hours ago"
-
-  - name: generate-report
-    type: script
-    script: |
-      python scripts/generate_report.py
-
-  - name: send-email
-    type: email
-    to: "team@example.com"
-    subject: "Daily Project Report"
-    body: "{{ tasks.generate-report.output }}"
-
-retryOn:
-  - network-error
-  - timeout
-
-notifications:
-  onSuccess: true
-  onFailure: true
-```
-
----
-
-## Start Spark
-
-Start the Spark scheduler:
+Initialize the database:
 
 ```bash
-# Start Spark daemon
-spark start
+# Activate virtual environment (if installed via pip)
+source .venv/bin/activate
 
-# Or run in foreground
-spark start --foreground
-
-# With specific workflows directory
-spark start --workflows ./my-workflows
+# Run database migrations
+automagik-spark db upgrade
 ```
 
 You should see output like:
-
 ```
-⚡ Spark v1.0.0
-✓ Configuration loaded
-✓ Workflows loaded: 3
-✓ Scheduler started (timezone: America/New_York)
-✓ Next execution: daily-report at 2025-10-31 09:00:00
-
-Spark is running! Press Ctrl+C to stop.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> abc123, Initial schema
 ```
+
+---
+
+## Start Spark Components
+
+Spark consists of three components that need to run:
+
+<Steps>
+  <Step title="Start the API Server">
+    ```bash
+    automagik-spark api start
+    ```
+
+    The API will be available at `http://localhost:8883`
+  </Step>
+
+  <Step title="Start Workers (in another terminal)">
+    ```bash
+    automagik-spark worker start
+    ```
+
+    Workers execute scheduled tasks
+  </Step>
+
+  <Step title="Verify Everything is Running">
+    ```bash
+    # Check API health
+    curl http://localhost:8883/health
+
+    # Check worker status
+    automagik-spark worker status
+    ```
+  </Step>
+</Steps>
+
+<Info>
+**Docker Compose users**: All components start automatically with `docker-compose up -d`
+</Info>
 
 ---
 
 ## Verify Installation
 
-Test that everything is working:
+Test the complete setup:
 
 ```bash
-# Check version
-spark --version
+# List sources (should be empty initially)
+automagik-spark sources list
 
-# List workflows
-spark workflow list
+# Check API documentation
+open http://localhost:8883/api/v1/docs
 
-# Test a workflow
-spark workflow run daily-report --dry-run
+# View worker logs
+automagik-spark worker logs
+```
 
-# Check scheduler status
-spark status
+---
 
-# View execution history
-spark history --limit 10
+## Docker Compose Setup (Complete Example)
+
+For production or easy setup, use this `docker-compose.yml`:
+
+```yaml
+services:
+  # PostgreSQL database
+  automagik-spark-db:
+    image: postgres:15
+    container_name: automagik-spark-db
+    environment:
+      POSTGRES_USER: spark_user
+      POSTGRES_PASSWORD: spark_pass
+      POSTGRES_DB: automagik_spark
+    ports:
+      - "5402:5402"
+    command: postgres -p 5402
+    volumes:
+      - spark-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spark_user -p 5402"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for task queue
+  redis:
+    image: redis:7.4.2-alpine
+    container_name: automagik-spark-redis
+    ports:
+      - "5412:5412"
+    command: redis-server --port 5412 --appendonly yes --requirepass spark_redis_pass
+    volumes:
+      - spark-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "5412", "-a", "spark_redis_pass", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Spark API server
+  automagik-spark-api:
+    image: namastexlabs/automagik-spark-api:latest
+    container_name: automagik-spark-api
+    ports:
+      - "8883:8883"
+    environment:
+      DATABASE_URL: postgresql://spark_user:spark_pass@automagik-spark-db:5402/automagik_spark
+      REDIS_URL: redis://:spark_redis_pass@redis:5412/0
+      CELERY_BROKER_URL: redis://:spark_redis_pass@redis:5412/0
+      CELERY_RESULT_BACKEND: redis://:spark_redis_pass@redis:5412/1
+    depends_on:
+      automagik-spark-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Spark workers
+  automagik-spark-worker:
+    image: namastexlabs/automagik-spark-worker:latest
+    container_name: automagik-spark-worker
+    environment:
+      DATABASE_URL: postgresql://spark_user:spark_pass@automagik-spark-db:5402/automagik_spark
+      REDIS_URL: redis://:spark_redis_pass@redis:5412/0
+      CELERY_BROKER_URL: redis://:spark_redis_pass@redis:5412/0
+      CELERY_RESULT_BACKEND: redis://:spark_redis_pass@redis:5412/1
+    depends_on:
+      - automagik-spark-api
+
+volumes:
+  spark-db-data:
+  spark-redis-data:
+```
+
+Start with:
+```bash
+docker-compose up -d
 ```
 
 ---
@@ -241,124 +315,69 @@ spark history --limit 10
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Scheduler not starting">
-    Check if another instance is running:
+  <Accordion title="Connection refused to PostgreSQL">
+    **Error**: `psycopg2.OperationalError: could not connect to server`
 
+    **Fix**:
     ```bash
-    # Check running processes
-    ps aux | grep spark
+    # Check if PostgreSQL is running
+    pg_isready -h localhost -p 5402
 
-    # Stop existing instance
-    spark stop
+    # Check DATABASE_URL in .env matches your PostgreSQL setup
+    echo $DATABASE_URL
 
-    # Restart
-    spark start
+    # Verify PostgreSQL is listening on the correct port
+    sudo netstat -tulpn | grep 5402
     ```
   </Accordion>
 
-  <Accordion title="Timezone issues">
-    Make sure timezone is correctly configured:
+  <Accordion title="Connection refused to Redis">
+    **Error**: `redis.exceptions.ConnectionError: Error 111 connecting to localhost:5412`
 
+    **Fix**:
     ```bash
-    # Check available timezones
-    spark config timezones
+    # Check if Redis is running
+    redis-cli -p 5412 -a spark_redis_pass ping
+    # Should return: PONG
 
-    # Set timezone in config.json or:
-    spark config set scheduler.timezone "America/Los_Angeles"
+    # Check REDIS_URL in .env
+    echo $REDIS_URL
 
-    # Restart Spark
-    spark restart
+    # Start Redis if not running
+    redis-server --port 5412
     ```
   </Accordion>
 
-  <Accordion title="Workflow execution failures">
-    Check logs for details:
+  <Accordion title="Command 'automagik-spark' not found">
+    **Error**: `bash: automagik-spark: command not found`
 
+    **Fix**:
     ```bash
-    # View recent logs
-    spark logs --tail 50
+    # Make sure you installed the package
+    pip install automagik-spark
 
-    # View logs for specific workflow
-    spark logs --workflow daily-report
+    # Or activate virtual environment
+    source .venv/bin/activate
 
-    # Debug mode
-    spark start --debug
+    # Verify installation
+    python -m automagik_spark --help
     ```
   </Accordion>
 
-  <Accordion title="Notifications not sending">
-    Verify notification configuration:
+  <Accordion title="Database migration fails">
+    **Error**: `alembic.util.exc.CommandError: Can't locate revision`
 
+    **Fix**:
     ```bash
-    # Test notification system
-    spark notify test
+    # Reset database (WARNING: deletes all data)
+    dropdb -h localhost -p 5402 -U spark_user automagik_spark
+    createdb -h localhost -p 5402 -U spark_user automagik_spark
 
-    # Check notification config
-    spark config get notifications
-
-    # Test email (if using email)
-    spark notify test-email --to your@email.com
+    # Run migrations again
+    automagik-spark db upgrade
     ```
   </Accordion>
 </AccordionGroup>
-
----
-
-## System Service Setup (Optional)
-
-For production deployments, run Spark as a system service:
-
-<Tabs>
-  <Tab title="systemd (Linux)">
-    Create `/etc/systemd/system/spark.service`:
-
-    ```ini
-    [Unit]
-    Description=Automagik Spark Scheduler
-    After=network.target
-
-    [Service]
-    Type=simple
-    User=your-user
-    WorkingDirectory=/path/to/your/project
-    ExecStart=/usr/local/bin/spark start --foreground
-    Restart=on-failure
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-    Enable and start:
-    ```bash
-    sudo systemctl enable spark
-    sudo systemctl start spark
-    sudo systemctl status spark
-    ```
-  </Tab>
-
-  <Tab title="Docker Compose">
-    Create `docker-compose.yml`:
-
-    ```yaml
-    version: '3.8'
-    services:
-      spark:
-        image: namastexlabs/automagik-spark
-        container_name: spark
-        restart: unless-stopped
-        volumes:
-          - ./workflows:/app/workflows
-          - ./.spark:/app/.spark
-        environment:
-          - TZ=America/New_York
-    ```
-
-    Start:
-    ```bash
-    docker-compose up -d
-    ```
-  </Tab>
-</Tabs>
 
 ---
 
@@ -366,9 +385,9 @@ For production deployments, run Spark as a system service:
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/spark/quickstart">
-    Create your first automated workflow
+    Schedule your first workflow in 30 minutes
   </Card>
   <Card title="Introduction" icon="book" href="/spark/introduction">
-    Learn more about Spark
+    Understand how Spark works
   </Card>
 </CardGroup>

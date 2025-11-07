@@ -1,16 +1,63 @@
 ---
 title: "Schedules API"
 api: "GET /api/v1/schedules"
-description: "Manage cron schedules"
+description: "Automate workflow execution with cron schedules"
+---
+
+## Overview
+
+Schedules enable automatic workflow execution at specified times using cron expressions, intervals, or one-time execution. Spark uses Celery Beat to monitor and trigger scheduled workflows.
+
+### Schedule Types
+
+- **cron**: Standard cron expression (e.g., `0 9 * * *` for daily at 9 AM)
+- **interval**: Human-readable interval (e.g., `5m`, `1h`, `30s`)
+- **one-time**: Execute once at a specific time or immediately
+
 ---
 
 ## List Schedules
 
+Retrieve all configured schedules with pagination support.
+
+<ParamField query="limit" type="integer" default="50">
+  Number of items per page (min: 1, max: 100)
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of items to skip for pagination
+</ParamField>
+
 <CodeGroup>
 
 ```bash cURL
-curl -X GET http://localhost:8002/api/v1/schedules \
+curl -X GET "http://localhost:8883/api/v1/schedules?limit=10&offset=0" \
   -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "http://localhost:8883/api/v1/schedules",
+    headers={"X-API-Key": "your-api-key"},
+    params={"limit": 10, "offset": 0}
+)
+
+schedules = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'http://localhost:8883/api/v1/schedules?limit=10&offset=0',
+  {
+    headers: {
+      'X-API-Key': 'your-api-key'
+    }
+  }
+);
+
+const schedules = await response.json();
 ```
 
 </CodeGroup>
@@ -19,72 +66,640 @@ curl -X GET http://localhost:8002/api/v1/schedules \
 
 ```json 200 Success
 {
-  "schedules": [
+  "items": [
     {
-      "workflow": "daily-report",
-      "schedule": "0 9 * * *",
-      "timezone": "America/New_York",
-      "enabled": true,
-      "nextRun": "2025-11-01T09:00:00Z"
+      "id": "770e8400-e29b-41d4-a716-446655440002",
+      "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+      "schedule_type": "cron",
+      "schedule_expr": "0 9 * * *",
+      "input_value": "Generate daily report",
+      "status": "active",
+      "next_run_at": "2025-11-05T09:00:00Z",
+      "created_at": "2025-11-04T12:00:00Z",
+      "updated_at": "2025-11-04T12:00:00Z"
     }
-  ]
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0,
+  "has_more": false
+}
+```
+
+```json 401 Unauthorized
+{
+  "detail": "Invalid API key"
 }
 ```
 
 ---
 
-## Update Schedule
+## Get Schedule
+
+Retrieve a specific schedule by ID.
+
+<ParamField path="schedule_id" type="uuid" required>
+  UUID of the schedule to retrieve
+</ParamField>
 
 <CodeGroup>
 
 ```bash cURL
-curl -X PATCH http://localhost:8002/api/v1/schedules/daily-report \
+curl -X GET http://localhost:8883/api/v1/schedules/770e8400-e29b-41d4-a716-446655440002 \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+schedule_id = "770e8400-e29b-41d4-a716-446655440002"
+
+response = requests.get(
+    f"http://localhost:8883/api/v1/schedules/{schedule_id}",
+    headers={"X-API-Key": "your-api-key"}
+)
+
+schedule = response.json()
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 9 * * *",
+  "input_value": "Generate daily report",
+  "status": "active",
+  "next_run_at": "2025-11-05T09:00:00Z",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:00:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Schedule not found"
+}
+```
+
+---
+
+## Create Schedule
+
+Create a new schedule for a workflow. The schedule will automatically trigger workflow execution based on the schedule expression.
+
+<ParamField body="workflow_id" type="uuid" required>
+  UUID of the workflow to schedule
+</ParamField>
+
+<ParamField body="schedule_type" type="string" required>
+  Schedule type: `cron`, `interval`, or `one-time`
+</ParamField>
+
+<ParamField body="schedule_expr" type="string" required>
+  Schedule expression based on type:
+  - **cron**: Standard cron expression (e.g., `0 9 * * *`)
+  - **interval**: Time interval (e.g., `5m`, `1h`, `30s`)
+  - **one-time**: ISO datetime or `now` (e.g., `2025-11-05T09:00:00Z` or `now`)
+</ParamField>
+
+<ParamField body="input_value" type="string" optional>
+  Input string to pass to the workflow's input component on each execution
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL (Cron)
+curl -X POST http://localhost:8883/api/v1/schedules \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-api-key" \
   -d '{
-    "schedule": "0 8 * * *",
-    "timezone": "America/Los_Angeles"
+    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "schedule_type": "cron",
+    "schedule_expr": "0 9 * * *",
+    "input_value": "Generate daily report"
   }'
 ```
 
-</CodeGroup>
+```bash cURL (Interval)
+curl -X POST http://localhost:8883/api/v1/schedules \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "schedule_type": "interval",
+    "schedule_expr": "5m",
+    "input_value": "Check system status"
+  }'
+```
 
----
+```bash cURL (One-time)
+curl -X POST http://localhost:8883/api/v1/schedules \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "schedule_type": "one-time",
+    "schedule_expr": "now",
+    "input_value": "Execute immediately"
+  }'
+```
 
-## Pause Schedule
+```python Python
+import requests
 
-<CodeGroup>
+response = requests.post(
+    "http://localhost:8883/api/v1/schedules",
+    headers={
+        "Content-Type": "application/json",
+        "X-API-Key": "your-api-key"
+    },
+    json={
+        "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+        "schedule_type": "cron",
+        "schedule_expr": "0 9 * * *",
+        "input_value": "Generate daily report"
+    }
+)
 
-```bash cURL
-curl -X POST http://localhost:8002/api/v1/schedules/daily-report/pause \
-  -H "X-API-Key: your-api-key"
+schedule = response.json()
 ```
 
 </CodeGroup>
 
+### Response
+
+```json 201 Created
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 9 * * *",
+  "input_value": "Generate daily report",
+  "status": "active",
+  "next_run_at": "2025-11-05T09:00:00Z",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:00:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Invalid UUID format: [error details]"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Failed to create schedule"
+}
+```
+
+<Tip>
+**Cron Expression Help**:
+- `* * * * *`: Every minute
+- `0 * * * *`: Every hour at minute 0
+- `0 9 * * *`: Daily at 9 AM
+- `0 9 * * 1`: Every Monday at 9 AM
+- `*/5 * * * *`: Every 5 minutes
+
+Use [crontab.guru](https://crontab.guru/) to build and validate cron expressions.
+</Tip>
+
 ---
 
-## Resume Schedule
+## Update Schedule
+
+Update an existing schedule. You can change the schedule expression, status, or workflow ID.
+
+<ParamField path="schedule_id" type="uuid" required>
+  UUID of the schedule to update
+</ParamField>
+
+<ParamField body="workflow_id" type="uuid" required>
+  UUID of the workflow (can be the same or different)
+</ParamField>
+
+<ParamField body="schedule_type" type="string" required>
+  Schedule type: `cron`, `interval`, or `one-time`
+</ParamField>
+
+<ParamField body="schedule_expr" type="string" required>
+  New schedule expression
+</ParamField>
+
+<ParamField body="input_value" type="string" optional>
+  New input string for workflow execution
+</ParamField>
 
 <CodeGroup>
 
 ```bash cURL
-curl -X POST http://localhost:8002/api/v1/schedules/daily-report/resume \
-  -H "X-API-Key: your-api-key"
+curl -X PUT http://localhost:8883/api/v1/schedules/770e8400-e29b-41d4-a716-446655440002 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "schedule_type": "cron",
+    "schedule_expr": "0 8 * * *",
+    "input_value": "Generate morning report"
+  }'
+```
+
+```python Python
+import requests
+
+schedule_id = "770e8400-e29b-41d4-a716-446655440002"
+
+response = requests.put(
+    f"http://localhost:8883/api/v1/schedules/{schedule_id}",
+    headers={
+        "Content-Type": "application/json",
+        "X-API-Key": "your-api-key"
+    },
+    json={
+        "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+        "schedule_type": "cron",
+        "schedule_expr": "0 8 * * *",
+        "input_value": "Generate morning report"
+    }
+)
+
+schedule = response.json()
 ```
 
 </CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 8 * * *",
+  "input_value": "Generate morning report",
+  "status": "active",
+  "next_run_at": "2025-11-05T08:00:00Z",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:30:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Schedule not found"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Failed to update schedule expression"
+}
+```
+
+---
+
+## Enable Schedule
+
+Resume a paused schedule to start triggering workflow executions again.
+
+<ParamField path="schedule_id" type="uuid" required>
+  UUID of the schedule to enable
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8883/api/v1/schedules/770e8400-e29b-41d4-a716-446655440002/enable \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+schedule_id = "770e8400-e29b-41d4-a716-446655440002"
+
+response = requests.post(
+    f"http://localhost:8883/api/v1/schedules/{schedule_id}/enable",
+    headers={"X-API-Key": "your-api-key"}
+)
+
+schedule = response.json()
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 9 * * *",
+  "input_value": "Generate daily report",
+  "status": "active",
+  "next_run_at": "2025-11-05T09:00:00Z",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:30:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Schedule not found"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Failed to enable schedule"
+}
+```
+
+---
+
+## Disable Schedule
+
+Pause a schedule to temporarily stop workflow executions without deleting the schedule.
+
+<ParamField path="schedule_id" type="uuid" required>
+  UUID of the schedule to disable
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:8883/api/v1/schedules/770e8400-e29b-41d4-a716-446655440002/disable \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+schedule_id = "770e8400-e29b-41d4-a716-446655440002"
+
+response = requests.post(
+    f"http://localhost:8883/api/v1/schedules/{schedule_id}/disable",
+    headers={"X-API-Key": "your-api-key"}
+)
+
+schedule = response.json()
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 9 * * *",
+  "input_value": "Generate daily report",
+  "status": "paused",
+  "next_run_at": null,
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:30:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Schedule not found"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Failed to disable schedule"
+}
+```
+
+<Tip>
+**Enable vs Disable**: Use disable/enable to temporarily pause schedules during maintenance or testing. The schedule configuration is preserved and can be re-enabled at any time.
+</Tip>
+
+---
+
+## Delete Schedule
+
+Permanently delete a schedule. This stops all future executions and removes the schedule from the database.
+
+<ParamField path="schedule_id" type="uuid" required>
+  UUID of the schedule to delete
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE http://localhost:8883/api/v1/schedules/770e8400-e29b-41d4-a716-446655440002 \
+  -H "X-API-Key: your-api-key"
+```
+
+```python Python
+import requests
+
+schedule_id = "770e8400-e29b-41d4-a716-446655440002"
+
+response = requests.delete(
+    f"http://localhost:8883/api/v1/schedules/{schedule_id}",
+    headers={"X-API-Key": "your-api-key"}
+)
+
+result = response.json()
+```
+
+</CodeGroup>
+
+### Response
+
+```json 200 Success
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "workflow_id": "550e8400-e29b-41d4-a716-446655440000",
+  "schedule_type": "cron",
+  "schedule_expr": "0 9 * * *",
+  "input_value": "Generate daily report",
+  "status": "active",
+  "next_run_at": "2025-11-05T09:00:00Z",
+  "created_at": "2025-11-04T12:00:00Z",
+  "updated_at": "2025-11-04T12:00:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "detail": "Schedule not found"
+}
+```
+
+```json 400 Bad Request
+{
+  "detail": "Failed to delete schedule"
+}
+```
+
+<Warning>
+**Permanent Action**: Deleting a schedule cannot be undone. Past task executions from this schedule are preserved, but future executions will not occur.
+</Warning>
+
+---
+
+## Schedule Expressions
+
+### Cron Format
+
+Standard 5-field cron format:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+**Common Examples**:
+```bash
+# Every day at midnight
+0 0 * * *
+
+# Every Monday at 9 AM
+0 9 * * 1
+
+# Every 15 minutes
+*/15 * * * *
+
+# Twice a day (6 AM and 6 PM)
+0 6,18 * * *
+
+# Weekdays at 9 AM
+0 9 * * 1-5
+
+# First day of every month at midnight
+0 0 1 * *
+```
+
+### Interval Format
+
+Human-readable intervals:
+
+- **Seconds**: `30s`, `45s`
+- **Minutes**: `5m`, `15m`, `30m`
+- **Hours**: `1h`, `2h`, `12h`
+- **Days**: `1d`, `7d`
+
+**Examples**:
+```bash
+# Every 5 minutes
+5m
+
+# Every hour
+1h
+
+# Every 30 seconds
+30s
+
+# Every 2 hours
+2h
+```
+
+### One-Time Format
+
+Execute once at a specific time or immediately:
+
+- **Immediate**: `now`
+- **ISO DateTime**: `2025-11-05T09:00:00Z`
+- **Relative**: Future datetime string
+
+**Examples**:
+```bash
+# Execute immediately
+now
+
+# Execute at specific time
+2025-11-05T09:00:00Z
+
+# Execute at specific time (local timezone)
+2025-11-05T09:00:00
+```
+
+---
+
+## Schedule Status
+
+Schedules can have the following statuses:
+
+| Status | Description |
+|--------|-------------|
+| **active** | Schedule is running and will trigger executions |
+| **paused** | Schedule is temporarily disabled |
+| **completed** | One-time schedule has been executed |
+| **failed** | Schedule encountered an error |
+
+---
+
+## Error Codes
+
+| Status | Detail | Cause |
+|--------|--------|-------|
+| **400** | Invalid UUID format | Malformed workflow_id or schedule_id |
+| **400** | Failed to create schedule | Invalid schedule expression or workflow not found |
+| **400** | Failed to update schedule expression | Invalid new schedule expression |
+| **400** | Failed to enable/disable schedule | Internal scheduler error |
+| **400** | Failed to delete schedule | Database or scheduler error |
+| **404** | Schedule not found | Invalid schedule ID |
+| **401** | Invalid API key | Missing or incorrect X-API-Key header |
+
+---
+
+## Timezone Handling
+
+<Warning>
+**UTC Only**: All schedule times are in UTC. Celery Beat evaluates schedules in UTC, and `next_run_at` timestamps are returned in UTC.
+
+Convert local times to UTC before creating schedules:
+```python
+from datetime import datetime
+import pytz
+
+# Convert local time to UTC
+local_tz = pytz.timezone('America/New_York')
+local_time = local_tz.localize(datetime(2025, 11, 5, 9, 0, 0))
+utc_time = local_time.astimezone(pytz.UTC)
+
+# Use UTC time in schedule
+schedule_expr = utc_time.isoformat()
+```
+</Warning>
 
 ---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Workflows API" icon="diagram-project" href="/spark/api/workflows">
-    Manage workflows
+  <Card title="Tasks API" icon="play" href="/spark/api/tasks">
+    Monitor scheduled workflow executions
   </Card>
 
-  <Card title="Executions API" icon="play" href="/spark/api/executions">
-    Monitor executions
+  <Card title="Workflows API" icon="diagram-project" href="/spark/api/workflows">
+    Manage workflows to schedule
+  </Card>
+
+  <Card title="CLI: Schedules" icon="terminal" href="/spark/cli/commands#schedules">
+    Manage schedules via command line
+  </Card>
+
+  <Card title="Example: Simple Schedule" icon="book" href="/spark/examples/simple-schedule">
+    Complete scheduling example
   </Card>
 </CardGroup>

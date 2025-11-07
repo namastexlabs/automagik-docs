@@ -1,0 +1,975 @@
+---
+title: "Common Errors & Solutions"
+description: "Troubleshooting guide for the top 10 Spark errors with practical solutions"
+icon: "wrench"
+---
+
+This guide covers the most common errors you'll encounter with Spark and how to fix them. Each error includes the exact message, what it means, and step-by-step solutions.
+
+<Tip>
+**Quick Tip**: Most errors come down to one of three things: services not running, wrong configuration, or missing environment variables. Start there.
+</Tip>
+
+---
+
+## Installation & Setup Errors
+
+<AccordionGroup>
+<Accordion title="Error 1: Command not found: automagik-spark" icon="terminal">
+
+### What it means
+Your shell cannot find the `automagik-spark` command. This usually means it's not installed, not in your PATH, or your virtual environment isn't activated.
+
+### Common causes
+- Package not installed via pip
+- Virtual environment not activated
+- PATH not updated (zsh users especially)
+- Installed in wrong Python environment
+
+### How to fix
+
+**Step 1: Check if virtual environment is activated**
+```bash
+# Your prompt should show (venv) or similar
+# If not, activate it:
+source venv/bin/activate
+```
+
+**Step 2: Install or reinstall the package**
+```bash
+# For development installation:
+pip install -e .
+
+# For production installation:
+pip install automagik-spark
+```
+
+**Step 3: Refresh your shell (zsh users)**
+```bash
+# This makes zsh recognize newly installed commands
+rehash
+```
+
+**Step 4: Verify installation**
+```bash
+automagik-spark --help
+```
+
+### Prevention
+- Always activate your virtual environment before using Spark
+- Add activation to your shell profile if using Spark regularly
+- Use `which automagik-spark` to verify the command location
+
+</Accordion>
+
+<Accordion title="Error 2: AUTOMAGIK_SPARK_DATABASE_URL environment variable is not set" icon="database">
+
+### What it means
+Spark cannot find the required database connection string. This is thrown by the configuration module when trying to connect to PostgreSQL.
+
+### Common causes
+- `.env` file doesn't exist
+- `.env` file not in the correct directory
+- Environment variable not exported in shell
+- Typo in variable name
+
+### How to fix
+
+**Step 1: Create or check your .env file**
+```bash
+# Check if .env exists in your project root
+ls -la .env
+
+# If it doesn't exist, create it:
+touch .env
+```
+
+**Step 2: Add the database URL**
+```bash
+# Edit .env file and add:
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql://user:password@localhost:5432/spark_db
+
+# Example for development:
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/automagik_spark
+```
+
+**Step 3: Verify the variable is set**
+```bash
+# Load the .env file (if not using dotenv)
+export $(cat .env | xargs)
+
+# Check if it's set:
+echo $AUTOMAGIK_SPARK_DATABASE_URL
+```
+
+**Step 4: Test database connection**
+```bash
+# Try to run migrations:
+automagik-spark db migrate
+```
+
+### Example .env file
+```bash
+# Database
+AUTOMAGIK_SPARK_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/automagik_spark
+
+# Celery / Redis
+AUTOMAGIK_SPARK_CELERY_BROKER_URL=redis://localhost:6379/0
+AUTOMAGIK_SPARK_CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# API
+AUTOMAGIK_SPARK_API_KEY=your-secret-key-here
+AUTOMAGIK_SPARK_API_PORT=8883
+AUTOMAGIK_SPARK_API_HOST=0.0.0.0
+```
+
+### Prevention
+- Keep a `.env.example` file in your repository with all required variables
+- Use environment variable validation on startup
+- Document all required environment variables in your README
+
+</Accordion>
+
+<Accordion title="Error 3: Connection refused - PostgreSQL (port 5432)" icon="plug">
+
+### What it means
+Spark is trying to connect to PostgreSQL, but the database server is not running or not accepting connections on port 5432.
+
+### Common causes
+- PostgreSQL service not started
+- PostgreSQL listening on different port
+- Firewall blocking port 5432
+- Database server on different host
+- Wrong database URL in configuration
+
+### How to fix
+
+**Step 1: Check if PostgreSQL is running**
+```bash
+# On Linux (systemd):
+sudo systemctl status postgresql
+
+# On macOS (Homebrew):
+brew services list | grep postgresql
+
+# Or check for the process:
+ps aux | grep postgres
+```
+
+**Step 2: Start PostgreSQL if not running**
+```bash
+# On Linux (systemd):
+sudo systemctl start postgresql
+
+# On macOS (Homebrew):
+brew services start postgresql
+
+# On Docker:
+docker start postgres
+# OR if using docker-compose:
+docker-compose up -d postgres
+```
+
+**Step 3: Verify PostgreSQL is listening**
+```bash
+# Check if port 5432 is open:
+netstat -an | grep 5432
+# OR
+lsof -i :5432
+
+# Try connecting with psql:
+psql -h localhost -U postgres -d postgres
+```
+
+**Step 4: Check your connection string**
+```bash
+# Verify DATABASE_URL format:
+# postgresql://[user]:[password]@[host]:[port]/[database]
+
+# Example:
+echo $AUTOMAGIK_SPARK_DATABASE_URL
+```
+
+**Step 5: Create database if needed**
+```bash
+# Connect to PostgreSQL:
+psql -U postgres
+
+# Create database:
+CREATE DATABASE automagik_spark;
+
+# Grant permissions:
+GRANT ALL PRIVILEGES ON DATABASE automagik_spark TO postgres;
+
+# Exit:
+\q
+```
+
+### Prevention
+- Start PostgreSQL automatically on boot: `sudo systemctl enable postgresql`
+- Use Docker Compose for consistent local development
+- Add health checks to your startup scripts
+
+</Accordion>
+
+<Accordion title="Error 4: Connection refused - Redis (port 6379)" icon="bolt">
+
+### What it means
+The Celery worker cannot connect to Redis, which is used as the message broker and result backend. This blocks all task scheduling and execution.
+
+### Common causes
+- Redis server not running
+- Redis listening on different port
+- Wrong broker URL in configuration
+- Firewall blocking port 6379
+- Redis requiring password authentication
+
+### How to fix
+
+**Step 1: Check if Redis is running**
+```bash
+# Test Redis connection:
+redis-cli ping
+# Expected output: PONG
+
+# If that fails, check if Redis is running:
+ps aux | grep redis
+```
+
+**Step 2: Start Redis if not running**
+```bash
+# On Linux (systemd):
+sudo systemctl start redis
+
+# On macOS (Homebrew):
+brew services start redis
+
+# On Docker:
+docker start redis
+# OR if using docker-compose:
+docker-compose up -d redis
+
+# Direct start (for testing):
+redis-server
+```
+
+**Step 3: Verify Redis is accessible**
+```bash
+# Test connection with redis-cli:
+redis-cli -h localhost -p 6379 ping
+
+# Check if port is open:
+netstat -an | grep 6379
+```
+
+**Step 4: Check broker URL configuration**
+```bash
+# Verify CELERY_BROKER_URL in .env:
+echo $AUTOMAGIK_SPARK_CELERY_BROKER_URL
+
+# Should be:
+# redis://localhost:6379/0
+# OR with password:
+# redis://:password@localhost:6379/0
+```
+
+**Step 5: Test Celery connection**
+```bash
+# Try starting a worker (will fail immediately if Redis is down):
+automagik-spark worker start
+
+# Check for connection errors in logs
+```
+
+### Prevention
+- Start Redis automatically on boot: `sudo systemctl enable redis`
+- Use Docker Compose to manage both Redis and PostgreSQL
+- Add retry logic in Celery configuration (already enabled with `broker_connection_retry_on_startup`)
+
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Source Connection Errors
+
+<AccordionGroup>
+<Accordion title="Error 5: Failed to connect to source" icon="link-slash">
+
+### What it means
+Spark cannot reach the workflow source (LangFlow or Hive). The HTTP request to the source API is failing.
+
+### Common causes
+- Wrong URL in source configuration
+- Source service not running
+- Network connectivity issues
+- Firewall blocking the connection
+- Wrong protocol (http vs https)
+
+### How to fix
+
+**Step 1: Verify the source is running**
+```bash
+# For LangFlow (default port 7860):
+curl http://localhost:7860/health
+# OR
+curl http://localhost:7860/api/v1/version
+
+# For Hive (default port 8881):
+curl http://localhost:8881/health
+```
+
+**Step 2: Check source configuration**
+```bash
+# List all configured sources:
+automagik-spark sources list
+
+# Check the URL in the output - should match where your service is running
+```
+
+**Step 3: Test connection manually**
+```bash
+# Try to reach the API directly:
+curl -v http://localhost:7860/api/v1/flows
+
+# Look for connection errors in the output
+```
+
+**Step 4: Update source URL if incorrect**
+```bash
+# Update an existing source:
+automagik-spark sources update <source-id> \
+  --url http://localhost:7860
+
+# OR delete and re-add:
+automagik-spark sources delete <source-id>
+automagik-spark sources add \
+  --name my-langflow \
+  --type langflow \
+  --url http://localhost:7860 \
+  --api-key your-api-key
+```
+
+**Step 5: Check for URL formatting issues**
+```bash
+# URLs must:
+# - Start with http:// or https://
+# - Not have trailing slashes (Spark handles this)
+# - Use correct port number
+# - Use correct hostname (localhost vs 127.0.0.1 vs 0.0.0.0)
+
+# ✅ Good examples:
+http://localhost:7860
+https://langflow.example.com
+http://192.168.1.100:8881
+
+# ❌ Bad examples:
+localhost:7860  # Missing protocol
+http://localhost:7860/  # Trailing slash can cause issues
+htp://localhost:7860  # Typo in protocol
+```
+
+### Prevention
+- Test source connectivity before adding to Spark
+- Use health check endpoints to verify source is responding
+- Keep source URLs in environment variables for easy configuration
+
+</Accordion>
+
+<Accordion title="Error 6: Source authentication failed" icon="key">
+
+### What it means
+The API key provided for the workflow source is invalid, expired, or has insufficient permissions.
+
+### Common causes
+- Wrong API key in source configuration
+- API key expired or revoked
+- API key doesn't have required permissions
+- API key format incorrect (missing prefix, etc.)
+
+### How to fix
+
+**Step 1: Verify your API key**
+```bash
+# Check what API key is configured:
+automagik-spark sources list
+# (API keys are encrypted in storage, so you won't see the actual value)
+
+# Test the API key manually:
+# For LangFlow:
+curl -H "x-api-key: your-api-key" http://localhost:7860/api/v1/flows
+
+# For Hive:
+curl -H "Authorization: Bearer your-api-key" http://localhost:8881/api/v1/agents
+```
+
+**Step 2: Generate new API key from source**
+```bash
+# For LangFlow:
+# 1. Open LangFlow UI (http://localhost:7860)
+# 2. Go to Settings → API Keys
+# 3. Create new API key
+# 4. Copy the key immediately (won't be shown again)
+
+# For Hive:
+# Use the Hive API or UI to generate a new key
+```
+
+**Step 3: Update API key in Spark**
+```bash
+# Update the source with new API key:
+automagik-spark sources update <source-id> \
+  --api-key your-new-api-key
+
+# OR delete and re-add the source:
+automagik-spark sources delete <source-id>
+automagik-spark sources add \
+  --name my-langflow \
+  --type langflow \
+  --url http://localhost:7860 \
+  --api-key your-new-api-key
+```
+
+**Step 4: Verify authentication works**
+```bash
+# Try listing workflows from the source:
+automagik-spark workflows list --source-url http://localhost:7860
+
+# If this works, authentication is successful
+```
+
+### Example: Testing LangFlow authentication
+```bash
+# 1. Get your API key from LangFlow
+LANGFLOW_KEY="sk-..."
+
+# 2. Test it directly:
+curl -H "x-api-key: $LANGFLOW_KEY" http://localhost:7860/api/v1/flows
+
+# 3. If that works, update Spark:
+automagik-spark sources update <source-id> --api-key $LANGFLOW_KEY
+```
+
+### Prevention
+- Store API keys securely in environment variables or secrets manager
+- Set up API key rotation policies
+- Use API keys with minimum required permissions
+- Document API key generation process for your team
+
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Workflow Sync Errors
+
+<AccordionGroup>
+<Accordion title="Error 7: Flow [id] not found" icon="magnifying-glass">
+
+### What it means
+Spark is trying to sync or run a workflow that doesn't exist in the source system, has been deleted, or the ID is incorrect.
+
+### Common causes
+- Workflow was deleted from source (LangFlow/Hive)
+- Wrong workflow ID provided
+- Source type mismatch (trying to sync LangFlow ID from Hive)
+- Workflow not yet synced to source
+
+### How to fix
+
+**Step 1: List available workflows from source**
+```bash
+# List remote workflows:
+automagik-spark workflows list --source-url http://localhost:7860
+
+# Check if your workflow ID appears in the list
+```
+
+**Step 2: Verify workflow exists in source UI**
+```bash
+# For LangFlow:
+# 1. Open http://localhost:7860
+# 2. Go to Flows section
+# 3. Find your flow and note the ID in the URL
+
+# For Hive:
+# 1. Open http://localhost:8881
+# 2. Check Agents/Teams/Workflows section
+# 3. Verify the resource exists
+```
+
+**Step 3: Sync a different workflow**
+```bash
+# If the workflow was deleted, sync a new one:
+automagik-spark workflows sync <new-flow-id> \
+  --source-url http://localhost:7860
+
+# Or sync by name:
+automagik-spark workflows list --source-url http://localhost:7860
+# Find the correct ID, then sync it
+```
+
+**Step 4: Clean up orphaned workflows**
+```bash
+# List synced workflows in Spark:
+automagik-spark workflows list
+
+# Delete the missing workflow:
+automagik-spark workflows delete <workflow-id>
+
+# This also removes associated schedules
+```
+
+**Step 5: Check source type matches**
+```bash
+# Verify you're using the correct source URL:
+automagik-spark sources list
+
+# Make sure the source type (langflow/automagik-hive) matches
+# the workflow you're trying to sync
+```
+
+### Prevention
+- Sync workflows immediately after creating them in source
+- Keep workflow IDs documented
+- Use descriptive names for workflows to avoid confusion
+- Set up monitoring to detect when source workflows are deleted
+
+</Accordion>
+
+<Accordion title="Error 8: Missing input/output components (LangFlow)" icon="puzzle-piece">
+
+### What it means
+For LangFlow workflows, Spark requires explicit input and output components to be specified. This error means the workflow structure doesn't have identifiable components or they weren't configured during sync.
+
+### Common causes
+- Workflow has no clear input/output components
+- Component IDs changed after workflow was modified
+- Complex workflow structure with multiple possible inputs/outputs
+- Flow hasn't been properly configured in LangFlow
+
+### How to fix
+
+**Step 1: Check workflow structure in LangFlow**
+```bash
+# Open your flow in LangFlow UI:
+# http://localhost:7860
+
+# Identify which components should be:
+# - Input: Usually ChatInput, TextInput, or similar
+# - Output: Usually ChatOutput, TextOutput, or similar
+```
+
+**Step 2: Get component IDs from flow**
+```bash
+# List the flow details to see components:
+automagik-spark workflows list --source-url http://localhost:7860
+
+# Look for the flow structure in the output
+# Component IDs are usually shown in the flow data
+```
+
+**Step 3: Sync with explicit component specification**
+```bash
+# For LangFlow, you may need to specify components:
+# (Note: Current CLI may not support this directly)
+# In this case, use the API:
+
+curl -X POST http://localhost:8883/api/v1/workflows/sync/<flow-id> \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_url": "http://localhost:7860",
+    "input_component": "ChatInput-xxxxx",
+    "output_component": "ChatOutput-yyyyy"
+  }'
+```
+
+**Step 4: Simplify your workflow**
+```bash
+# If the flow is too complex, simplify it:
+# 1. Create a simpler version with clear input/output
+# 2. Test the simple version first
+# 3. Add complexity incrementally
+```
+
+### Example: Identifying components in LangFlow UI
+```bash
+# 1. Open flow in LangFlow
+# 2. Click on the input component (e.g., ChatInput)
+# 3. Look in the component settings panel for the ID
+# 4. Note it down (format: ComponentType-uuid)
+# 5. Repeat for output component
+```
+
+### Prevention
+- Use standard input/output component types
+- Keep workflow structures simple and linear when possible
+- Document which components are inputs/outputs
+- Test workflow execution in source before syncing to Spark
+
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Schedule Errors
+
+<AccordionGroup>
+<Accordion title="Error 9: Invalid interval format" icon="clock">
+
+### What it means
+The interval string provided for a schedule doesn't match the expected format. Spark accepts specific formats: `Xm` (minutes), `Xh` (hours), or `Xd` (days).
+
+### Common causes
+- Wrong format (e.g., `5 minutes` instead of `5m`)
+- Invalid unit (e.g., `5s` for seconds - not supported)
+- Non-numeric value (e.g., `fivem`)
+- Extra characters or spaces
+
+### How to fix
+
+**Step 1: Use correct interval format**
+```bash
+# ✅ Valid formats:
+5m    # 5 minutes
+30m   # 30 minutes
+1h    # 1 hour
+24h   # 24 hours
+1d    # 1 day
+7d    # 7 days
+
+# ❌ Invalid formats:
+5 minutes    # Spaces not allowed
+5min         # Must be single letter
+5s           # Seconds not supported
+5.5h         # Decimals not supported
+```
+
+**Step 2: Create schedule with valid interval**
+```bash
+# Create a schedule that runs every 5 minutes:
+automagik-spark schedules create \
+  --workflow-id <workflow-id> \
+  --interval 5m
+
+# Create a schedule that runs every hour:
+automagik-spark schedules create \
+  --workflow-id <workflow-id> \
+  --interval 1h
+
+# Create a schedule that runs daily:
+automagik-spark schedules create \
+  --workflow-id <workflow-id> \
+  --interval 1d
+```
+
+**Step 3: Update existing schedule if needed**
+```bash
+# Update schedule interval:
+automagik-spark schedules update <schedule-id> \
+  --interval 30m
+```
+
+### Valid interval patterns
+```bash
+# Minutes: 1m to 1440m (24 hours)
+1m, 5m, 15m, 30m, 60m
+
+# Hours: 1h to 24h
+1h, 2h, 6h, 12h, 24h
+
+# Days: 1d to 365d
+1d, 7d, 30d, 365d
+```
+
+### For more complex schedules, use cron expressions
+```bash
+# If you need second-precision or complex patterns, use cron:
+automagik-spark schedules create \
+  --workflow-id <workflow-id> \
+  --cron "*/5 * * * *"  # Every 5 minutes
+
+# More cron examples:
+0 * * * *     # Every hour (on the hour)
+0 0 * * *     # Every day at midnight
+0 9 * * 1-5   # Weekdays at 9 AM
+```
+
+### Prevention
+- Use cron expressions for complex schedules
+- Document valid interval formats in your docs
+- Add validation before schedule creation
+- Use shortcuts: `hourly` → `1h`, `daily` → `1d`
+
+</Accordion>
+
+<Accordion title="Error 10: Schedule not triggering / Beat not running" icon="calendar-xmark">
+
+### What it means
+Schedules are configured but tasks are not being created at the scheduled times. This is usually because Celery Beat (the scheduler) is not running or not connected to the database.
+
+### Common causes
+- Celery Beat service not started
+- Beat cannot connect to database
+- Beat not seeing database changes (cache issue)
+- Schedule marked as inactive
+- Schedule's `next_run_at` in the past
+- Timezone mismatch between Beat and database
+
+### How to fix
+
+**Step 1: Verify Celery Beat is running**
+```bash
+# Check worker and beat status:
+automagik-spark worker status
+
+# Expected output should show:
+# - Worker is running (PID: xxxxx)
+# - Beat scheduler is running (PID: yyyyy)
+```
+
+**Step 2: Start Beat if not running**
+```bash
+# Start worker and beat together:
+automagik-spark worker start
+
+# OR start in daemon mode (background):
+automagik-spark worker start --daemon
+
+# Check logs:
+automagik-spark worker logs --follow
+```
+
+**Step 3: Check if schedule is active**
+```bash
+# List all schedules:
+automagik-spark schedules list
+
+# Look for "active: true" in the output
+# If inactive, enable it:
+automagik-spark schedules enable <schedule-id>
+```
+
+**Step 4: Verify schedule configuration**
+```bash
+# View schedule details:
+automagik-spark schedules list
+
+# Check:
+# - active: should be true
+# - next_run_at: should be in the future
+# - schedule_type: should be set (interval/cron)
+# - Expression: should be valid
+```
+
+**Step 5: Check Beat logs for errors**
+```bash
+# View beat logs:
+tail -f logs/beat.log
+# OR
+tail -f /var/log/automagik/beat.log
+
+# Look for:
+# - Database connection errors
+# - Schedule parsing errors
+# - Task creation errors
+```
+
+**Step 6: Restart Beat to clear cache**
+```bash
+# Stop worker and beat:
+automagik-spark worker stop
+
+# Wait a few seconds, then restart:
+automagik-spark worker start
+
+# Beat will reload schedules from database on startup
+```
+
+**Step 7: Check timezone configuration**
+```bash
+# Verify timezone setting in .env:
+echo $AUTOMAGIK_TIMEZONE
+
+# Should match your database timezone
+# Default is UTC
+
+# If not set, add to .env:
+AUTOMAGIK_TIMEZONE=UTC
+```
+
+### Diagnostic commands
+```bash
+# 1. Check if Beat is running:
+ps aux | grep "celery.*beat"
+
+# 2. Check beat PID file:
+cat logs/beat.pid
+# OR
+cat /var/log/automagik/beat.pid
+
+# 3. Check for recent task creation:
+automagik-spark tasks list --status pending
+
+# 4. Monitor beat logs in real-time:
+tail -f logs/beat.log | grep "Scheduler"
+```
+
+### Prevention
+- Start worker and beat automatically on system boot
+- Monitor beat process with systemd or supervisor
+- Set up alerts for when beat stops running
+- Use `automagik-spark worker status` in health checks
+
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Quick Diagnostic Commands
+
+When troubleshooting, these commands will help you quickly identify the problem:
+
+```bash
+# Check all service status
+systemctl status postgresql redis  # Linux
+brew services list  # macOS
+
+# Verify Spark components
+automagik-spark worker status  # Worker and Beat status
+automagik-spark sources list  # Configured sources
+automagik-spark schedules list  # Active schedules
+automagik-spark tasks list --status failed  # Failed tasks
+
+# Test connections
+psql -h localhost -U postgres -d automagik_spark  # Database
+redis-cli ping  # Redis
+curl http://localhost:7860/health  # LangFlow
+curl http://localhost:8881/health  # Hive
+
+# View logs
+tail -f logs/worker.log  # Worker logs
+tail -f logs/beat.log  # Beat scheduler logs
+automagik-spark worker logs --follow  # Follow worker logs
+automagik-spark tasks view <task-id>  # Specific task logs
+
+# Check environment
+echo $AUTOMAGIK_SPARK_DATABASE_URL
+echo $AUTOMAGIK_SPARK_CELERY_BROKER_URL
+env | grep AUTOMAGIK_SPARK  # All Spark variables
+```
+
+---
+
+## Log Locations
+
+Depending on your setup, logs are stored in different locations:
+
+### Development (default)
+```bash
+logs/worker.log  # Worker logs
+logs/beat.log  # Beat scheduler logs
+logs/celerybeat-schedule  # Beat schedule database
+```
+
+### Production (system-wide)
+```bash
+/var/log/automagik/worker.log  # Worker logs
+/var/log/automagik/beat.log  # Beat scheduler logs
+/var/log/automagik/worker.pid  # Worker PID
+/var/log/automagik/beat.pid  # Beat PID
+```
+
+### Docker
+```bash
+# View container logs:
+docker logs spark-worker
+docker logs spark-beat
+docker logs spark-api
+
+# Follow logs:
+docker logs -f spark-worker
+```
+
+### Configuring log location
+```bash
+# Set in .env file:
+AUTOMAGIK_SPARK_WORKER_LOG=/path/to/logs/worker.log
+AUTOMAGIK_SPARK_LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
+```
+
+---
+
+## Getting Help
+
+### Check logs first
+Most errors are explained in the logs. Always check:
+1. Worker logs for task execution errors
+2. Beat logs for scheduling errors
+3. API logs for request errors
+
+### Search for error messages
+```bash
+# Search all logs for a specific error:
+grep -r "error message" logs/
+
+# Search for failed tasks:
+grep -i "failed" logs/worker.log
+
+# Search for connection errors:
+grep -i "connection" logs/*.log
+```
+
+### Get more detailed logs
+```bash
+# Enable debug logging:
+export AUTOMAGIK_SPARK_LOG_LEVEL=DEBUG
+
+# Restart services:
+automagik-spark worker stop
+automagik-spark worker start
+
+# Logs will now be much more verbose
+```
+
+### Still stuck?
+1. **GitHub Issues**: [Report a bug or ask a question](https://github.com/Automagik-AI/automagik-spark/issues)
+2. **Discord Community**: [Join for real-time help](https://discord.gg/automagik)
+3. **Documentation**: [Read the full docs](https://docs.automagik.ai/spark)
+
+---
+
+## Common Error Patterns
+
+### Database-related errors
+Almost always one of:
+1. PostgreSQL not running → Start it
+2. Wrong connection string → Check .env
+3. Database doesn't exist → Create it with `CREATE DATABASE`
+4. Migrations not run → Run `automagik-spark db migrate`
+
+### Celery/Redis errors
+Almost always one of:
+1. Redis not running → Start it
+2. Wrong broker URL → Check .env
+3. Worker not started → Run `automagik-spark worker start`
+4. Beat not running → Check `worker status`
+
+### Source connection errors
+Almost always one of:
+1. Wrong URL → Verify source is accessible
+2. Wrong API key → Get new key from source
+3. Source not running → Start LangFlow/Hive
+4. Network issue → Test with curl
+
+### Schedule not working
+Almost always one of:
+1. Beat not running → Check `worker status`
+2. Schedule inactive → Enable it
+3. Wrong interval format → Use `Xm`, `Xh`, or `Xd`
+4. Worker not running → Start it
+
+<Tip>
+**Pro Tip**: 90% of errors are fixed by ensuring these three things are running: PostgreSQL, Redis, and Celery (worker + beat). Check those first!
+</Tip>

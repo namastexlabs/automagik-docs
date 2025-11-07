@@ -1,0 +1,519 @@
+---
+title: "Workers"
+description: "Manage Celery workers that execute workflow tasks"
+---
+
+## Overview
+
+Workers are Celery processes that pick up tasks from the Redis queue and execute workflows. Workers run continuously in the background, processing tasks as they are created by schedules or manual workflow runs.
+
+<Warning>
+**No API Endpoints**: Workers are managed exclusively through the CLI. There are no REST API endpoints for worker management, status, or health checks.
+</Warning>
+
+---
+
+## Worker Architecture
+
+Spark uses Celery workers to execute workflow tasks asynchronously:
+
+```mermaid
+graph LR
+    A[Schedule/Manual Run] -->|Create Task| B[Redis Queue]
+    B -->|Pick Task| C[Worker Process]
+    C -->|Execute| D[Workflow Source]
+    D -->|Result| C
+    C -->|Update| E[PostgreSQL]
+```
+
+**Components**:
+1. **Redis Queue**: Stores pending tasks
+2. **Worker Process**: Picks up and executes tasks
+3. **Workflow Source**: External system (LangFlow, Hive, Agents)
+4. **PostgreSQL**: Stores task results and status
+
+---
+
+## Managing Workers via CLI
+
+All worker management is done through the `automagik-spark` CLI:
+
+### Start Workers
+
+Start worker processes to begin executing tasks:
+
+```bash
+# Start single worker (development)
+automagik-spark workers start
+
+# Start multiple workers (production)
+automagik-spark workers start --workers 4
+
+# Start with custom concurrency
+automagik-spark workers start --concurrency 2
+```
+
+**Options**:
+- `--workers <n>`: Number of worker processes (default: 1)
+- `--concurrency <n>`: Tasks per worker (default: 1)
+- `--loglevel <level>`: Logging level (debug, info, warning, error)
+
+### Check Worker Status
+
+View running worker processes and their status:
+
+```bash
+# List active workers
+automagik-spark workers status
+
+# Detailed worker information
+automagik-spark workers status --verbose
+```
+
+**Example Output**:
+```
+Worker: celery@hostname
+  Status: Active
+  Concurrency: 1
+  Tasks Processed: 47
+  Active Tasks: 2
+  Uptime: 3h 24m
+```
+
+### Stop Workers
+
+Gracefully stop worker processes:
+
+```bash
+# Stop all workers
+automagik-spark workers stop
+
+# Force stop (not recommended)
+automagik-spark workers stop --force
+```
+
+<Warning>
+**Graceful Shutdown**: Always use graceful shutdown to allow workers to finish their current tasks. Force stopping may leave tasks in an inconsistent state.
+</Warning>
+
+### View Worker Logs
+
+Monitor worker activity and debug issues:
+
+```bash
+# View worker logs
+automagik-spark workers logs
+
+# Follow logs in real-time
+automagik-spark workers logs --follow
+
+# Filter by log level
+automagik-spark workers logs --level error
+```
+
+---
+
+## Worker Configuration
+
+Configure workers through environment variables in your `.env` file:
+
+### Concurrency Settings
+
+```bash
+# Number of concurrent tasks per worker
+CELERY_WORKER_CONCURRENCY=1
+
+# Worker pool type (prefork, solo, threads)
+CELERY_WORKER_POOL=prefork
+
+# Maximum tasks per worker before restart
+CELERY_WORKER_MAX_TASKS_PER_CHILD=100
+```
+
+### Resource Limits
+
+```bash
+# Task execution timeout (seconds)
+CELERY_TASK_TIME_LIMIT=300
+
+# Soft timeout warning (seconds)
+CELERY_TASK_SOFT_TIME_LIMIT=280
+
+# Memory limit per worker (MB)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD=200000
+```
+
+### Queue Configuration
+
+```bash
+# Redis connection for task queue
+CELERY_BROKER_URL=redis://localhost:6379/0
+
+# Result backend (optional)
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# Task serialization format
+CELERY_TASK_SERIALIZER=json
+CELERY_RESULT_SERIALIZER=json
+```
+
+### Retry Settings
+
+```bash
+# Maximum retry attempts for tasks
+CELERY_TASK_MAX_RETRIES=3
+
+# Retry backoff strategy
+CELERY_TASK_RETRY_BACKOFF=True
+CELERY_TASK_RETRY_BACKOFF_MAX=120
+
+# Retry delay (seconds)
+CELERY_TASK_DEFAULT_RETRY_DELAY=5
+```
+
+---
+
+## Production Deployment
+
+### Docker Compose
+
+Run workers as Docker services for production:
+
+```yaml
+version: '3.8'
+
+services:
+  # API Server
+  spark-api:
+    image: automagik/spark:latest
+    command: automagik-spark api start
+    ports:
+      - "8883:8883"
+    environment:
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/spark
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - SPARK_API_KEY=${SPARK_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+
+  # Celery Workers (scaled)
+  spark-worker:
+    image: automagik/spark:latest
+    command: automagik-spark workers start --concurrency 2
+    environment:
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/spark
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 3  # Run 3 worker containers
+
+  # Celery Beat (scheduler)
+  spark-beat:
+    image: automagik/spark:latest
+    command: automagik-spark beat start
+    environment:
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/spark
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=spark
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Redis Queue
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+### Systemd Service
+
+Run workers as a systemd service:
+
+```ini
+[Unit]
+Description=Spark Celery Worker
+After=network.target redis.service postgresql.service
+
+[Service]
+Type=forking
+User=spark
+WorkingDirectory=/opt/spark
+Environment="PATH=/opt/spark/venv/bin"
+ExecStart=/opt/spark/venv/bin/automagik-spark workers start --workers 4 --concurrency 2
+ExecStop=/opt/spark/venv/bin/automagik-spark workers stop
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start**:
+```bash
+sudo systemctl enable spark-worker
+sudo systemctl start spark-worker
+sudo systemctl status spark-worker
+```
+
+### Process Management (Supervisor)
+
+Use Supervisor to manage worker processes:
+
+```ini
+[program:spark-worker]
+command=/opt/spark/venv/bin/automagik-spark workers start --workers 4
+directory=/opt/spark
+user=spark
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/spark/worker.log
+environment=PATH="/opt/spark/venv/bin",DATABASE_URL="postgresql://..."
+```
+
+---
+
+## Scaling Workers
+
+### Horizontal Scaling
+
+Run multiple worker processes to handle more concurrent tasks:
+
+```bash
+# Development: Single worker
+automagik-spark workers start
+
+# Production: Multiple workers with concurrency
+automagik-spark workers start --workers 8 --concurrency 2
+# This creates 8 worker processes, each handling 2 tasks = 16 total concurrent tasks
+```
+
+**Formula**:
+```
+Total Concurrent Tasks = Workers × Concurrency
+```
+
+### Resource Considerations
+
+**CPU-Bound Tasks**:
+- Workers = Number of CPU cores
+- Concurrency = 1 per worker
+- Example: 4 cores = 4 workers × 1 concurrency
+
+**I/O-Bound Tasks** (typical for workflows):
+- Workers = 2-4 per CPU core
+- Concurrency = 2-4 per worker
+- Example: 4 cores = 8 workers × 2 concurrency = 16 concurrent tasks
+
+### Load Balancing
+
+Workers automatically load balance by picking tasks from the shared Redis queue:
+
+1. Task created → added to Redis queue
+2. First available worker picks up task
+3. Worker executes and updates status
+4. Worker picks next task
+
+No additional configuration needed for load balancing.
+
+---
+
+## Monitoring Workers
+
+### Health Checks
+
+Check if workers are running and responding:
+
+```bash
+# Quick health check
+automagik-spark workers status
+
+# Check Redis connection
+redis-cli ping
+
+# Check worker queue
+redis-cli llen celery
+
+# Check active workers
+celery -A automagik_spark.celery inspect active
+```
+
+### Performance Metrics
+
+Monitor worker performance:
+
+```bash
+# Task processing rate
+celery -A automagik_spark.celery inspect stats
+
+# Active tasks
+celery -A automagik_spark.celery inspect active
+
+# Scheduled tasks (upcoming)
+celery -A automagik_spark.celery inspect scheduled
+
+# Reserved tasks (claimed but not started)
+celery -A automagik_spark.celery inspect reserved
+```
+
+### Logs and Debugging
+
+Common issues and how to debug:
+
+**Worker Not Starting**:
+```bash
+# Check logs for errors
+automagik-spark workers logs --level error
+
+# Verify Redis connection
+redis-cli -h localhost -p 6379 ping
+
+# Check environment variables
+env | grep CELERY_BROKER_URL
+```
+
+**Tasks Not Processing**:
+```bash
+# Check active workers
+automagik-spark workers status
+
+# Check queue length
+redis-cli llen celery
+
+# Inspect worker state
+celery -A automagik_spark.celery inspect active
+```
+
+**High Memory Usage**:
+```bash
+# Restart workers with memory limit
+export CELERY_WORKER_MAX_MEMORY_PER_CHILD=150000
+automagik-spark workers stop
+automagik-spark workers start --workers 4
+```
+
+---
+
+## Worker Pools
+
+Celery supports different execution pools:
+
+### Prefork Pool (Default)
+
+Best for CPU-bound tasks:
+```bash
+export CELERY_WORKER_POOL=prefork
+automagik-spark workers start --workers 4 --concurrency 2
+```
+
+**Pros**: Process isolation, fault tolerance
+**Cons**: Higher memory usage
+
+### Solo Pool
+
+Single process, single task:
+```bash
+export CELERY_WORKER_POOL=solo
+automagik-spark workers start
+```
+
+**Pros**: Simplicity, low memory
+**Cons**: No concurrency
+
+### Threads Pool
+
+Thread-based concurrency:
+```bash
+export CELERY_WORKER_POOL=threads
+automagik-spark workers start --concurrency 4
+```
+
+**Pros**: Low memory, good for I/O-bound
+**Cons**: GIL limitations in Python
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Workers exit unexpectedly**:
+- Check memory limits (`CELERY_WORKER_MAX_MEMORY_PER_CHILD`)
+- Review logs for errors
+- Verify database connections
+
+**Tasks stuck in pending**:
+- Confirm workers are running: `automagik-spark workers status`
+- Check Redis queue: `redis-cli llen celery`
+- Restart workers: `automagik-spark workers stop && automagik-spark workers start`
+
+**High CPU usage**:
+- Reduce concurrency per worker
+- Increase number of workers
+- Check for infinite loops in workflows
+
+**Connection errors**:
+- Verify Redis is accessible
+- Check `CELERY_BROKER_URL` configuration
+- Ensure network connectivity to workflow sources
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Graceful Shutdown" icon="power-off">
+    Always stop workers gracefully to finish in-progress tasks
+  </Card>
+
+  <Card title="Monitor Resources" icon="chart-line">
+    Track CPU, memory, and task processing rates
+  </Card>
+
+  <Card title="Scale Appropriately" icon="arrows-up-down">
+    Match worker count to workload and available resources
+  </Card>
+
+  <Card title="Use Process Manager" icon="gears">
+    Deploy with systemd, supervisor, or Docker for auto-restart
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Reference" icon="terminal" href="/spark/cli/commands#workers">
+    Complete worker CLI commands
+  </Card>
+
+  <Card title="Tasks API" icon="play" href="/spark/api/tasks">
+    Monitor task execution
+  </Card>
+
+  <Card title="Production Deployment" icon="server" href="/spark/examples/production-deployment">
+    Deploy Spark to production
+  </Card>
+
+  <Card title="Scaling Guide" icon="chart-line" href="/spark/advanced/scaling-production">
+    Advanced scaling strategies
+  </Card>
+</CardGroup>
