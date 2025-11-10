@@ -43,12 +43,87 @@
           {
             "group": "The Automagik Suite",
             "pages": [
+              "suite/genie",
               "suite/forge",
               "suite/hive",
               "suite/omni",
               "suite/spark",
-              "suite/genie",
               "suite/tools"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Genie",
+        "groups": [
+          {
+            "group": "Phase 1: Get It Running",
+            "pages": [
+              "genie/introduction",
+              "genie/installation",
+              "genie/quickstart"
+            ]
+          },
+          {
+            "group": "Phase 2: Reference",
+            "pages": [
+              {
+                "group": "CLI Reference",
+                "pages": [
+                  "genie/cli/overview",
+                  "genie/cli/commands",
+                  "genie/cli/helper-commands"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Phase 3: Real Examples",
+            "pages": [
+              "genie/examples/basic-workflow",
+              "genie/examples/browser-mode",
+              "genie/examples/helper-examples",
+              "genie/examples/mcp-integration"
+            ]
+          },
+          {
+            "group": "Phase 4: Deep Concepts",
+            "pages": [
+              {
+                "group": "Core Concepts",
+                "pages": [
+                  "genie/concepts/markdown-framework",
+                  "genie/concepts/collectives-and-agents",
+                  "genie/concepts/spells-system",
+                  "genie/concepts/neurons-architecture",
+                  "genie/concepts/ace-protocol",
+                  "genie/concepts/amendments-and-rules"
+                ]
+              },
+              {
+                "group": "Collectives",
+                "pages": [
+                  "genie/collectives/overview",
+                  "genie/collectives/code-collective",
+                  "genie/collectives/create-collective",
+                  "genie/collectives/custom-collectives"
+                ]
+              },
+              {
+                "group": "Configuration",
+                "pages": [
+                  "genie/config/forge-integration"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "genie/troubleshooting/common-issues",
+              "genie/troubleshooting/mcp-integration-errors",
+              "genie/troubleshooting/cli-errors",
+              "genie/troubleshooting/faq"
             ]
           }
         ]
@@ -302,81 +377,6 @@
         ]
       },
       {
-        "tab": "Genie",
-        "groups": [
-          {
-            "group": "Phase 1: Get It Running",
-            "pages": [
-              "genie/introduction",
-              "genie/installation",
-              "genie/quickstart"
-            ]
-          },
-          {
-            "group": "Phase 2: Reference",
-            "pages": [
-              {
-                "group": "CLI Reference",
-                "pages": [
-                  "genie/cli/overview",
-                  "genie/cli/commands",
-                  "genie/cli/helper-commands"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Phase 3: Real Examples",
-            "pages": [
-              "genie/examples/basic-workflow",
-              "genie/examples/browser-mode",
-              "genie/examples/helper-examples",
-              "genie/examples/mcp-integration"
-            ]
-          },
-          {
-            "group": "Phase 4: Deep Concepts",
-            "pages": [
-              {
-                "group": "Core Concepts",
-                "pages": [
-                  "genie/concepts/markdown-framework",
-                  "genie/concepts/collectives-and-agents",
-                  "genie/concepts/spells-system",
-                  "genie/concepts/neurons-architecture",
-                  "genie/concepts/ace-protocol",
-                  "genie/concepts/amendments-and-rules"
-                ]
-              },
-              {
-                "group": "Collectives",
-                "pages": [
-                  "genie/collectives/overview",
-                  "genie/collectives/code-collective",
-                  "genie/collectives/create-collective",
-                  "genie/collectives/custom-collectives"
-                ]
-              },
-              {
-                "group": "Configuration",
-                "pages": [
-                  "genie/config/forge-integration"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Troubleshooting",
-            "pages": [
-              "genie/troubleshooting/common-issues",
-              "genie/troubleshooting/mcp-integration-errors",
-              "genie/troubleshooting/cli-errors",
-              "genie/troubleshooting/faq"
-            ]
-          }
-        ]
-      },
-      {
         "tab": "Tools",
         "groups": [
           {
@@ -513,15 +513,15 @@
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
