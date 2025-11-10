@@ -1,12 +1,12 @@
 ---
 title: "Forge"
-description: "AI Orchestration Kanban - Where Vibe Coding Meets Structure"
+description: "AI Orchestration Backend - Included with Genie"
 icon: "hammer"
 ---
 
-**Where Vibe Coding Meets Structure**
+**Genie's Orchestration Backend**
 
-Multi-agent orchestrator with Git worktree isolation. Experiment with 8+ LLMs (Claude, Gemini, Cursor), compare results, ship code you understand.
+Forge is the engine that powers Genie - handling multi-LLM orchestration, Git worktree isolation, and task management. When you install Genie, Forge is automatically included and runs in the background.
 
 ### Key Features
 
@@ -16,6 +16,10 @@ Multi-agent orchestrator with Git worktree isolation. Experiment with 8+ LLMs (C
 - **Result Comparison**: Compare outputs from different AI models side-by-side
 - **Production-Ready**: Ship code you actually understand and can maintain
 
+<Info>
+**For most users**: You don't need to install Forge separately. It's automatically installed when you install Genie.
+</Info>
+
 ### Quick Links
 
 <CardGroup cols={2}>
@@ -23,23 +27,37 @@ Multi-agent orchestrator with Git worktree isolation. Experiment with 8+ LLMs (C
     View source code and contribute
   </Card>
   <Card title="NPM Package" icon="npm" href="https://www.npmjs.com/package/automagik-forge">
-    Install via NPM
+    Bundled with automagik-genie
   </Card>
 </CardGroup>
 
 ### Installation
 
+**Recommended: Install with Genie**
+
 ```bash
-npm install -g automagik-forge
+bash -c "$(curl -fsSL https://install.namastex.ai/get-genie.sh)"
 ```
+
+This installs both Genie CLI and Forge backend together.
+
+<Accordion title="Advanced: Standalone Forge Installation">
+  If you need to run Forge without Genie (rare):
+
+  ```bash
+  npm install -g automagik-forge
+  ```
+
+  Most users won't need this - Genie is the intended interface to Forge.
+</Accordion>
 
 ### Get Started
 
 <CardGroup cols={2}>
-  <Card title="Introduction" icon="book" href="/forge/introduction">
-    Learn about Forge
+  <Card title="Start with Genie" icon="wand-magic-sparkles" href="/genie/quickstart">
+    Recommended starting point
   </Card>
-  <Card title="Quick Start" icon="rocket" href="/forge/quickstart">
-    Get up and running
+  <Card title="Forge Internals" icon="book" href="/forge/introduction">
+    Learn how Forge works (advanced)
   </Card>
 </CardGroup>
