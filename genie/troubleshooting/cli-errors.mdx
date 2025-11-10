@@ -42,8 +42,8 @@ description: "Troubleshooting Genie command-line interface errors"
 
     **Alternative: Use npx (no installation needed):**
     ```bash
-    npx @joshuapowell/genie-cli init
-    npx @joshuapowell/genie-cli status
+    npx automagik-genie init
+    npx automagik-genie status
     ```
 
     **Prevention:**
@@ -67,7 +67,7 @@ description: "Troubleshooting Genie command-line interface errors"
     genie --version
 
     # Update to latest version
-    npm update -g @joshuapowell/genie-cli
+    npm update -g automagik-genie
 
     # Verify update
     genie --version
@@ -158,7 +158,7 @@ description: "Troubleshooting Genie command-line interface errors"
     source ~/.bashrc
 
     # Reinstall without sudo
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
 
     # Fix .genie directory permissions
     chmod -R u+w ~/.genie
@@ -208,8 +208,8 @@ description: "Troubleshooting Genie command-line interface errors"
     npm cache clean --force
 
     # Reinstall Genie
-    npm uninstall -g @joshuapowell/genie-cli
-    npm install -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
+    npm install -g automagik-genie
 
     # Try init again with verbose output
     DEBUG=genie:* genie init
@@ -314,7 +314,7 @@ description: "Troubleshooting Genie command-line interface errors"
     ```bash
     # Test network connectivity
     ping registry.npmjs.org
-    curl https://registry.npmjs.org/@joshuapowell/genie-cli
+    curl https://registry.npmjs.org/automagik-genie
 
     # Try with different registry
     npm config set registry https://registry.npmjs.org/
@@ -359,20 +359,20 @@ description: "Troubleshooting Genie command-line interface errors"
     ```bash
     # Check current version
     genie --version
-    npm list -g @joshuapowell/genie-cli
+    npm list -g automagik-genie
 
     # Clear npm cache
     npm cache clean --force
 
     # Force reinstall latest
-    npm uninstall -g @joshuapowell/genie-cli
-    npm install -g @joshuapowell/genie-cli@latest
+    npm uninstall -g automagik-genie
+    npm install -g automagik-genie@latest
 
     # Verify update
     genie --version
 
     # If specific version needed
-    npm install -g @joshuapowell/genie-cli@1.2.3
+    npm install -g automagik-genie@2.5.11
 
     # Check for peer dependency issues
     npm list -g --depth=0
@@ -419,10 +419,10 @@ description: "Troubleshooting Genie command-line interface errors"
     **Rollback if needed:**
     ```bash
     # Uninstall current version
-    npm uninstall -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
 
     # Install previous working version
-    npm install -g @joshuapowell/genie-cli@1.2.3
+    npm install -g automagik-genie@2.5.10
 
     # Restore backup
     rm -rf ~/.genie
@@ -451,13 +451,13 @@ description: "Troubleshooting Genie command-line interface errors"
     **Solution:**
     ```bash
     # Check available versions
-    npm view @joshuapowell/genie-cli versions
+    npm view automagik-genie versions
 
     # Install specific version
-    npm install -g @joshuapowell/genie-cli@1.2.3
+    npm install -g automagik-genie@2.5.11
 
     # If version unpublished, try nearby version
-    npm install -g @joshuapowell/genie-cli@1.2.2
+    npm install -g automagik-genie@2.5.10
 
     # Restore from backup
     rm -rf ~/.genie
@@ -818,9 +818,9 @@ description: "Troubleshooting Genie command-line interface errors"
     genie init --force
 
     # Clean reinstall
-    npm uninstall -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
     rm -rf ~/.genie
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
     genie init
 
     # Start with minimal config
@@ -878,7 +878,7 @@ When reporting CLI problems:
    - Note if works in clean environment
 
 4. **Report issues:**
-   - GitHub: [joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+   - GitHub: [namastexlabs/automagik-genie/issues](https://github.com/namastexlabs/automagik-genie/issues)
    - Include: version, OS, error logs, reproduction steps
    - Use issue template if available
 

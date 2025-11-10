@@ -271,7 +271,7 @@ description: "Frequently asked questions about Genie"
     nvm use 20
 
     # Reinstall Genie with new Node version
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
     ```
   </Accordion>
 
@@ -321,7 +321,7 @@ description: "Frequently asked questions about Genie"
     genie export --output genie-backup.json
 
     # 3. Uninstall CLI
-    npm uninstall -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
 
     # 4. Remove configuration and data
     rm -rf ~/.genie
@@ -344,21 +344,21 @@ description: "Frequently asked questions about Genie"
     **Partial uninstall (keep data):**
     ```bash
     # Remove CLI but keep data
-    npm uninstall -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
 
     # Reinstall later without losing data
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
     # Your ~/.genie directory remains intact
     ```
 
     **Clean reinstall:**
     ```bash
     # Complete removal
-    npm uninstall -g @joshuapowell/genie-cli
+    npm uninstall -g automagik-genie
     rm -rf ~/.genie
 
     # Fresh install
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
     genie init
     ```
   </Accordion>
@@ -372,7 +372,7 @@ description: "Frequently asked questions about Genie"
     cd my-project
 
     # Install locally
-    npm install @joshuapowell/genie-cli
+    npm install automagik-genie
 
     # Initialize in project
     npx genie init
@@ -392,7 +392,7 @@ description: "Frequently asked questions about Genie"
         "agent": "genie agent run"
       },
       "devDependencies": {
-        "@joshuapowell/genie-cli": "^1.0.0"
+        "automagik-genie": "^2.5.0"
       }
     }
     ```
@@ -922,7 +922,7 @@ description: "Frequently asked questions about Genie"
     - Create video tutorials
 
     **4. Bug reports and feature requests:**
-    - [GitHub Issues](https://github.com/joshuapowell/genie/issues)
+    - [GitHub Issues](https://github.com/namastexlabs/automagik-genie/issues)
     - Provide reproduction steps
     - Include system info and logs
 
@@ -1011,14 +1011,14 @@ description: "Frequently asked questions about Genie"
     **Rollback if needed:**
     ```bash
     # Install previous version
-    npm install -g @joshuapowell/genie-cli@1.2.3
+    npm install -g automagik-genie@2.5.10
 
     # Restore backup
     genie import --input backup.json
     ```
 
     **Stay informed:**
-    - GitHub releases: [github.com/joshuapowell/genie/releases](https://github.com/joshuapowell/genie/releases)
+    - GitHub releases: [github.com/namastexlabs/automagik-genie/releases](https://github.com/namastexlabs/automagik-genie/releases)
     - Discord announcements
     - Newsletter (optional signup)
   </Accordion>
@@ -1257,7 +1257,7 @@ description: "Frequently asked questions about Genie"
     **1. Check Forge status:**
     ```bash
     # Test Forge accessibility
-    curl https://forge.joshuapowell.ai/health
+    curl http://localhost:8887/health
 
     # Check your connection
     genie forge status
@@ -1276,18 +1276,19 @@ description: "Frequently asked questions about Genie"
     **3. Network issues:**
     ```bash
     # Test connectivity
-    ping forge.joshuapowell.ai
+    ping localhost
 
-    # Check if behind proxy
+    # Check if behind proxy (if using remote Forge)
     genie config set FORGE_PROXY "http://proxy.company.com:8080"
 
-    # Try with VPN if company network blocks
+    # Ensure Forge is running locally
+    forge status
     ```
 
     **4. Forge outage:**
-    - Check status page: [status.forge.joshuapowell.ai](https://status.forge.joshuapowell.ai)
-    - Wait and retry
-    - Use local-only mode meanwhile
+    - Check Forge status locally with `forge status`
+    - Ensure Forge is running on localhost:8887
+    - Use local-only mode if needed
 
     **5. Work offline:**
     ```bash
@@ -1315,11 +1316,11 @@ description: "Frequently asked questions about Genie"
     Solutions to frequent problems
   </Card>
 
-  <Card title="GitHub Issues" icon="github" href="https://github.com/joshuapowell/genie/issues">
+  <Card title="GitHub Issues" icon="github" href="https://github.com/namastexlabs/automagik-genie/issues">
     Report bugs and request features
   </Card>
 
-  <Card title="Discord Community" icon="discord" href="https://discord.gg/genie">
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
     Get help from the community
   </Card>
 </CardGroup>
@@ -1330,4 +1331,4 @@ description: "Frequently asked questions about Genie"
 2. **Check GitHub**: Issues and discussions
 3. **Ask in Discord**: Real-time community support
 4. **Create issue**: For bugs or feature requests
-5. **Email support**: support@joshuapowell.ai (paid support)
+5. **Community support**: Join Discord for help

@@ -239,7 +239,7 @@ description: "Troubleshooting MCP server connections and IDE integrations"
     genie agent list
 
     # Update to latest version
-    npm update -g @joshuapowell/genie-cli
+    npm update -g automagik-genie
 
     # Reinitialize with full tool set
     genie init --full-toolset
@@ -577,7 +577,7 @@ description: "Troubleshooting MCP server connections and IDE integrations"
     **Solution:**
     ```bash
     # Find Genie installation path
-    npm list -g @joshuapowell/genie-cli
+    npm list -g automagik-genie
 
     # Find MCP server path
     find ~ -name "index.js" -path "*genie-mcp-server*"
@@ -797,7 +797,7 @@ If problems persist:
    genie status > status.txt
    cat ~/.genie/logs/mcp-server.log > mcp-logs.txt
    cat ~/.claude/config.json > config.txt
-   npm list -g @joshuapowell/genie-cli > version.txt
+   npm list -g automagik-genie > version.txt
    ```
 
 2. **Try minimal setup:**
@@ -808,7 +808,7 @@ If problems persist:
    - Test before adding customizations
 
 3. **Get help:**
-   - GitHub Issues: [joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+   - GitHub Issues: [namastexlabs/automagik-genie/issues](https://github.com/namastexlabs/automagik-genie/issues)
    - Discord: Join community server
    - Documentation: Check IDE-specific MCP docs
-   - Stack Overflow: Tag with `genie-cli` and `mcp`
+   - Stack Overflow: Tag with `automagik-genie` and `mcp`

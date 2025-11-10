@@ -8,7 +8,7 @@ description: "Solutions to frequently encountered problems when using Genie"
 <AccordionGroup>
   <Accordion title="Installation fails with 'npm ERR! code EACCES'" icon="triangle-exclamation">
     **Symptoms:**
-    - Permission denied errors during `npm install -g @joshuapowell/genie-cli`
+    - Permission denied errors during `npm install -g automagik-genie`
     - Installation fails partway through
     - Cannot write to global npm directories
 
@@ -18,17 +18,17 @@ description: "Solutions to frequently encountered problems when using Genie"
     **Solution:**
     ```bash
     # Option 1: Use npx (no installation needed)
-    npx @joshuapowell/genie-cli init
+    npx automagik-genie init
 
     # Option 2: Install with sudo (Linux/Mac)
-    sudo npm install -g @joshuapowell/genie-cli
+    sudo npm install -g automagik-genie
 
     # Option 3: Configure npm to use user directory
     mkdir ~/.npm-global
     npm config set prefix '~/.npm-global'
     echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
     source ~/.bashrc
-    npm install -g @joshuapowell/genie-cli
+    npm install -g automagik-genie
     ```
 
     **Prevention:**
@@ -110,10 +110,10 @@ description: "Solutions to frequently encountered problems when using Genie"
     npm cache clean --force
 
     # Try with different registry
-    npm install -g @joshuapowell/genie-cli --registry=https://registry.npmjs.org/
+    npm install -g automagik-genie --registry=https://registry.npmjs.org/
 
     # Increase timeout
-    npm install -g @joshuapowell/genie-cli --fetch-timeout=60000
+    npm install -g automagik-genie --fetch-timeout=60000
 
     # Use proxy if behind corporate firewall
     npm config set proxy http://proxy.company.com:8080
@@ -234,7 +234,7 @@ description: "Solutions to frequently encountered problems when using Genie"
     genie cleanup --sessions
 
     # Update to latest version
-    npm update -g @joshuapowell/genie-cli
+    npm update -g automagik-genie
 
     # Restart with debug mode
     DEBUG=genie:* genie start
@@ -404,22 +404,22 @@ description: "Solutions to frequently encountered problems when using Genie"
     **Solution:**
     ```bash
     # Check Forge status
-    curl https://forge.joshuapowell.ai/health
+    curl http://localhost:8887/health
 
     # Verify Forge URL in config
     genie config get FORGE_URL
 
     # Update Forge URL if needed
-    genie config set FORGE_URL https://forge.joshuapowell.ai
+    genie config set FORGE_URL http://localhost:8887
 
     # Test authentication
     genie forge test
 
     # Check for network issues
-    ping forge.joshuapowell.ai
+    ping localhost
 
     # Try with local development Forge
-    genie config set FORGE_URL http://localhost:3001
+    genie config set FORGE_URL http://localhost:8887
     ```
 
     **Prevention:**
@@ -728,8 +728,8 @@ If you're still experiencing issues:
 
 1. **Check the logs**: `cat ~/.genie/logs/error.log`
 2. **Enable debug mode**: `DEBUG=genie:* genie <command>`
-3. **Update Genie**: `npm update -g @joshuapowell/genie-cli`
-4. **Search GitHub Issues**: [github.com/joshuapowell/genie/issues](https://github.com/joshuapowell/genie/issues)
+3. **Update Genie**: `npm update -g automagik-genie`
+4. **Search GitHub Issues**: [github.com/namastexlabs/automagik-genie/issues](https://github.com/namastexlabs/automagik-genie/issues)
 5. **Ask the community**: Join our Discord server
 6. **Report a bug**: Create a new GitHub issue with:
    - Genie version: `genie --version`
