@@ -42,13 +42,13 @@ icon: "circle-exclamation"
   <Accordion title="Solution 3: Reinstall Globally">
     ```bash
     # Remove old installation
-    npm uninstall -g automagik-forge
+    npm uninstall -g @automagik/forge
 
     # Clear npm cache
     npm cache clean --force
 
     # Reinstall
-    npm install -g automagik-forge
+    npm install -g @automagik/forge
 
     # Verify
     automagik-forge --version
@@ -106,14 +106,14 @@ cd automagik-forge
     source ~/.bashrc
 
     # Now install without sudo
-    npm install -g automagik-forge
+    npm install -g @automagik/forge
     ```
   </Tab>
 
   <Tab title="Quick Fix (Not Recommended)">
     ```bash
     # Use sudo (not ideal, but works)
-    sudo npm install -g automagik-forge
+    sudo npm install -g @automagik/forge
 
     # You may need sudo to run it
     sudo automagik-forge
