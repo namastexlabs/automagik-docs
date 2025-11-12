@@ -9,59 +9,43 @@ description: "Get started with the Automagik Suite in minutes"
   </h1>
 </div>
 
-## Start with Genie
+## Choose Your Tool
 
-**The fastest way to get started with AI-powered development:**
-
-```bash
-bash -c "$(curl -fsSL https://install.namastex.ai/get-genie.sh)"
-```
-
-This one command installs:
-- ✅ Genie CLI
-- ✅ Forge Backend
-- ✅ MCP Server
-- ✅ 44 AI Agents
-
-<Card title="Continue to Genie Quick Start" icon="rocket" href="/genie/quickstart">
-  Get up and running in 5 minutes
-</Card>
-
----
-
-## Add Python Tools (Optional)
-
-After you have Genie running, add specialized capabilities:
+The Automagik Suite provides 6 powerful tools for AI automation. Choose the one that fits your needs:
 
 <CardGroup cols={2}>
-  <Card title="🐝 Hive" href="/hive/quickstart">
-    **Multi-Agent Teams**
+  <Card title="🔧 Forge" href="/forge/quickstart">
+    **Start Here If:** You want AI-powered task management with multi-LLM support
 
-    Production-ready AI teams in YAML
+    Install: `npm install -g automagik-forge`
+  </Card>
+
+  <Card title="🐝 Hive" href="/hive/quickstart">
+    **Start Here If:** You need multi-agent orchestration teams
 
     Install: `pip install automagik-hive`
   </Card>
 
   <Card title="📱 Omni" href="/omni/quickstart">
-    **Messaging Automation**
-
-    Connect AI to WhatsApp, Discord, Slack
+    **Start Here If:** You want to connect AI to WhatsApp, Discord, Slack
 
     Install: `pip install automagik-omni`
   </Card>
 
   <Card title="⚡ Spark" href="/spark/quickstart">
-    **Scheduled Workflows**
-
-    24/7 automated task execution
+    **Start Here If:** You need scheduled workflows and automation
 
     Install: `pip install automagik-spark`
   </Card>
 
-  <Card title="🛠️ Tools" href="/tools/quickstart">
-    **MCP Generator**
+  <Card title="🧞 Genie" href="/genie/quickstart">
+    **Start Here If:** You want ready-to-run AI workspaces
 
-    Convert APIs to AI tools instantly
+    Install: `npm install -g automagik-genie`
+  </Card>
+
+  <Card title="🛠️ Tools" href="/tools/quickstart">
+    **Start Here If:** You need to generate MCP tools from APIs
 
     Install: `uvx automagik-tools`
   </Card>
@@ -71,23 +55,30 @@ After you have Genie running, add specialized capabilities:
 
 ## The Complete Stack
 
-Here's how the tools work together when you need the full automation suite:
+For the full experience, here's how the tools work together:
 
 <Steps>
-  <Step title="Genie: Your Foundation">
-    Start with Genie - includes Forge backend and MCP server.
+  <Step title="Genie: Orchestrate Your Workspace">
+    Start with Genie to set up your AI-ready workspace and manage your repository context.
 
     ```bash
-    bash -c "$(curl -fsSL https://install.namastex.ai/get-genie.sh)"
-    cd your-project
-    genie
+    npm install -g automagik-genie
+    genie init
     ```
-
-    ✅ You now have: Genie CLI, Forge Backend, MCP Server, 44 Agents
   </Step>
 
-  <Step title="Hive: Add Python Agent Teams">
-    Deploy multi-agent teams for complex workflows.
+  <Step title="Forge: Manage Tasks">
+    Use Forge to create and organize AI-powered tasks with multi-LLM support.
+
+    ```bash
+    npm install -g automagik-forge
+    forge init
+    forge task create "Build user authentication"
+    ```
+  </Step>
+
+  <Step title="Hive: Deploy Agent Teams">
+    Set up specialized agent teams to execute complex workflows.
 
     ```bash
     pip install automagik-hive
@@ -96,8 +87,8 @@ Here's how the tools work together when you need the full automation suite:
     ```
   </Step>
 
-  <Step title="Omni: Connect Messaging">
-    Enable agents to communicate via WhatsApp, Discord, Slack.
+  <Step title="Omni: Connect Channels">
+    Enable agents to communicate via WhatsApp, Discord, Slack, and more.
 
     ```bash
     pip install automagik-omni
@@ -106,8 +97,8 @@ Here's how the tools work together when you need the full automation suite:
     ```
   </Step>
 
-  <Step title="Spark: Schedule Automation">
-    Add 24/7 scheduled workflows and autonomous execution.
+  <Step title="Spark: Automate Workflows">
+    Schedule agents to work 24/7 with automated workflows.
 
     ```bash
     pip install automagik-spark
@@ -116,8 +107,8 @@ Here's how the tools work together when you need the full automation suite:
     ```
   </Step>
 
-  <Step title="Tools: Generate MCP Tools">
-    Convert any API to AI-ready MCP tools instantly.
+  <Step title="Tools: Extend Capabilities">
+    Generate MCP tools to connect any API to your AI agents.
 
     ```bash
     uvx automagik-tools generate --spec https://api.example.com/openapi.json
