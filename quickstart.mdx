@@ -1,331 +1,148 @@
 ---
 title: "Quick Start"
-description: "Get started with the Automagik Suite in minutes"
+description: "Get started with Automagik Forge in 2 minutes"
 ---
 
 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
   <h1 style={{ fontSize: '2.5rem', fontWeight: '300', marginBottom: '1rem' }}>
-    Start Building with <span style={{ fontWeight: '900', background: 'linear-gradient(to right, #FF00FF, #00FFFF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Automagik</span>
+    Start Building with <span style={{ fontWeight: '900', background: 'linear-gradient(to right, #FF00FF, #00FFFF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Forge</span>
   </h1>
+  <p style={{ fontSize: '1.2rem', color: '#888' }}>
+    AI Orchestration Kanban - Run it instantly with npx
+  </p>
 </div>
 
-## Choose Your Tool
+---
 
-The Automagik Suite provides 6 powerful tools for AI automation. Choose the one that fits your needs:
+## Run Forge Instantly
+
+No installation required. Just run:
+
+```bash
+npx @automagik/forge
+```
+
+That's it! Forge will start and open in your browser at `http://localhost:8887`
+
+<Note>
+**No `npm install -g` needed** - `npx` downloads and runs Forge on-demand
+</Note>
+
+---
+
+## What You Get
 
 <CardGroup cols={2}>
-  <Card title="🔧 Forge" href="/forge/quickstart">
-    **Start Here If:** You want AI-powered task management with multi-LLM support
-
-    Install: `npm install -g automagik-forge`
+  <Card title="🎯 Visual Kanban Board" icon="table-columns">
+    Drag-and-drop task management for AI-powered development
   </Card>
 
-  <Card title="🐝 Hive" href="/hive/quickstart">
-    **Start Here If:** You need multi-agent orchestration teams
-
-    Install: `pip install automagik-hive`
+  <Card title="🤖 8+ LLM Support" icon="brain">
+    Compare Claude, Gemini, GPT-4, and more on the same task
   </Card>
 
-  <Card title="📱 Omni" href="/omni/quickstart">
-    **Start Here If:** You want to connect AI to WhatsApp, Discord, Slack
-
-    Install: `pip install automagik-omni`
+  <Card title="🌳 Git Worktree Isolation" icon="code-branch">
+    Every AI attempt runs in isolated worktree - experiment safely
   </Card>
 
-  <Card title="⚡ Spark" href="/spark/quickstart">
-    **Start Here If:** You need scheduled workflows and automation
-
-    Install: `pip install automagik-spark`
-  </Card>
-
-  <Card title="🧞 Genie" href="/genie/quickstart">
-    **Start Here If:** You want ready-to-run AI workspaces
-
-    Install: `npm install -g automagik-genie`
-  </Card>
-
-  <Card title="🛠️ Tools" href="/tools/quickstart">
-    **Start Here If:** You need to generate MCP tools from APIs
-
-    Install: `uvx automagik-tools`
+  <Card title="📊 Result Comparison" icon="code-compare">
+    Compare AI outputs side-by-side before merging
   </Card>
 </CardGroup>
 
 ---
 
-## The Complete Stack
-
-For the full experience, here's how the tools work together:
+## 3-Minute Tutorial
 
 <Steps>
-  <Step title="Genie: Orchestrate Your Workspace">
-    Start with Genie to set up your AI-ready workspace and manage your repository context.
+  <Step title="Start Forge">
+    ```bash
+    npx @automagik/forge
+    ```
+
+    Opens at `http://localhost:8887`
+  </Step>
+
+  <Step title="Create Your First Task">
+    Click **"New Task"** in the web interface or use CLI:
 
     ```bash
-    npm install -g automagik-genie
-    genie init
+    npx @automagik/forge task create "Add dark mode toggle"
     ```
   </Step>
 
-  <Step title="Forge: Manage Tasks">
-    Use Forge to create and organize AI-powered tasks with multi-LLM support.
-
-    ```bash
-    npm install -g automagik-forge
-    forge init
-    forge task create "Build user authentication"
-    ```
+  <Step title="Let AI Work">
+    - Select your preferred LLM (Claude, Gemini, etc.)
+    - Click **"Start Attempt"**
+    - Watch AI work in isolated Git worktree
   </Step>
 
-  <Step title="Hive: Deploy Agent Teams">
-    Set up specialized agent teams to execute complex workflows.
-
-    ```bash
-    pip install automagik-hive
-    hive init
-    hive start
-    ```
-  </Step>
-
-  <Step title="Omni: Connect Channels">
-    Enable agents to communicate via WhatsApp, Discord, Slack, and more.
-
-    ```bash
-    pip install automagik-omni
-    omni init
-    omni serve
-    ```
-  </Step>
-
-  <Step title="Spark: Automate Workflows">
-    Schedule agents to work 24/7 with automated workflows.
-
-    ```bash
-    pip install automagik-spark
-    spark init
-    spark start
-    ```
-  </Step>
-
-  <Step title="Tools: Extend Capabilities">
-    Generate MCP tools to connect any API to your AI agents.
-
-    ```bash
-    uvx automagik-tools generate --spec https://api.example.com/openapi.json
-    ```
+  <Step title="Review & Merge">
+    - Review the code changes in the web UI
+    - Compare with other LLMs if you want
+    - Merge when satisfied
   </Step>
 </Steps>
 
----
-
-## Quick Wins
-
-### 5-Minute Wins (Pick One)
-
-<AccordionGroup>
-  <Accordion title="Send a WhatsApp Message with AI (Omni)">
-    ```bash
-    # Install and start
-    pip install automagik-omni
-    omni init
-    omni serve
-
-    # Connect WhatsApp
-    omni instance create --name my-whatsapp
-    omni instance qr --name my-whatsapp
-    # Scan QR code with WhatsApp
-
-    # Send message
-    omni send --to "+1234567890" --message "Hello from Omni!"
-    ```
-
-    ✅ You just sent your first omnichannel message!
-  </Accordion>
-
-  <Accordion title="Generate an API Tool (Tools)">
-    ```bash
-    # Generate MCP tool from PetStore API
-    uvx automagik-tools generate \
-      --spec https://petstore3.swagger.io/api/v3/openapi.json \
-      --name petstore
-
-    # Serve it
-    uvx automagik-tools serve --tools petstore
-    ```
-
-    ✅ You just created an AI-ready API tool in 30 seconds!
-  </Accordion>
-
-  <Accordion title="Compare AI Models (Forge)">
-    ```bash
-    # Install Forge
-    npm install -g automagik-forge
-    forge init
-
-    # Create task with multiple LLMs
-    forge task create \
-      --title "Add dark mode toggle" \
-      --llm claude
-
-    forge task fork 1 --llm gemini
-
-    # Compare results
-    forge task compare 1
-    ```
-
-    ✅ You just compared Claude vs Gemini on the same task!
-  </Accordion>
-
-  <Accordion title="Schedule Daily Reports (Spark)">
-    ```bash
-    # Install Spark
-    pip install automagik-spark
-    spark init
-
-    # Create workflow
-    cat > workflows/daily-report.yaml <<EOF
-    name: daily-report
-    schedule: "0 9 * * *"  # 9 AM daily
-    tasks:
-      - name: generate-report
-        type: script
-        script: echo "Daily report generated!"
-    EOF
-
-    # Start scheduler
-    spark start
-    ```
-
-    ✅ You just automated a daily workflow!
-  </Accordion>
-</AccordionGroup>
+✅ **You just built a feature with AI!**
 
 ---
 
-## Common Patterns
+## CLI Quick Reference
 
-### Pattern 1: AI-Powered Development Workflow
+```bash
+# Start Forge
+npx @automagik/forge
 
-```mermaid
-graph LR
-    A[Genie: Plan Feature] --> B[Forge: Create Task]
-    B --> C[Hive: Agent Implements]
-    C --> D[Spark: Automated Testing]
-    D --> E[Omni: Notify Team]
+# Create task
+npx @automagik/forge task create "Task description"
+
+# List tasks
+npx @automagik/forge task list
+
+# Compare AI results
+npx @automagik/forge task compare <task-id>
 ```
 
-**Use Case:** Building features with AI assistance while keeping humans in control.
-
-<Card title="Learn This Pattern" icon="book" href="/forge/quickstart">
-  Follow the Forge quickstart to see this in action
-</Card>
-
----
-
-### Pattern 2: Customer Support Automation
-
-```mermaid
-graph LR
-    A[Omni: Receive Message] --> B[Hive: AI Agent Processes]
-    B --> C[Tools: Check APIs]
-    C --> D[Omni: Send Response]
-```
-
-**Use Case:** AI-powered customer support across multiple channels.
-
-<Card title="Learn This Pattern" icon="book" href="/omni/quickstart">
-  Follow the Omni quickstart to see this in action
-</Card>
-
----
-
-### Pattern 3: Automated Operations
-
-```mermaid
-graph LR
-    A[Spark: Trigger Schedule] --> B[Hive: Agents Execute]
-    B --> C[Tools: Update Systems]
-    C --> D[Omni: Alert Team]
-```
-
-**Use Case:** 24/7 automated operations and monitoring.
-
-<Card title="Learn This Pattern" icon="book" href="/spark/quickstart">
-  Follow the Spark quickstart to see this in action
-</Card>
-
----
-
-## Prerequisites
-
-Before getting started, ensure you have:
-
-<AccordionGroup>
-  <Accordion title="For NPM Tools (Forge, Genie)">
-    - Node.js v18 or higher
-    - npm or yarn
-    - Git
-  </Accordion>
-
-  <Accordion title="For Python Tools (Hive, Omni, Spark, Tools)">
-    - Python 3.10 or higher
-    - pip or uv
-    - Virtual environment (recommended)
-  </Accordion>
-
-  <Accordion title="API Keys">
-    You'll need API keys for the LLMs you want to use:
-    - **Claude**: [Anthropic Console](https://console.anthropic.com)
-    - **OpenAI**: [OpenAI Platform](https://platform.openai.com)
-    - **Gemini**: [Google AI Studio](https://makersuite.google.com)
-  </Accordion>
-</AccordionGroup>
-
----
-
-## Need Help?
+## Requirements
 
 <CardGroup cols={2}>
-  <Card title="Join Discord" icon="discord" href="https://discord.gg/xcW8c7fF3R">
-    Get help from the community and team
+  <Card title="System" icon="computer">
+    - Node.js v18+
+    - Git installed
+    - Any OS (Mac, Linux, Windows)
   </Card>
 
-  <Card title="View Roadmap" icon="map" href="https://github.com/orgs/namastexlabs/projects/9">
-    See what's coming next
-  </Card>
-
-  <Card title="Report Issues" icon="github" href="https://github.com/namastexlabs">
-    Found a bug? Let us know!
-  </Card>
-
-  <Card title="Read Blog" icon="newspaper" href="https://namastex.ai">
-    Learn more about our philosophy
+  <Card title="API Keys (Optional)" icon="key">
+    Get keys for LLMs you want to use:
+    - [Claude (Anthropic)](https://console.anthropic.com)
+    - [GPT-4 (OpenAI)](https://platform.openai.com)
+    - [Gemini (Google)](https://makersuite.google.com)
   </Card>
 </CardGroup>
 
+<Note>
+Forge works without API keys - you can explore the interface and features. Add keys later when you're ready to run AI tasks.
+</Note>
+
 ---
 
-## What's Next?
+## Next Steps
 
-Now that you know what's available, dive into the tool that matches your needs:
+<CardGroup cols={2}>
+  <Card title="Read Full Documentation" icon="book" href="/forge/introduction">
+    Deep dive into Forge concepts and features
+  </Card>
 
-<CardGroup cols={3}>
-  <Card title="Forge" icon="hammer" href="/suite/forge">
-    AI Orchestration Kanban
+  <Card title="Join Discord Community" icon="discord" href="https://discord.gg/xcW8c7fF3R">
+    Get help and share your experience
   </Card>
-  <Card title="Hive" icon="hexagon" href="/suite/hive">
-    Multi-Agent Factory
+
+  <Card title="View GitHub" icon="github" href="https://github.com/namastexlabs/automagik-forge">
+    Contribute or report issues
   </Card>
-  <Card title="Omni" icon="messages" href="/suite/omni">
-    Omnipresent Messaging
-  </Card>
-  <Card title="Spark" icon="bolt" href="/suite/spark">
-    Temporal Automation
-  </Card>
-  <Card title="Genie" icon="wand-magic-sparkles" href="/suite/genie">
-    Universal AI Companion
-  </Card>
-  <Card title="Tools" icon="wrench" href="/suite/tools">
-    Instant MCP Generator
+
+  <Card title="See Roadmap" icon="map" href="https://github.com/orgs/namastexlabs/projects/9">
+    What's coming next
   </Card>
 </CardGroup>
