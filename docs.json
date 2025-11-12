@@ -41,14 +41,9 @@
             ]
           },
           {
-            "group": "The Automagik Suite",
+            "group": "Learn More",
             "pages": [
-              "suite/forge",
-              "suite/hive",
-              "suite/omni",
-              "suite/spark",
-              "suite/genie",
-              "suite/tools"
+              "suite/forge"
             ]
           }
         ]
